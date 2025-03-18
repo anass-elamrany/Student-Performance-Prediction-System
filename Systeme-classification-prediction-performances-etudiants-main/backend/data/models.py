@@ -48,7 +48,7 @@ class Classe(models.Model):
         limit_choices_to={'user_type': 'teacher'}, related_name='classes_enseignees'
     )
 
-    def _str_(self):
+    def __str__(self):
         return self.nom
 
 
@@ -69,7 +69,7 @@ class Matiere(models.Model):
         limit_choices_to={'user_type': 'teacher'}, related_name='matieres_enseignees'
     )
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.nom} - {self.get_semestre_display()}"
 
     
@@ -84,7 +84,7 @@ class Note(models.Model):
     presence = models.IntegerField()
     date_ajout = models.DateTimeField(auto_now_add=True)
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.etudiant.username} - {self.matiere.nom}"
 
 
@@ -96,7 +96,7 @@ class Performance(models.Model):
     categorie_risque = models.CharField(max_length=50)
     date_calcul = models.DateTimeField(auto_now_add=True)
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.etudiant.username} - {self.moyenne_generale}"
 
 
@@ -107,7 +107,7 @@ class Alerte(models.Model):
     message = models.TextField()
     date_creation = models.DateTimeField(auto_now_add=True)
 
-    def _str_(self):
+    def __str__(self):
         return f"Alerte pour {self.etudiant.username}"
 
 
@@ -119,5 +119,5 @@ class Recommandation(models.Model):
     contenu = models.TextField()
     date_creation = models.DateTimeField(auto_now_add=True)
 
-    def _str_(self):
+    def __str__(self):
         return f"Recommandation pour {self.etudiant.username}"

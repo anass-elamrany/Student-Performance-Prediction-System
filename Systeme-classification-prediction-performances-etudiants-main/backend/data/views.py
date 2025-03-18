@@ -3,8 +3,8 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .models import Utilisateur,Classe,Note,Performance,Alerte,Recommandation,Matiere
-from .serializers import UtilisateurSerializer,ClasseSerializer
+from .models import Utilisateur,Classe,Note,Performance,Alerte,Recommandation,Matiere,Classe
+from .serializers import MatiereSerializer, UtilisateurSerializer,ClasseSerializer
 from django.db.models import Avg, Count, F
 from datetime import datetime, timedelta
 
@@ -140,11 +140,6 @@ def get_user_info(request):
         }, status=401)
 
 #the backend for Etudiants page
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-import json
-from .models import Utilisateur, Classe
-from .serializers import UtilisateurSerializer
 
 @csrf_exempt
 def list_students(request):
@@ -204,19 +199,14 @@ def delete_student(request, id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
         
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from .models import Utilisateur, Classe, Matiere
-from .serializers import EnseignantSerializer, ClasseSerializer
-import json
 
-# --------- ENSEIGNANT (Teacher) Functions ---------
 
+# Views for Enseignants
 @csrf_exempt
 def list_enseignants(request):
     if request.method == 'GET':
         enseignants = Utilisateur.objects.filter(user_type='teacher')
-        serializer = EnseignantSerializer(enseignants, many=True)
+        serializer = UtilisateurSerializer(enseignants, many=True)
         return JsonResponse(serializer.data, safe=False)
 
 @csrf_exempt
@@ -225,12 +215,12 @@ def create_enseignant(request):
         data = json.loads(request.body)
         try:
             enseignant = Utilisateur.objects.create_user(
-                username=data['email'],
+                username=data['email'], 
                 email=data['email'],
-                password='defaultpassword',  # Default password
-                first_name=data['prénom'],
-                last_name=data['nom'],
-                phone=data['téléphone'],
+                password='defaultpassword',  
+                first_name=data['first_name'], 
+                last_name=data['last_name'],    
+                phone=data['phone'],           
                 user_type='teacher'
             )
             return JsonResponse({'success': True, 'id': enseignant.id})
@@ -243,10 +233,9 @@ def update_enseignant(request, id):
         data = json.loads(request.body)
         try:
             enseignant = Utilisateur.objects.get(id=id, user_type='teacher')
-            enseignant.first_name = data.get('prénom', enseignant.first_name)
-            enseignant.last_name = data.get('nom', enseignant.last_name)
+            enseignant.first_name = data.get('first_name', enseignant.first_name)  
+            enseignant.last_name = data.get('last_name', enseignant.last_name)    
             enseignant.email = data.get('email', enseignant.email)
-            enseignant.phone = data.get('téléphone', enseignant.phone)
             enseignant.save()
             return JsonResponse({'success': True})
         except Exception as e:
@@ -257,55 +246,30 @@ def delete_enseignant(request, id):
     if request.method == 'DELETE':
         try:
             enseignant = Utilisateur.objects.get(id=id, user_type='teacher')
-            Matiere.objects.filter(enseignant=enseignant).delete()
             enseignant.delete()
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-@csrf_exempt
-def assign_matiere_to_teacher(request, id):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        try:
-            enseignant = Utilisateur.objects.get(id=id, user_type='teacher')
-            for affectation in data.get('affectations', []):
-                classe, _ = Classe.objects.get_or_create(nom=affectation['classe'])
-                Matiere.objects.create(
-                    nom=affectation['matière'],
-                    classe=classe,
-                    enseignant=enseignant,
-                    coefficient=1.0,
-                    semestre=1
-                )
-            return JsonResponse({'success': True})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# --------- CLASSE (Class) Functions ---------
 
+#Views for Classes
 @csrf_exempt
 def list_classes(request):
     if request.method == 'GET':
-        classes = Classe.objects.all()
-        serializer = ClasseSerializer(classes, many=True)
-        return JsonResponse({'count': classes.count(), 'classes': serializer.data}, safe=False)
-
-@csrf_exempt
-def count_classes(request):
-    if request.method == 'GET':
-        return JsonResponse({'count': Classe.objects.count()})
-
+        classes = Classe.objects.all()  # Récupérez tous les objets Classe
+        serializer = ClasseSerializer(classes, many=True)  # Sérialisez les objets
+        return JsonResponse(serializer.data, safe=False)
+    
 @csrf_exempt
 def create_class(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         try:
+            enseignant_responsable = Utilisateur.objects.get(id=data['enseignant_responsable_id'], user_type='teacher')
             classe = Classe.objects.create(
                 nom=data['nom'],
-                niveau=data['niveau'],
-                année_scolaire=data['année_scolaire'],
-                enseignant_responsable_id=data.get('enseignant_responsable_id')
+                enseignant_responsable=enseignant_responsable
             )
             return JsonResponse({'success': True, 'id': classe.id})
         except Exception as e:
@@ -318,9 +282,9 @@ def update_class(request, id):
         try:
             classe = Classe.objects.get(id=id)
             classe.nom = data.get('nom', classe.nom)
-            classe.niveau = data.get('niveau', classe.niveau)
-            classe.année_scolaire = data.get('année_scolaire', classe.année_scolaire)
-            classe.enseignant_responsable_id = data.get('enseignant_responsable_id', classe.enseignant_responsable_id)
+            if 'enseignant_responsable_id' in data:
+                enseignant_responsable = Utilisateur.objects.get(id=data['enseignant_responsable_id'], user_type='teacher')
+                classe.enseignant_responsable = enseignant_responsable
             classe.save()
             return JsonResponse({'success': True})
         except Exception as e:
@@ -336,17 +300,66 @@ def delete_class(request, id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-from django.http import JsonResponse
-from .models import Classe, Matiere
-
+#Views for Matières
 @csrf_exempt
 def list_classes(request):
     if request.method == 'GET':
-        classes = Classe.objects.all().values_list('nom', flat=True)
-        return JsonResponse(list(classes), safe=False)
+        classes = Classe.objects.all()  # Récupérez tous les objets Classe
+        serializer = ClasseSerializer(classes, many=True)  # Sérialisez les objets
+        return JsonResponse(serializer.data, safe=False)
+
 
 @csrf_exempt
 def list_matieres(request):
     if request.method == 'GET':
-        matieres = Matiere.objects.all().values_list('nom', flat=True)
-        return JsonResponse(list(matieres), safe=False)
+        matieres = Matiere.objects.all()
+        serializer = MatiereSerializer(matieres, many=True)
+        return JsonResponse(serializer.data, safe=False)
+    
+@csrf_exempt
+def create_matiere(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        try:
+            classe = Classe.objects.get(id=data['classe_id'])
+            enseignant = Utilisateur.objects.get(id=data['enseignant_id'], user_type='teacher')
+            matiere = Matiere.objects.create(
+                nom=data['nom'],
+                coefficient=data['coefficient'],
+                semestre=data['semestre'],
+                classe=classe,
+                enseignant=enseignant
+            )
+            return JsonResponse({'success': True, 'id': matiere.id})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        
+@csrf_exempt
+def update_matiere(request, id):
+    if request.method == 'PUT':
+        data = json.loads(request.body)
+        try:
+            matiere = Matiere.objects.get(id=id)
+            matiere.nom = data.get('nom', matiere.nom)
+            matiere.coefficient = data.get('coefficient', matiere.coefficient)
+            matiere.semestre = data.get('semestre', matiere.semestre)
+            if 'classe_id' in data:
+                classe = Classe.objects.get(id=data['classe_id'])
+                matiere.classe = classe
+            if 'enseignant_id' in data:
+                enseignant = Utilisateur.objects.get(id=data['enseignant_id'], user_type='teacher')
+                matiere.enseignant = enseignant
+            matiere.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        
+@csrf_exempt
+def delete_matiere(request, id):
+    if request.method == 'DELETE':
+        try:
+            matiere = Matiere.objects.get(id=id)
+            matiere.delete()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)

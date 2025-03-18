@@ -19,32 +19,23 @@ import {
   Grid,
   Card,
   CardContent,
-  Avatar,
-  Chip,
   Alert,
   Snackbar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonIcon from "@mui/icons-material/Person";
-import ClassIcon from "@mui/icons-material/Class";
 
 const AdminEnseignants = () => {
   const [enseignants, setEnseignants] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
-  const [openAffectationDialog, setOpenAffectationDialog] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
-    nom: "",
-    prénom: "",
+    first_name: "",
+    last_name: "",
     email: "",
-    téléphone: "",
-    affectations: [], // Structure: [{ classeId: 1, matièreId: 1 }]
+    phone: "",
   });
   const [editMode, setEditMode] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -52,14 +43,8 @@ const AdminEnseignants = () => {
     message: "",
     severity: "success",
   });
-  const [matières, setMatières] = useState([]); // Liste des matières depuis l'API
-  const [classes, setClasses] = useState([]); // Liste des classes depuis l'API
-  const [affectationForm, setAffectationForm] = useState({
-    classeId: "",
-    matièreId: "",
-  });
 
-  // Récupérer les enseignants depuis l'API
+  // Fetch enseignants from the backend
   const fetchEnseignants = async () => {
     try {
       const response = await fetch("http://localhost:8000/api/enseignants/");
@@ -75,95 +60,41 @@ const AdminEnseignants = () => {
     }
   };
 
-  // Récupérer les classes depuis l'API
-  const fetchClasses = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/classes/");
-      const data = await response.json();
-      setClasses(data);
-    } catch (error) {
-      console.error("Error fetching classes:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors du chargement des classes",
-        severity: "error",
-      });
-    }
-  };
-
-  // Récupérer les matières depuis l'API
-  const fetchMatieres = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/matieres/");
-      const data = await response.json();
-      setMatières(data);
-    } catch (error) {
-      console.error("Error fetching matières:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors du chargement des matières",
-        severity: "error",
-      });
-    }
-  };
-
-  // Charger les données au montage du composant
+  // Load data on component mount
   useEffect(() => {
     fetchEnseignants();
-    fetchClasses();
-    fetchMatieres();
   }, []);
 
-  // Ouvrir le dialogue pour ajouter/modifier un enseignant
+  // Open dialog for adding/editing an enseignant
   const handleOpenDialog = (enseignant = null) => {
     if (enseignant) {
       setFormData({
         id: enseignant.id,
-        nom: enseignant.nom,
-        prénom: enseignant.prénom,
+        first_name: enseignant.first_name,
+        last_name: enseignant.last_name,
         email: enseignant.email,
-        téléphone: enseignant.téléphone,
-        affectations: enseignant.affectations || [],
+        phone: enseignant.phone,
       });
       setEditMode(true);
     } else {
       setFormData({
         id: null,
-        nom: "",
-        prénom: "",
+        first_name: "",
+        last_name: "",
         email: "",
-        téléphone: "",
-        affectations: [],
+        phone: "",
       });
       setEditMode(false);
     }
     setOpenDialog(true);
   };
 
-  // Fermer le dialogue
+  // Close dialog
   const handleCloseDialog = () => {
     setOpenDialog(false);
   };
 
-  // Ouvrir le dialogue pour ajouter des affectations
-  const handleOpenAffectationDialog = (enseignant) => {
-    setFormData({
-      id: enseignant.id,
-      nom: enseignant.nom,
-      prénom: enseignant.prénom,
-      email: enseignant.email,
-      téléphone: enseignant.téléphone,
-      affectations: enseignant.affectations || [],
-    });
-    setOpenAffectationDialog(true);
-  };
-
-  // Fermer le dialogue des affectations
-  const handleCloseAffectationDialog = () => {
-    setOpenAffectationDialog(false);
-  };
-
-  // Gérer les changements dans les champs du formulaire
+  // Handle input changes in the form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -172,75 +103,27 @@ const AdminEnseignants = () => {
     });
   };
 
-  // Gérer les changements dans le formulaire d'affectation
-  const handleAffectationChange = (e) => {
-    const { name, value } = e.target;
-    setAffectationForm({
-      ...affectationForm,
-      [name]: value,
-    });
-  };
-
-  // Ajouter une affectation
-  const handleAddAffectation = () => {
-    if (affectationForm.classeId && affectationForm.matièreId) {
-      const exists = formData.affectations.some(
-        (a) =>
-          a.classeId === affectationForm.classeId &&
-          a.matièreId === affectationForm.matièreId
-      );
-      if (!exists) {
-        setFormData({
-          ...formData,
-          affectations: [
-            ...formData.affectations,
-            {
-              classeId: affectationForm.classeId,
-              matièreId: affectationForm.matièreId,
-            },
-          ],
-        });
-        setAffectationForm({ classeId: "", matièreId: "" });
-      } else {
-        setSnackbar({
-          open: true,
-          message: "Cette affectation existe déjà",
-          severity: "warning",
-        });
-      }
-    }
-  };
-
-  // Supprimer une affectation
-  const handleRemoveAffectation = (index) => {
-    const updatedAffectations = [...formData.affectations];
-    updatedAffectations.splice(index, 1);
-    setFormData({
-      ...formData,
-      affectations: updatedAffectations,
-    });
-  };
-
-  // Soumettre le formulaire (créer ou mettre à jour un enseignant)
+  // Submit form (create or update enseignant)
   const handleSubmit = async () => {
     try {
       const url = editMode
         ? `http://localhost:8000/api/enseignants/update/${formData.id}/`
         : "http://localhost:8000/api/enseignants/create/";
       const method = editMode ? "PUT" : "POST";
+
       const response = await fetch(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          nom: formData.nom,
-          prénom: formData.prénom,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
           email: formData.email,
-          téléphone: formData.téléphone,
-          affectations: formData.affectations,
+          phone: formData.phone,
         }),
       });
+
       if (response.ok) {
         fetchEnseignants();
         setSnackbar({
@@ -251,56 +134,26 @@ const AdminEnseignants = () => {
           severity: "success",
         });
         handleCloseDialog();
+      } else {
+        throw new Error("Erreur lors de la requête");
       }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: "Erreur lors de l'enregistrement",
+        message: "Une erreur est survenue",
         severity: "error",
       });
     }
   };
 
-  // Ajouter des affectations à un enseignant existant
-  const handleAddAffectations = async () => {
-    try {
-      const response = await fetch(
-        `http://localhost:8000/api/enseignants/assign/${formData.id}/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            affectations: formData.affectations,
-          }),
-        }
-      );
-      if (response.ok) {
-        fetchEnseignants();
-        setSnackbar({
-          open: true,
-          message: "Affectations ajoutées avec succès",
-          severity: "success",
-        });
-        handleCloseAffectationDialog();
-      }
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Erreur lors de l'ajout des affectations",
-        severity: "error",
-      });
-    }
-  };
-
-  // Supprimer un enseignant
+  // Delete an enseignant
   const handleDelete = async (id) => {
     try {
       const response = await fetch(
         `http://localhost:8000/api/enseignants/delete/${id}/`,
         { method: "DELETE" }
       );
+
       if (response.ok) {
         fetchEnseignants();
         setSnackbar({
@@ -308,36 +161,26 @@ const AdminEnseignants = () => {
           message: "Enseignant supprimé avec succès",
           severity: "info",
         });
+      } else {
+        throw new Error("Erreur lors de la suppression");
       }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: "Erreur lors de la suppression",
+        message: "Une erreur est survenue",
         severity: "error",
       });
     }
   };
 
-  // Fermer la Snackbar
+  // Close Snackbar
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Obtenir les matières uniques d'un enseignant
-  const getMatieresUniques = (affectations) => {
-    const matiereIds = new Set(affectations.map((a) => a.matièreId));
-    return matières.filter((m) => matiereIds.has(m.id));
-  };
-
-  // Obtenir les classes uniques d'un enseignant
-  const getClassesUniques = (affectations) => {
-    const classeIds = new Set(affectations.map((a) => a.classeId));
-    return classes.filter((c) => classeIds.has(c.id));
-  };
-
   return (
     <Box>
-      {/* En-tête */}
+      {/* Header */}
       <Box
         sx={{
           display: "flex",
@@ -358,7 +201,7 @@ const AdminEnseignants = () => {
         </Button>
       </Box>
 
-      {/* Cartes de statistiques */}
+      {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
@@ -373,7 +216,7 @@ const AdminEnseignants = () => {
                 <Typography variant="h6" color="text.secondary">
                   Total des Enseignants
                 </Typography>
-                <PersonIcon color="primary" fontSize="large" />
+                <PersonIcon color="primary" />
               </Box>
               <Typography variant="h4" component="div" sx={{ mt: 2 }}>
                 {enseignants.length}
@@ -381,121 +224,27 @@ const AdminEnseignants = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography variant="h6" color="text.secondary">
-                  Total des Classes
-                </Typography>
-                <ClassIcon color="secondary" fontSize="large" />
-              </Box>
-              <Typography variant="h4" component="div" sx={{ mt: 2 }}>
-                {classes.length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
 
-      {/* Tableau des enseignants */}
+      {/* Table of enseignants */}
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
-              <TableCell>Enseignant</TableCell>
+              <TableCell>Nom</TableCell>
+              <TableCell align="center">Prénom</TableCell>
               <TableCell align="center">Email</TableCell>
               <TableCell align="center">Téléphone</TableCell>
-              <TableCell align="center">Matières</TableCell>
-              <TableCell align="center">Classes</TableCell>
-              <TableCell align="center">Affectations</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {enseignants.map((enseignant) => (
-              <TableRow
-                key={enseignant.id}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-              >
-                <TableCell component="th" scope="row">
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Typography>
-                      {enseignant.prénom} {enseignant.nom}
-                    </Typography>
-                  </Box>
-                </TableCell>
+              <TableRow key={enseignant.id}>
+                <TableCell>{enseignant.last_name}</TableCell>
+                <TableCell align="center">{enseignant.first_name}</TableCell>
                 <TableCell align="center">{enseignant.email}</TableCell>
-                <TableCell align="center">{enseignant.téléphone}</TableCell>
-                <TableCell align="center">
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 0.5,
-                      justifyContent: "center",
-                    }}
-                  >
-                    {getMatieresUniques(enseignant.affectations).map((matière) => (
-                      <Chip
-                        key={matière.id}
-                        label={matière.nom}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                </TableCell>
-                <TableCell align="center">
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 0.5,
-                      justifyContent: "center",
-                    }}
-                  >
-                    {getClassesUniques(enseignant.affectations).map((classe) => (
-                      <Chip
-                        key={classe.id}
-                        label={classe.nom}
-                        size="small"
-                        color="secondary"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                </TableCell>
-                <TableCell align="center">
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 0.5,
-                      alignItems: "center",
-                    }}
-                  >
-                    {enseignant.affectations.map((affectation, index) => {
-                      const matière = matières.find((m) => m.id === affectation.matièreId);
-                      const classe = classes.find((c) => c.id === affectation.classeId);
-                      return (
-                        <Typography
-                          key={index}
-                          variant="body2"
-                        >
-                          {matière?.nom} → {classe?.nom}
-                        </Typography>
-                      );
-                    })}
-                  </Box>
-                </TableCell>
+                <TableCell align="center">{enseignant.phone}</TableCell>
                 <TableCell align="center">
                   <IconButton
                     color="primary"
@@ -509,13 +258,6 @@ const AdminEnseignants = () => {
                   >
                     <DeleteIcon />
                   </IconButton>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={() => handleOpenAffectationDialog(enseignant)}
-                  >
-                    Ajouter Affectation
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -523,7 +265,7 @@ const AdminEnseignants = () => {
         </Table>
       </TableContainer>
 
-      {/* Dialogue pour Ajouter/Modifier un enseignant */}
+      {/* Dialog for adding/editing enseignant */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {editMode ? "Modifier l'Enseignant" : "Ajouter un Enseignant"}
@@ -532,20 +274,20 @@ const AdminEnseignants = () => {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField
-                name="nom"
+                name="last_name"
                 label="Nom"
                 fullWidth
-                value={formData.nom}
+                value={formData.last_name}
                 onChange={handleInputChange}
                 required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                name="prénom"
+                name="first_name"
                 label="Prénom"
                 fullWidth
-                value={formData.prénom}
+                value={formData.first_name}
                 onChange={handleInputChange}
                 required
               />
@@ -563,10 +305,10 @@ const AdminEnseignants = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                name="téléphone"
+                name="phone"
                 label="Téléphone"
                 fullWidth
-                value={formData.téléphone}
+                value={formData.phone}
                 onChange={handleInputChange}
                 required
               />
@@ -575,116 +317,13 @@ const AdminEnseignants = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Annuler</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-          >
+          <Button onClick={handleSubmit} variant="contained">
             {editMode ? "Mettre à jour" : "Ajouter"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Dialogue pour Ajouter des affectations */}
-      <Dialog open={openAffectationDialog} onClose={handleCloseAffectationDialog} maxWidth="md" fullWidth>
-        <DialogTitle>Ajouter des Affectations</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={5}>
-              <FormControl fullWidth>
-                <InputLabel id="classe-label">Classe</InputLabel>
-                <Select
-                  labelId="classe-label"
-                  name="classeId"
-                  value={affectationForm.classeId}
-                  onChange={handleAffectationChange}
-                >
-                  {classes.map((classe) => (
-                    <MenuItem key={classe.id} value={classe.id}>
-                      {classe.nom}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={5}>
-              <FormControl fullWidth>
-                <InputLabel id="matiere-label">Matière</InputLabel>
-                <Select
-                  labelId="matiere-label"
-                  name="matièreId"
-                  value={affectationForm.matièreId}
-                  onChange={handleAffectationChange}
-                >
-                  {matières.map((matière) => (
-                    <MenuItem key={matière.id} value={matière.id}>
-                      {matière.nom}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Button
-                variant="contained"
-                fullWidth
-                sx={{ height: "100%" }}
-                onClick={handleAddAffectation}
-                disabled={!affectationForm.classeId || !affectationForm.matièreId}
-              >
-                Ajouter
-              </Button>
-            </Grid>
-          </Grid>
-
-          {/* Liste des affectations existantes */}
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Affectations actuelles:
-            </Typography>
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              {formData.affectations.length > 0 ? (
-                <Grid container spacing={1}>
-                  {formData.affectations.map((aff, index) => {
-                    const matière = matières.find((m) => m.id === aff.matièreId);
-                    const classe = classes.find((c) => c.id === aff.classeId);
-                    return (
-                      <Grid item xs={12} key={index}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <Typography>
-                            {matière?.nom} → {classe?.nom}
-                          </Typography>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRemoveAffectation(index)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              ) : (
-                <Typography color="text.secondary">
-                  Aucune affectation. Veuillez ajouter au moins une affectation classe-matière.
-                </Typography>
-              )}
-            </Paper>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseAffectationDialog}>Annuler</Button>
-          <Button
-            onClick={handleAddAffectations}
-            variant="contained"
-          >
-            Enregistrer Affectations
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar pour les notifications */}
+      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
