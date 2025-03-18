@@ -79,6 +79,8 @@ const adminMenuItems = {
     { text: "Classes", icon: <ClassOutlinedIcon />, path: "/admin/Classes" },
     { text: "Enseignants", icon: <PersonOutlinedIcon />, path: "/admin/Enseignants" },
     { text: "Étudiants", icon: <SchoolOutlinedIcon />, path: "/admin/Etudiants" },
+    { text: "Matieres", icon: <SchoolOutlinedIcon />, path: "/admin/Matieres" },
+
     { text: "Performances", icon: <AssessmentOutlinedIcon />, path: "/admin/Performances" },
     { text: "Analyse", icon: <AnalyticsOutlinedIcon />, path: "/admin/Analyse" },
   ],

@@ -15,6 +15,7 @@ import AdminEnseignants from "./pages/admin/Enseignants.jsx";
 import Etudiants from "./pages/admin/Etudiants";
 import AdminPerformance from "./pages/admin/Performances ";
 import AdminAnalyse from "./pages/admin/Analyse";
+import AdminMatieres from "./pages/admin/Matieres";
 
 // Dashboard Pages - Teacher
 import TeacherDashboard from "./pages/teacher/Dashboard";
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
       { path: "Performances", element: <AdminPerformance  /> },
       { path: "Analyse", element: <AdminAnalyse  /> },
       { path: "Etudiants", element: <Etudiants/> },
+      { path: "Matieres", element: <AdminMatieres/> },
     ],
   },
 
