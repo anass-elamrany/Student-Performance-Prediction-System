@@ -153,16 +153,20 @@ def create_student(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         try:
-            # Assuming 'classes' in data is a list of class names
-            classe = Classe.objects.get(nom=data['classes'][0]) if data['classes'] else None
+            # Récupérer la classe si elle est fournie
+            classe = None
+            if data.get('classes') and len(data['classes']) > 0:
+                classe = Classe.objects.get(nom=data['classes'][0])
+            
+            # Créer l'étudiant
             student = Utilisateur.objects.create_user(
-                username=data['email'],  # Assuming email as username
+                username=data['email'],  # Utiliser l'email comme nom d'utilisateur
                 email=data['email'],
-                password='defaultpassword',  # Set a default password or generate one
-                first_name=data['prénom'],
-                last_name=data['nom'],
-                phone=data['téléphone'],
-                n_appogie=data['numeroApogee'],
+                password='defaultpassword',  # Mot de passe par défaut
+                first_name=data['first_name'],
+                last_name=data['last_name'],
+                phone=data['phone'],
+                n_appogie=data['n_appogie'],
                 classe=classe,
                 user_type='student'
             )
@@ -176,19 +180,24 @@ def update_student(request, id):
         data = json.loads(request.body)
         try:
             student = Utilisateur.objects.get(id=id, user_type='student')
-            student.first_name = data.get('prénom', student.first_name)
-            student.last_name = data.get('nom', student.last_name)
+            student.first_name = data.get('first_name', student.first_name)
+            student.last_name = data.get('last_name', student.last_name)
             student.email = data.get('email', student.email)
-            student.phone = data.get('téléphone', student.phone)
-            student.n_appogie = data.get('numeroApogee', student.n_appogie)
-            if data['classes']:
+            student.phone = data.get('phone', student.phone)
+            student.n_appogie = data.get('n_appogie', student.n_appogie)
+            
+            # Mettre à jour la classe si elle est fournie
+            if data.get('classes') and len(data['classes']) > 0:
                 classe = Classe.objects.get(nom=data['classes'][0])
                 student.classe = classe
+            else:
+                student.classe = None
+            
             student.save()
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
+        
 @csrf_exempt
 def delete_student(request, id):
     if request.method == 'DELETE':

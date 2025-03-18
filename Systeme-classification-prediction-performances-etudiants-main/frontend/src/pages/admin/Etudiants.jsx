@@ -61,6 +61,7 @@ const AdminEtudiants = () => {
     try {
       const response = await fetch("http://localhost:8000/api/students/");
       const data = await response.json();
+      console.log("Fetched students:", data); // Affichez les données dans la console
       setEtudiants(data);
       setFilteredEtudiants(data);
     } catch (error) {
@@ -70,7 +71,7 @@ const AdminEtudiants = () => {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/classes/"); // Add a Django endpoint for this
+      const response = await fetch("http://localhost:8000/api/classes/");
       const data = await response.json();
       setClasses(data);
     } catch (error) {
@@ -83,8 +84,9 @@ const AdminEtudiants = () => {
     if (selectedClass === "Toutes") {
       setFilteredEtudiants(etudiants);
     } else {
-      const filtered = etudiants.filter((etudiant) =>
-        etudiant.classes.includes(selectedClass)
+      const filtered = etudiants.filter(
+        (etudiant) =>
+          etudiant.classe && etudiant.classe.nom === selectedClass
       );
       setFilteredEtudiants(filtered);
     }
@@ -125,7 +127,7 @@ const AdminEtudiants = () => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
+      [name]: name === "classes" ? [value] : value,
     });
   };
 
@@ -136,23 +138,27 @@ const AdminEtudiants = () => {
         : "http://localhost:8000/api/students/create/";
       const method = editMode ? "PUT" : "POST";
 
+      const body = JSON.stringify({
+        last_name: formData.nom,
+        first_name: formData.prénom,
+        email: formData.email,
+        phone: formData.téléphone,
+        n_appogie: formData.numeroApogee,
+        classes: formData.classes,
+      });
+
+      console.log("Sending data:", body); // Affichez les données envoyées
+
       const response = await fetch(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          nom: formData.nom,
-          prénom: formData.prénom,
-          email: formData.email,
-          téléphone: formData.téléphone,
-          numeroApogee: formData.numeroApogee,
-          classes: formData.classes,
-        }),
+        body: body,
       });
 
       if (response.ok) {
-        fetchStudents(); // Refresh the student list
+        fetchStudents();
         setSnackbar({
           open: true,
           message: editMode
@@ -162,9 +168,12 @@ const AdminEtudiants = () => {
         });
         handleCloseDialog();
       } else {
+        const errorData = await response.json(); // Affichez l'erreur renvoyée par le backend
+        console.error("Error response:", errorData);
         throw new Error("Erreur lors de la requête");
       }
     } catch (error) {
+      console.error("Error:", error); // Affichez l'erreur dans la console
       setSnackbar({
         open: true,
         message: "Une erreur est survenue",
@@ -183,7 +192,7 @@ const AdminEtudiants = () => {
       );
 
       if (response.ok) {
-        fetchStudents(); // Refresh the student list
+        fetchStudents();
         setSnackbar({
           open: true,
           message: "Étudiant supprimé avec succès",
@@ -259,60 +268,53 @@ const AdminEtudiants = () => {
               <TableCell align="center">N° Apogee</TableCell>
               <TableCell align="center">Email</TableCell>
               <TableCell align="center">Téléphone</TableCell>
-              <TableCell align="center">Classes</TableCell>
+              <TableCell align="center">Classe</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredEtudiants.map((etudiant) => (
-              <TableRow
-                key={etudiant.id}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-              >
-                <TableCell component="th" scope="row">
-                  <Typography>
-                    {etudiant.first_name} {etudiant.last_name}
-                  </Typography>
-                </TableCell>
-                <TableCell align="center">{etudiant.n_appogie}</TableCell>
-                <TableCell align="center">{etudiant.email}</TableCell>
-                <TableCell align="center">{etudiant.phone}</TableCell>
-                <TableCell align="center">
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 0.5,
-                      justifyContent: "center",
-                    }}
-                  >
-                    {etudiant.classe && (
-                      <Chip
-                        label={etudiant.classe.nom}
-                        size="small"
-                        color="secondary"
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell align="center">
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleOpenDialog(etudiant)}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => handleDelete(etudiant.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+  {filteredEtudiants.map((etudiant) => (
+    <TableRow
+      key={etudiant.id}
+      sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+    >
+      <TableCell component="th" scope="row">
+        <Typography>
+          {etudiant.first_name} {etudiant.last_name}
+        </Typography>
+      </TableCell>
+      <TableCell align="center">{etudiant.n_appogie}</TableCell>
+      <TableCell align="center">{etudiant.email}</TableCell>
+      <TableCell align="center">{etudiant.phone}</TableCell>
+      <TableCell align="center">
+        {etudiant.classe ? (
+          <Chip
+            label={etudiant.classe.nom} // Affichez le nom de la classe
+            size="small"
+            color="secondary"
+            variant="outlined"
+          />
+        ) : (
+          "Aucune classe"
+        )}
+      </TableCell>
+      <TableCell align="center">
+        <IconButton
+          color="primary"
+          onClick={() => handleOpenDialog(etudiant)}
+        >
+          <EditIcon />
+        </IconButton>
+        <IconButton
+          color="error"
+          onClick={() => handleDelete(etudiant.id)}
+        >
+          <DeleteIcon />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
         </Table>
       </TableContainer>
 
@@ -376,20 +378,12 @@ const AdminEtudiants = () => {
             </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth>
-                <InputLabel id="classes-label">Classes</InputLabel>
+                <InputLabel id="classes-label">Classe</InputLabel>
                 <Select
                   labelId="classes-label"
                   name="classes"
-                  multiple
-                  value={formData.classes}
+                  value={formData.classes[0] || ""}
                   onChange={handleInputChange}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {selected.map((value) => (
-                        <Chip key={value} label={value} />
-                      ))}
-                    </Box>
-                  )}
                 >
                   {classes.map((classe) => (
                     <MenuItem key={classe.nom} value={classe.nom}>

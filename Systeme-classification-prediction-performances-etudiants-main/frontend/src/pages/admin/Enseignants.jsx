@@ -49,6 +49,7 @@ const AdminEnseignants = () => {
     try {
       const response = await fetch("http://localhost:8000/api/enseignants/");
       const data = await response.json();
+      console.log("Fetched enseignants:", data); // Affichez les données dans la console
       setEnseignants(data);
     } catch (error) {
       console.error("Error fetching enseignants:", error);
@@ -59,7 +60,6 @@ const AdminEnseignants = () => {
       });
     }
   };
-
   // Load data on component mount
   useEffect(() => {
     fetchEnseignants();
