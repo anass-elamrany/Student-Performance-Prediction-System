@@ -335,3 +335,18 @@ def delete_class(request, id):
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+from django.http import JsonResponse
+from .models import Classe, Matiere
+
+@csrf_exempt
+def list_classes(request):
+    if request.method == 'GET':
+        classes = Classe.objects.all().values_list('nom', flat=True)
+        return JsonResponse(list(classes), safe=False)
+
+@csrf_exempt
+def list_matieres(request):
+    if request.method == 'GET':
+        matieres = Matiere.objects.all().values_list('nom', flat=True)
+        return JsonResponse(list(matieres), safe=False)

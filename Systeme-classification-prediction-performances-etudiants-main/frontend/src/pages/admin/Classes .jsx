@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -26,15 +26,11 @@ import {
   CardContent,
   Alert,
   Snackbar,
-  CircularProgress,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SchoolIcon from "@mui/icons-material/School";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import DownloadIcon from "@mui/icons-material/Download";
-import SubjectIcon from "@mui/icons-material/Subject";
 
 const AdminClasses = () => {
   const [classes, setClasses] = useState([]);
@@ -44,8 +40,7 @@ const AdminClasses = () => {
     nom: "",
     niveau: "",
     année_scolaire: "",
-    enseignant_responsable: null,
-    matières: [],
+    enseignant_responsable_id: null,
   });
   const [editMode, setEditMode] = useState(false);
   const [enseignants, setEnseignants] = useState([]);
@@ -54,15 +49,8 @@ const AdminClasses = () => {
     message: "",
     severity: "success",
   });
-  const [openSubjectDialog, setOpenSubjectDialog] = useState(false);
-  const [currentSubject, setCurrentSubject] = useState({
-    id: null,
-    nom: "",
-    enseignant: null,
-  });
-  const fileInputRef = useRef(null);
 
-  // Fetch classes and enseignants from the backend
+  // Récupérer les classes et les enseignants depuis l'API
   useEffect(() => {
     fetchClasses();
     fetchEnseignants();
@@ -75,19 +63,30 @@ const AdminClasses = () => {
       setClasses(data);
     } catch (error) {
       console.error("Error fetching classes:", error);
+      setSnackbar({
+        open: true,
+        message: "Erreur lors du chargement des classes",
+        severity: "error",
+      });
     }
   };
 
   const fetchEnseignants = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/enseignants/"); // Add this endpoint in Django
+      const response = await fetch("http://localhost:8000/api/enseignants/");
       const data = await response.json();
       setEnseignants(data);
     } catch (error) {
       console.error("Error fetching enseignants:", error);
+      setSnackbar({
+        open: true,
+        message: "Erreur lors du chargement des enseignants",
+        severity: "error",
+      });
     }
   };
 
+  // Ouvrir le dialogue pour ajouter/modifier une classe
   const handleOpenDialog = (classe = null) => {
     if (classe) {
       setFormData({
@@ -95,8 +94,7 @@ const AdminClasses = () => {
         nom: classe.nom,
         niveau: classe.niveau,
         année_scolaire: classe.année_scolaire,
-        enseignant_responsable: classe.enseignant_responsable,
-        matières: classe.matières,
+        enseignant_responsable_id: classe.enseignant_responsable_id,
       });
       setEditMode(true);
     } else {
@@ -105,18 +103,19 @@ const AdminClasses = () => {
         nom: "",
         niveau: "",
         année_scolaire: "",
-        enseignant_responsable: null,
-        matières: [],
+        enseignant_responsable_id: null,
       });
       setEditMode(false);
     }
     setOpenDialog(true);
   };
 
+  // Fermer le dialogue
   const handleCloseDialog = () => {
     setOpenDialog(false);
   };
 
+  // Gérer les changements dans les champs du formulaire
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -125,6 +124,7 @@ const AdminClasses = () => {
     });
   };
 
+  // Soumettre le formulaire (créer ou mettre à jour une classe)
   const handleSubmit = async () => {
     try {
       const url = editMode
@@ -137,20 +137,11 @@ const AdminClasses = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          nom: formData.nom,
-          niveau: formData.niveau,
-          année_scolaire: formData.année_scolaire,
-          enseignant_responsable_id: formData.enseignant_responsable?.id,
-          matières: formData.matières.map((m) => ({
-            nom: m.nom,
-            enseignant_id: m.enseignant?.id,
-          })),
-        }),
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        fetchClasses(); // Refresh the class list
+        fetchClasses();
         setSnackbar({
           open: true,
           message: editMode
@@ -171,6 +162,7 @@ const AdminClasses = () => {
     }
   };
 
+  // Supprimer une classe
   const handleDelete = async (id) => {
     try {
       const response = await fetch(
@@ -181,7 +173,7 @@ const AdminClasses = () => {
       );
 
       if (response.ok) {
-        fetchClasses(); // Refresh the class list
+        fetchClasses();
         setSnackbar({
           open: true,
           message: "Classe supprimée avec succès",
@@ -199,73 +191,10 @@ const AdminClasses = () => {
     }
   };
 
+  // Fermer la Snackbar
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
-
-  const handleOpenSubjectDialog = (subject = null) => {
-    if (subject) {
-      setCurrentSubject({
-        id: subject.id,
-        nom: subject.nom,
-        enseignant: subject.enseignant,
-      });
-    } else {
-      setCurrentSubject({
-        id: null,
-        nom: "",
-        enseignant: null,
-      });
-    }
-    setOpenSubjectDialog(true);
-  };
-
-  const handleCloseSubjectDialog = () => {
-    setOpenSubjectDialog(false);
-  };
-
-  const handleSubjectInputChange = (e) => {
-    const { name, value } = e.target;
-    setCurrentSubject({
-      ...currentSubject,
-      [name]: value,
-    });
-  };
-
-  const handleSubjectSubmit = () => {
-    const newMatière = {
-      ...currentSubject,
-      id: currentSubject.id || Date.now(), // Use existing ID or create a new one
-    };
-
-    let updatedMatières;
-    if (currentSubject.id) {
-      // Edit mode
-      updatedMatières = formData.matières.map((m) =>
-        m.id === currentSubject.id ? newMatière : m
-      );
-    } else {
-      // Create mode
-      updatedMatières = [...formData.matières, newMatière];
-    }
-
-    setFormData({
-      ...formData,
-      matières: updatedMatières,
-    });
-
-    setOpenSubjectDialog(false);
-  };
-
-  const handleDeleteSubject = (id) => {
-    const updatedMatières = formData.matières.filter((m) => m.id !== id);
-    setFormData({
-      ...formData,
-      matières: updatedMatières,
-    });
-  };
-
-  const semestres = ["Semestre 1", "Semestre 2", "Semestre 3", "Semestre 4"];
 
   return (
     <Box>
@@ -321,56 +250,46 @@ const AdminClasses = () => {
               <TableCell align="center">Niveau</TableCell>
               <TableCell align="center">Année Scolaire</TableCell>
               <TableCell align="center">Enseignant Responsable</TableCell>
-              <TableCell align="center">Matières</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {classes.map((classe) => (
-              <TableRow
-                key={classe.id}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-              >
-                <TableCell component="th" scope="row">
-                  {classe.nom}
-                </TableCell>
-                <TableCell align="center">{classe.niveau}</TableCell>
-                <TableCell align="center">{classe.année_scolaire}</TableCell>
-                <TableCell align="center">
-                  {classe.enseignant_responsable?.nom}
-                </TableCell>
-                <TableCell align="center">
-                  {classe.matières.length > 0 ? (
-                    <Chip
-                      label={`${classe.matières.length} matière(s)`}
+            {classes && classes.length > 0 ? (
+              classes.map((classe) => (
+                <TableRow key={classe.id}>
+                  <TableCell>{classe.nom}</TableCell>
+                  <TableCell align="center">{classe.niveau}</TableCell>
+                  <TableCell align="center">{classe.année_scolaire}</TableCell>
+                  <TableCell align="center">
+                    {enseignants.find((e) => e.id === classe.enseignant_responsable_id)?.nom || "Inconnu"}
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton
                       color="primary"
-                      variant="outlined"
-                    />
-                  ) : (
-                    <Chip label="Aucune matière" color="default" variant="outlined" />
-                  )}
-                </TableCell>
-                <TableCell align="center">
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleOpenDialog(classe)}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => handleDelete(classe.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                      onClick={() => handleOpenDialog(classe)}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDelete(classe.id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  Aucune classe disponible
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Dialogue pour Ajouter/Modifier une classe */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {editMode ? "Modifier la Classe" : "Créer une Nouvelle Classe"}
@@ -388,22 +307,14 @@ const AdminClasses = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
-                <InputLabel id="niveau-label">Niveau</InputLabel>
-                <Select
-                  labelId="niveau-label"
-                  name="niveau"
-                  value={formData.niveau}
-                  label="Niveau"
-                  onChange={handleInputChange}
-                >
-                  {semestres.map((semestre) => (
-                    <MenuItem key={semestre} value={semestre}>
-                      {semestre}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                name="niveau"
+                label="Niveau"
+                fullWidth
+                value={formData.niveau}
+                onChange={handleInputChange}
+                required
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -420,16 +331,9 @@ const AdminClasses = () => {
                 <InputLabel id="enseignant-label">Enseignant Responsable</InputLabel>
                 <Select
                   labelId="enseignant-label"
-                  name="enseignant_responsable"
-                  value={formData.enseignant_responsable?.id || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      enseignant_responsable: enseignants.find(
-                        (e) => e.id === e.target.value
-                      ),
-                    })
-                  }
+                  name="enseignant_responsable_id"
+                  value={formData.enseignant_responsable_id || ""}
+                  onChange={handleInputChange}
                 >
                   {enseignants.map((enseignant) => (
                     <MenuItem key={enseignant.id} value={enseignant.id}>
@@ -438,69 +342,6 @@ const AdminClasses = () => {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 2,
-                  mt: 2,
-                }}
-              >
-                <Typography variant="subtitle1">Matières de la classe</Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleOpenSubjectDialog()}
-                >
-                  Ajouter une matière
-                </Button>
-              </Box>
-              <TableContainer component={Paper} sx={{ mb: 3 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nom de la matière</TableCell>
-                      <TableCell>Enseignant</TableCell>
-                      <TableCell align="center">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {formData.matières.length > 0 ? (
-                      formData.matières.map((matière) => (
-                        <TableRow key={matière.id}>
-                          <TableCell>{matière.nom}</TableCell>
-                          <TableCell>{matière.enseignant?.nom}</TableCell>
-                          <TableCell align="center">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleOpenSubjectDialog(matière)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteSubject(matière.id)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={3} align="center">
-                          Aucune matière ajoutée
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
             </Grid>
           </Grid>
         </DialogContent>
@@ -508,62 +349,6 @@ const AdminClasses = () => {
           <Button onClick={handleCloseDialog}>Annuler</Button>
           <Button onClick={handleSubmit} variant="contained">
             {editMode ? "Mettre à jour" : "Créer"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialogue pour Ajouter/Modifier une matière */}
-      <Dialog open={openSubjectDialog} onClose={handleCloseSubjectDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {currentSubject.id ? "Modifier la Matière" : "Ajouter une Matière"}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                name="nom"
-                label="Nom de la Matière"
-                fullWidth
-                value={currentSubject.nom}
-                onChange={handleSubjectInputChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel id="enseignant-matiere-label">Enseignant</InputLabel>
-                <Select
-                  labelId="enseignant-matiere-label"
-                  name="enseignant"
-                  value={currentSubject.enseignant?.id || ""}
-                  onChange={(e) =>
-                    setCurrentSubject({
-                      ...currentSubject,
-                      enseignant: enseignants.find(
-                        (ens) => ens.id === e.target.value
-                      ),
-                    })
-                  }
-                  required
-                >
-                  {enseignants.map((enseignant) => (
-                    <MenuItem key={enseignant.id} value={enseignant.id}>
-                      {enseignant.nom}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseSubjectDialog}>Annuler</Button>
-          <Button
-            onClick={handleSubjectSubmit}
-            variant="contained"
-            disabled={!currentSubject.nom || !currentSubject.enseignant}
-          >
-            {currentSubject.id ? "Mettre à jour" : "Ajouter"}
           </Button>
         </DialogActions>
       </Dialog>
