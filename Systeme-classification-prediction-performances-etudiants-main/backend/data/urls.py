@@ -41,7 +41,9 @@ urlpatterns = [
     path('api/notes/<int:student_id>/<int:matiere_id>/', views.get_student_notes, name='get_student_notes'),
     path('api/notes/update/<int:student_id>/<int:matiere_id>/', views.update_student_note, name='update_student_note'),
     
-    # Machine Learning
+        # Machine Learning
+    path('api/classify-students/', views.classify_students, name='classify-students'),
     path('api/predict-performance/', views.predict_student_performance, name='predict-performance'),
-    path('api/classify-performance/', views.classify_student_performance, name='classify-performance'),
+    path('api/generate-alerts/', views.generate_alerts, name='generate-alerts'),
+    path('api/generate-recommendations/', views.generate_recommendations, name='generate-recommendations'),
 ]

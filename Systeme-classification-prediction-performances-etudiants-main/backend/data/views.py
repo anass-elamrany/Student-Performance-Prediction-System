@@ -16,30 +16,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 # Helper Functions
-def generate_alert(etudiant_id, message):
-    """
-    Génère une alerte pour un étudiant.
-    """
-    etudiant = Utilisateur.objects.get(id=etudiant_id, user_type='student')
-    Alerte.objects.create(
-        etudiant=etudiant,
-        message=message,
-        date_creation=timezone.now()
-    )
-
-def generate_recommendation(etudiant_id, matiere_id, contenu):
-    """
-    Génère une recommandation pour un étudiant dans une matière spécifique.
-    """
-    etudiant = Utilisateur.objects.get(id=etudiant_id, user_type='student')
-    matiere = Matiere.objects.get(id=matiere_id)
-    Recommandation.objects.create(
-        etudiant=etudiant,
-        matiere=matiere,
-        contenu=contenu,
-        date_creation=timezone.now()
-    )
-
 def get_user_info_by_role(user):
     """
     Retourne les informations de l'utilisateur en fonction de son rôle.
@@ -467,6 +443,12 @@ def update_student_note(request, student_id, matiere_id):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 # Machine Learning Views
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .models import Note
+from .ml_utils import train_linear_regression_model
+
 @csrf_exempt
 def predict_student_performance(request):
     """
@@ -475,19 +457,31 @@ def predict_student_performance(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            features = [
-                data['etudiant_id'],
-                data['matiere_id'],
-                data['note_devoir_projet'],
-                data['assiduite'],
-                data['presence'],
-            ]
-            prediction = predict_performance(features)
-            return JsonResponse({'predicted_score': prediction})
+            etudiant_id = data['etudiant_id']
+            matiere_id = data['matiere_id']
+
+            # Récupérer les données de l'étudiant
+            notes = Note.objects.filter(etudiant_id=etudiant_id, matiere_id=matiere_id)
+            if not notes.exists():
+                return JsonResponse({'error': 'Aucune note trouvée pour cet étudiant et cette matière.'}, status=404)
+
+            # Préparer les données pour la prédiction
+            X = []
+            for note in notes:
+                X.append([note.note_module, note.note_devoir_projet, note.assiduite, note.presence])
+
+            # Entraîner un modèle de régression linéaire
+            model = train_linear_regression_model()
+
+            # Faire une prédiction
+            prediction = model.predict([X[-1]])  # Utiliser les dernières données pour la prédiction
+            return JsonResponse({'predicted_score': prediction[0]})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
+from .models import Note
+from .ml_utils import train_classification_model
 @csrf_exempt
 def classify_student_performance(request):
     """
@@ -496,21 +490,109 @@ def classify_student_performance(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            features = [
-                data['etudiant_id'],
-                data['matiere_id'],
-                data['note_devoir_projet'],
-                data['assiduite'],
-                data['presence'],
-            ]
-            category = classify_student(features)
-            if category == 'à risque':
-                generate_recommendation(
-                    data['etudiant_id'],
-                    data['matiere_id'],
-                    "Nous vous recommandons de suivre des cours de rattrapage et de consulter les ressources supplémentaires."
+            etudiant_id = data['etudiant_id']
+            matiere_id = data['matiere_id']
+
+            # Récupérer les données de l'étudiant
+            notes = Note.objects.filter(etudiant_id=etudiant_id, matiere_id=matiere_id)
+            if not notes.exists():
+                return JsonResponse({'error': 'Aucune note trouvée pour cet étudiant et cette matière.'}, status=404)
+
+            # Préparer les données pour la classification
+            X = []
+            for note in notes:
+                X.append([note.note_module, note.note_devoir_projet, note.assiduite, note.presence])
+
+            # Entraîner un modèle de classification
+            model = train_classification_model()
+
+            # Faire une prédiction
+            prediction = model.predict([X[-1]])  # Utiliser les dernières données pour la prédiction
+            return JsonResponse({'performance_category': prediction[0]})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+from .models import Note, Performance
+from .ml_utils import train_classification_model
+
+@csrf_exempt
+def classify_students(request):
+    """
+    Vue pour classifier les étudiants en fonction de leurs performances.
+    """
+    if request.method == 'POST':
+        try:
+            # Entraîner le modèle de classification
+            model = train_classification_model()
+
+            # Récupérer tous les étudiants
+            students = Utilisateur.objects.filter(user_type='student')
+            for student in students:
+                # Récupérer les notes de l'étudiant
+                notes = Note.objects.filter(etudiant=student)
+                if notes.exists():
+                    # Préparer les données pour la prédiction
+                    X = [[note.note_module, note.note_devoir_projet, note.assiduite, note.presence] for note in notes]
+                    # Faire une prédiction
+                    prediction = model.predict(X)
+                    # Enregistrer la catégorie de performance
+                    Performance.objects.update_or_create(
+                        etudiant=student,
+                        defaults={'categorie_risque': prediction[0]}
+                    )
+
+            return JsonResponse({'success': True, 'message': 'Classification des étudiants terminée.'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+from .models import Performance, Alerte
+
+@csrf_exempt
+def generate_alerts(request):
+    """
+    Vue pour générer des alertes pour les étudiants à risque.
+    """
+    if request.method == 'POST':
+        try:
+            # Récupérer les étudiants à risque
+            students_at_risk = Performance.objects.filter(categorie_risque='À risque')
+            for performance in students_at_risk:
+                # Générer une alerte pour l'étudiant
+                Alerte.objects.create(
+                    etudiant=performance.etudiant,
+                    message=f"L'étudiant {performance.etudiant.username} est à risque."
                 )
-            return JsonResponse({'performance_category': category})
+
+            return JsonResponse({'success': True, 'message': 'Alertes générées avec succès.'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+from .models import Performance, Recommandation, Matiere
+
+@csrf_exempt
+def generate_recommendations(request):
+    """
+    Vue pour générer des recommandations de cours ou de parcours pour les étudiants.
+    """
+    if request.method == 'POST':
+        try:
+            # Récupérer les étudiants à risque
+            students_at_risk = Performance.objects.filter(categorie_risque='À risque')
+            for performance in students_at_risk:
+                # Récupérer les matières disponibles pour l'étudiant
+                matieres = Matiere.objects.filter(classe=performance.etudiant.classe)
+                for matiere in matieres:
+                    # Générer une recommandation pour l'étudiant
+                    Recommandation.objects.create(
+                        etudiant=performance.etudiant,
+                        matiere=matiere,
+                        contenu=f"Nous vous recommandons de suivre le cours de {matiere.nom} pour améliorer vos performances."
+                    )
+
+            return JsonResponse({'success': True, 'message': 'Recommandations générées avec succès.'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)

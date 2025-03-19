@@ -70,7 +70,7 @@ const AdminPerformance = () => {
     }
 
     try {
-      const response = await fetch('/api/classify-students-by-class-and-subject/', {
+      const response = await fetch('/api/classify-students/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,6 +104,73 @@ const AdminPerformance = () => {
     } catch (error) {
       console.error('Error classifying students:', error);
       setSnackbarMessage("Erreur lors de la classification.");
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Function to predict student performance
+  const predictStudentPerformance = async () => {
+    if (selectedClass === 'all' || selectedSubject === 'all') {
+      setSnackbarMessage("Veuillez sélectionner une classe et une matière.");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/predict-performance/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          class_id: selectedClass,
+          subject_id: selectedSubject,
+        }),
+      });
+      const result = await response.json();
+      setSnackbarMessage(`Note prédite : ${result.predicted_score}`);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error predicting performance:', error);
+      setSnackbarMessage("Erreur lors de la prédiction.");
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Function to generate alerts for at-risk students
+  const generateAlerts = async () => {
+    try {
+      const response = await fetch('/api/generate-alerts/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      setSnackbarMessage(result.message);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error generating alerts:', error);
+      setSnackbarMessage("Erreur lors de la génération des alertes.");
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Function to generate course recommendations
+  const generateRecommendations = async () => {
+    try {
+      const response = await fetch('/api/generate-recommendations/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      setSnackbarMessage(result.message);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error generating recommendations:', error);
+      setSnackbarMessage("Erreur lors de la génération des recommandations.");
       setSnackbarOpen(true);
     }
   };
@@ -162,7 +229,7 @@ const AdminPerformance = () => {
       
       {/* Actions */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12}>
+        <Grid item xs={12} sm={6} md={3}>
           <Button 
             variant="contained" 
             color="primary" 
@@ -171,6 +238,39 @@ const AdminPerformance = () => {
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : "Classer les Étudiants"}
+          </Button>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Button 
+            variant="contained" 
+            color="secondary" 
+            fullWidth
+            onClick={predictStudentPerformance}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} color="inherit" /> : "Prédire les Performances"}
+          </Button>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Button 
+            variant="contained" 
+            color="warning" 
+            fullWidth
+            onClick={generateAlerts}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} color="inherit" /> : "Générer des Alertes"}
+          </Button>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Button 
+            variant="contained" 
+            color="success" 
+            fullWidth
+            onClick={generateRecommendations}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} color="inherit" /> : "Générer des Recommandations"}
           </Button>
         </Grid>
       </Grid>
