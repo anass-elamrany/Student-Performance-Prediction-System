@@ -475,6 +475,7 @@ const AdminMatieres = () => {
       >
         <Alert
           onClose={handleCloseSnackbar}
+          // @ts-ignore
           severity={snackbar.severity}
           sx={{ width: "100%" }}
         >

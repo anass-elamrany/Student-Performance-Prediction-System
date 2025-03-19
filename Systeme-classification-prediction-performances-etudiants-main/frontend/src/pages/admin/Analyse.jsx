@@ -23,93 +23,10 @@ import {
   Chip,
   LinearProgress,
   CircularProgress,
+  Snackbar,
+  Button,
 } from "@mui/material";
-import { Warning, Recommend } from "@mui/icons-material";
-
-// Données fictives pour la démo
-const mockClasses = [
-  { id: 1, name: "Mathématiques Avancées" },
-  { id: 2, name: "Programmation Java" },
-  { id: 3, name: "Base de Données SQL" },
-];
-
-const mockSubjects = [
-  { id: 1, name: "Algorithmique" },
-  { id: 2, name: "Structures de données" },
-  { id: 3, name: "Statistiques" },
-  { id: 4, name: "Base de données" },
-];
-
-const mockStudents = [
-  {
-    id: 1,
-    name: "Ahmed Bensouda",
-    averageGrade: 17.5,
-    attendance: 95,
-    status: "Excellent",
-    risk: "low",
-    classId: 1,
-    subjectId: 2,
-    recommendations: [
-      { type: "course", content: "Proposer des projets avancés pour stimuler son potentiel" },
-      { type: "path", content: "Encourager la participation aux compétitions de programmation" },
-    ],
-  },
-  {
-    id: 2,
-    name: "Fatima Zahrae",
-    averageGrade: 14.2,
-    attendance: 88,
-    status: "Bon",
-    risk: "low",
-    classId: 1,
-    subjectId: 1,
-    recommendations: [
-      { type: "course", content: "Renforcer les bases en algorithmique" },
-    ],
-  },
-  {
-    id: 3,
-    name: "Karim Alaoui",
-    averageGrade: 9.5,
-    attendance: 65,
-    status: "En difficulté",
-    risk: "high",
-    classId: 2,
-    subjectId: 3,
-    recommendations: [
-      { type: "course", content: "Sessions de rattrapage en programmation orientée objet" },
-      { type: "path", content: "Envisager un tutorat personnalisé" },
-    ],
-  },
-  {
-    id: 4,
-    name: "Samira Idrissi",
-    averageGrade: 12.8,
-    attendance: 82,
-    status: "Moyen",
-    risk: "medium",
-    classId: 2,
-    subjectId: 2,
-    recommendations: [
-      { type: "course", content: "Exercices supplémentaires sur les structures de données" },
-      { type: "path", content: "Recommander des ressources d'auto-apprentissage" },
-    ],
-  },
-  {
-    id: 5,
-    name: "Youssef Bennani",
-    averageGrade: 16.2,
-    attendance: 91,
-    status: "Très bon",
-    risk: "low",
-    classId: 3,
-    subjectId: 4,
-    recommendations: [
-      { type: "path", content: "Orientation vers des cours optionnels avancés" },
-    ],
-  },
-];
+import { Warning, Recommend, CheckCircle as CheckCircleIcon } from "@mui/icons-material";
 
 const STATUS_COLORS = {
   low: "#4CAF50",
@@ -124,47 +41,74 @@ const AdminAnalyse = () => {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
+  // Fetch classes, subjects, and students from the backend
   useEffect(() => {
-    // Simuler le chargement des données
-    const timer = setTimeout(() => {
-      setStudents(mockStudents);
-      setFilteredStudents(mockStudents);
-      setSelectedClass("");
-      setSelectedSubject("");
-      setLoading(false);
-    }, 1000);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch classes
+        const classesResponse = await fetch("/api/classes/");
+        const classesData = await classesResponse.json();
+        setClasses(classesData);
 
-    return () => clearTimeout(timer);
+        // Fetch subjects
+        const subjectsResponse = await fetch("/api/subjects/");
+        const subjectsData = await subjectsResponse.json();
+        setSubjects(subjectsData);
+
+        // Fetch students
+        const studentsResponse = await fetch("/api/students/");
+        const studentsData = await studentsResponse.json();
+        setStudents(studentsData);
+        setFilteredStudents(studentsData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setSnackbarMessage("Erreur lors du chargement des données.");
+        setSnackbarOpen(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
+  // Filter students based on selected class and subject
   useEffect(() => {
-    // Filtrer les étudiants en fonction de la classe et de la matière sélectionnées
     let filtered = [...students];
-    
+
     if (selectedClass) {
-      filtered = filtered.filter(student => student.classId === parseInt(selectedClass));
+      filtered = filtered.filter((student) => student.classId === parseInt(selectedClass));
     }
-    
+
     if (selectedSubject) {
-      filtered = filtered.filter(student => student.subjectId === parseInt(selectedSubject));
+      filtered = filtered.filter((student) => student.subjectId === parseInt(selectedSubject));
     }
-    
+
     setFilteredStudents(filtered);
   }, [selectedClass, selectedSubject, students]);
 
+  // Handle tab change
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
 
+  // Handle class change
   const handleClassChange = (event) => {
     setSelectedClass(event.target.value);
   };
 
+  // Handle subject change
   const handleSubjectChange = (event) => {
     setSelectedSubject(event.target.value);
   };
 
+  // Get status color
   const getStatusColor = (status) => {
     switch (status) {
       case "Excellent":
@@ -180,8 +124,58 @@ const AdminAnalyse = () => {
     }
   };
 
+  // Get risk color
   const getRiskColor = (risk) => {
     return STATUS_COLORS[risk] || "#757575";
+  };
+
+  // Handle snackbar close
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
+  // Function to predict student performance
+  const predictStudentPerformance = async (studentId) => {
+    try {
+      const response = await fetch("/api/predict-performance/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          etudiant_id: studentId,
+        }),
+      });
+      const result = await response.json();
+      setSnackbarMessage(`Note prédite : ${result.predicted_score}`);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Error predicting performance:", error);
+      setSnackbarMessage("Erreur lors de la prédiction.");
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Function to classify student performance
+  const classifyStudentPerformance = async (studentId) => {
+    try {
+      const response = await fetch("/api/classify-student/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          etudiant_id: studentId,
+        }),
+      });
+      const result = await response.json();
+      setSnackbarMessage(`Catégorie de performance : ${result.performance_category}`);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Error classifying student:", error);
+      setSnackbarMessage("Erreur lors de la classification.");
+      setSnackbarOpen(true);
+    }
   };
 
   if (loading) {
@@ -198,6 +192,7 @@ const AdminAnalyse = () => {
         Analyse des Performances
       </Typography>
 
+      {/* Filters */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
@@ -210,9 +205,9 @@ const AdminAnalyse = () => {
               onChange={handleClassChange}
             >
               <MenuItem value="">Toutes les classes</MenuItem>
-              {mockClasses.map((cls) => (
+              {classes.map((cls) => (
                 <MenuItem key={cls.id} value={cls.id}>
-                  {cls.name}
+                  {cls.nom}
                 </MenuItem>
               ))}
             </Select>
@@ -229,9 +224,9 @@ const AdminAnalyse = () => {
               onChange={handleSubjectChange}
             >
               <MenuItem value="">Toutes les matières</MenuItem>
-              {mockSubjects.map((subject) => (
+              {subjects.map((subject) => (
                 <MenuItem key={subject.id} value={subject.id}>
-                  {subject.name}
+                  {subject.nom}
                 </MenuItem>
               ))}
             </Select>
@@ -239,6 +234,7 @@ const AdminAnalyse = () => {
         </Grid>
       </Grid>
 
+      {/* Tabs */}
       <Paper sx={{ width: "100%", mb: 3 }}>
         <Tabs
           value={tabValue}
@@ -252,7 +248,7 @@ const AdminAnalyse = () => {
         </Tabs>
       </Paper>
 
-      {/* Onglet Étudiants */}
+      {/* Students Tab */}
       {tabValue === 0 && (
         <Box>
           <Paper sx={{ width: "100%", mb: 2 }}>
@@ -265,6 +261,7 @@ const AdminAnalyse = () => {
                     <TableCell align="center">Présence</TableCell>
                     <TableCell align="center">Statut</TableCell>
                     <TableCell align="center">Niveau de risque</TableCell>
+                    <TableCell align="center">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -272,57 +269,81 @@ const AdminAnalyse = () => {
                     filteredStudents.map((student) => (
                       <TableRow key={student.id}>
                         <TableCell component="th" scope="row">
-                          {student.name}
+                          {student.nom}
                         </TableCell>
-                        <TableCell align="center">{student.averageGrade}/20</TableCell>
+                        <TableCell align="center">{student.moyenne}/20</TableCell>
                         <TableCell align="center">
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Box sx={{ width: "100%", mr: 1 }}>
                               <LinearProgress
                                 variant="determinate"
-                                value={student.attendance}
-                                sx={{ 
-                                  height: 10, 
+                                value={student.presence}
+                                sx={{
+                                  height: 10,
                                   borderRadius: 5,
-                                  backgroundColor: '#e0e0e0',
-                                  '& .MuiLinearProgress-bar': {
-                                    backgroundColor: student.attendance > 80 
-                                      ? '#4CAF50' 
-                                      : student.attendance > 60 
-                                        ? '#FFC107' 
-                                        : '#F44336'
-                                  }
+                                  backgroundColor: "#e0e0e0",
+                                  "& .MuiLinearProgress-bar": {
+                                    backgroundColor:
+                                      student.presence > 80
+                                        ? "#4CAF50"
+                                        : student.presence > 60
+                                        ? "#FFC107"
+                                        : "#F44336",
+                                  },
                                 }}
                               />
                             </Box>
                             <Box sx={{ minWidth: 35 }}>
-                              <Typography variant="body2" color="textSecondary">{`${student.attendance}%`}</Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                {`${student.presence}%`}
+                              </Typography>
                             </Box>
                           </Box>
                         </TableCell>
                         <TableCell align="center">
-                          <Chip 
-                            label={student.status} 
-                            sx={{ 
-                              backgroundColor: getStatusColor(student.status),
-                              color: 'white' 
-                            }} 
+                          <Chip
+                            label={student.statut}
+                            sx={{
+                              backgroundColor: getStatusColor(student.statut),
+                              color: "white",
+                            }}
                           />
                         </TableCell>
                         <TableCell align="center">
-                          <Chip 
-                            label={student.risk === "low" ? "Faible" : student.risk === "medium" ? "Moyen" : "Élevé"} 
-                            sx={{ 
-                              backgroundColor: getRiskColor(student.risk),
-                              color: 'white' 
-                            }} 
+                          <Chip
+                            label={
+                              student.risque === "low"
+                                ? "Faible"
+                                : student.risque === "medium"
+                                ? "Moyen"
+                                : "Élevé"
+                            }
+                            sx={{
+                              backgroundColor: getRiskColor(student.risque),
+                              color: "white",
+                            }}
                           />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Button
+                            variant="outlined"
+                            onClick={() => predictStudentPerformance(student.id)}
+                          >
+                            Prédire
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            sx={{ ml: 1 }}
+                            onClick={() => classifyStudentPerformance(student.id)}
+                          >
+                            Classer
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center">
+                      <TableCell colSpan={6} align="center">
                         Aucun étudiant ne correspond aux critères de filtre sélectionnés
                       </TableCell>
                     </TableRow>
@@ -334,7 +355,7 @@ const AdminAnalyse = () => {
         </Box>
       )}
 
-      {/* Onglet Recommandations */}
+      {/* Recommendations Tab */}
       {tabValue === 1 && (
         <Box>
           <Grid container spacing={3}>
@@ -343,31 +364,31 @@ const AdminAnalyse = () => {
                 <Grid item xs={12} key={student.id}>
                   <Paper sx={{ p: 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                      <Typography variant="h6">{student.name}</Typography>
-                      <Chip 
-                        label={student.status} 
-                        sx={{ 
-                          backgroundColor: getStatusColor(student.status),
-                          color: 'white' 
-                        }} 
+                      <Typography variant="h6">{student.nom}</Typography>
+                      <Chip
+                        label={student.statut}
+                        sx={{
+                          backgroundColor: getStatusColor(student.statut),
+                          color: "white",
+                        }}
                       />
                     </Box>
                     <Divider sx={{ mb: 2 }} />
-                    
-                    {student.risk === "high" && (
+
+                    {student.risque === "high" && (
                       <Alert severity="warning" sx={{ mb: 2 }}>
                         <Typography variant="subtitle1">
                           Cet étudiant est identifié comme étant à risque élevé
                         </Typography>
                       </Alert>
                     )}
-                    
-                    {student.recommendations.length > 0 ? (
+
+                    {student.recommandations && student.recommandations.length > 0 ? (
                       <>
                         <Typography variant="subtitle1" gutterBottom>
                           Recommandations:
                         </Typography>
-                        {student.recommendations.map((rec, index) => (
+                        {student.recommandations.map((rec, index) => (
                           <Card key={index} sx={{ mb: 1, backgroundColor: rec.type === "course" ? "#E3F2FD" : "#E8F5E9" }}>
                             <CardContent>
                               <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -376,9 +397,7 @@ const AdminAnalyse = () => {
                                 ) : (
                                   <Recommend sx={{ mr: 1, color: "#4CAF50" }} />
                                 )}
-                                <Typography>
-                                  {rec.content}
-                                </Typography>
+                                <Typography>{rec.contenu}</Typography>
                               </Box>
                             </CardContent>
                           </Card>
@@ -404,6 +423,23 @@ const AdminAnalyse = () => {
           </Grid>
         </Box>
       )}
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity="success"
+          sx={{ width: "100%", display: "flex", alignItems: "center" }}
+          icon={<CheckCircleIcon fontSize="inherit" />}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

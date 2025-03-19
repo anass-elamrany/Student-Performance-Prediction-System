@@ -71,7 +71,7 @@ class EnseignantSerializer(serializers.ModelSerializer):
 class NoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Note
-        fields = '__all__'
+        fields = ['etudiant_id', 'matiere_id', 'note_module', 'note_devoir_projet', 'assiduite', 'presence']
 
 
 class PerformanceSerializer(serializers.ModelSerializer):

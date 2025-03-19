@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-
+from .views import predict_student_performance, classify_student_performance
 urlpatterns = [
     path('api/login/', views.login_view, name='login'),
     path('api/logout/', views.logout_view, name='logout'),
@@ -27,4 +27,9 @@ urlpatterns = [
     path('api/matieres/create/', views.create_matiere, name='create-matiere'),
     path('api/matieres/update/<int:id>/', views.update_matiere, name='update-matiere'),
     path('api/matieres/delete/<int:id>/', views.delete_matiere, name='delete-matiere'),
+
+
+    path('api/predict-performance/', predict_student_performance, name='predict-performance'),
+    path('api/classify-student/', classify_student_performance, name='classify-student'),
+   
 ]
