@@ -1,28 +1,22 @@
-# backend/data/ml_utils/data_preprocessing.py
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import train_test_split
-from ..models import Note, Utilisateur
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 
-def prepare_data():
-    # Récupérer les données depuis la base de données Django
-    notes = Note.objects.all().values('etudiant_id', 'matiere_id', 'note_module', 'note_devoir_projet', 'assiduite', 'presence')
-    df = pd.DataFrame.from_records(notes)
+# Load dataset
+df = pd.read_csv("Fichier_avec_recommandations_uniques.csv")
 
-    # Encoder les variables catégorielles
-    df['etudiant_id'] = LabelEncoder().fit_transform(df['etudiant_id'])
-    df['matiere_id'] = LabelEncoder().fit_transform(df['matiere_id'])
+# Drop unnecessary columns
+IGNORED_COLUMNS = ['utilisateur_ptr_id', 'n_appogie', 'classe_id']
+df = df.drop(columns=IGNORED_COLUMNS, errors='ignore')
 
-    # Séparer les caractéristiques (X) et la cible (y)
-    X = df.drop(columns=['note_module'])  # Caractéristiques
-    y = df['note_module']  # Cible (note finale)
+# Normalize scores
+scaler = MinMaxScaler()
+score_columns = df.columns.difference(['assiduite', 'presence'])  # Only subject-related columns
+df[score_columns] = scaler.fit_transform(df[score_columns])
 
-    # Diviser les données en ensembles d'entraînement et de test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Normalize attendance & presence
+df['assiduite'] = df['assiduite'] / 100
+df['presence'] = df['presence'] / 100
 
-    # Normaliser les données
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
-
-    return X_train, X_test, y_train, y_test, scaler
+# Save preprocessed data
+df.to_csv("processed_data.csv", index=False)

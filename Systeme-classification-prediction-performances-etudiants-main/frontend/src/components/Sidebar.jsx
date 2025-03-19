@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import List from "@mui/material/List";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -21,6 +22,7 @@ import EmojiObjectsOutlinedIcon from "@mui/icons-material/EmojiObjectsOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import { useNavigate } from "react-router-dom";
 import { grey, blue } from "@mui/material/colors";
+import { getCurrentUser, getUserRole } from "../utils/auth"; // Importez les fonctions d'authentification
 
 const drawerWidth = 240;
 
@@ -56,21 +58,21 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 
 const Drawer = styled(MuiDrawer, {
   shouldForwardProp: (prop) => prop !== "open",
-  // @ts-ignore
-  })(({ theme, open }) => ({
-    width: drawerWidth,
-    flexShrink: 0,
-    whiteSpace: "nowrap",
-    boxSizing: "border-box",
-    ...(open && {
-      ...openedMixin(theme),
-      "& .MuiDrawer-paper": openedMixin(theme),
-    }),
-    ...(!open && {
-      ...closedMixin(theme),
-      "& .MuiDrawer-paper": closedMixin(theme),
-    }),
-  }));
+// @ts-ignore
+})(({ theme, open }) => ({
+  width: drawerWidth,
+  flexShrink: 0,
+  whiteSpace: "nowrap",
+  boxSizing: "border-box",
+  ...(open && {
+    ...openedMixin(theme),
+    "& .MuiDrawer-paper": openedMixin(theme),
+  }),
+  ...(!open && {
+    ...closedMixin(theme),
+    "& .MuiDrawer-paper": closedMixin(theme),
+  }),
+}));
 
 // Menu items for each role
 const adminMenuItems = {
@@ -80,7 +82,6 @@ const adminMenuItems = {
     { text: "Enseignants", icon: <PersonOutlinedIcon />, path: "/admin/Enseignants" },
     { text: "Étudiants", icon: <SchoolOutlinedIcon />, path: "/admin/Etudiants" },
     { text: "Matieres", icon: <SchoolOutlinedIcon />, path: "/admin/Matieres" },
-
     { text: "Performances", icon: <AssessmentOutlinedIcon />, path: "/admin/Performances" },
     { text: "Analyse", icon: <AnalyticsOutlinedIcon />, path: "/admin/Analyse" },
   ],
@@ -113,53 +114,61 @@ const getInitials = (name) => {
 };
 
 const getRoleDetails = (role) => {
-  switch(role) {
-    case 'admin':
+  switch (role) {
+    case "admin":
       return {
         name: "Admin User",
         role: "Administrator",
-        menuItems: adminMenuItems
+        menuItems: adminMenuItems,
       };
-    case 'teacher':
+    case "teacher":
       return {
         name: "Teacher Name",
         role: "Teacher",
-        menuItems: teacherMenuItems
+        menuItems: teacherMenuItems,
       };
-    case 'student':
+    case "student":
       return {
         name: "Student Name",
         role: "Student",
-        menuItems: studentMenuItems
+        menuItems: studentMenuItems,
       };
     default:
       return {
         name: "User",
         role: "Guest",
-        menuItems: studentMenuItems
+        menuItems: studentMenuItems,
       };
   }
 };
 
-const Sidebar = ({ open, handleDrawerClose, role, pathname }) => {
+const Sidebar = ({ open, handleDrawerClose, pathname }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  
-  const roleInfo = getRoleDetails(role);
-  const { menuItems, name, role: roleName } = roleInfo;
-  
+
+  // Récupérer les informations de l'utilisateur connecté
+  const currentUser = getCurrentUser();
+  const userRole = getUserRole();
+
+  const roleInfo = getRoleDetails(userRole);
+  const { menuItems } = roleInfo;
+
+  // Utiliser les informations de l'utilisateur pour afficher le nom et le rôle
+  const name = currentUser ? currentUser.full_name : roleInfo.name;
+  const roleName = currentUser ? currentUser.role : roleInfo.role;
+
   // Generate initials for the avatar
   const initials = getInitials(name);
-  
+
   // Fixed avatar background color based on role
   const getAvatarBgColor = () => {
-    switch(role) {
-      case 'admin':
-        return '#3f51b5'; // Indigo
-      case 'teacher':
-        return '#4caf50'; // Green
-      case 'student':
-        return '#2196f3'; // Blue
+    switch (userRole) {
+      case "admin":
+        return "#3f51b5"; // Indigo
+      case "teacher":
+        return "#4caf50"; // Green
+      case "student":
+        return "#2196f3"; // Blue
       default:
         return blue[600]; // Default blue
     }
@@ -194,10 +203,7 @@ const Sidebar = ({ open, handleDrawerClose, role, pathname }) => {
             >
               {item.icon}
             </ListItemIcon>
-            <ListItemText
-              primary={item.text}
-              sx={{ opacity: open ? 1 : 0 }}
-            />
+            <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
           </ListItemButton>
         </Tooltip>
       </ListItem>
@@ -208,11 +214,7 @@ const Sidebar = ({ open, handleDrawerClose, role, pathname }) => {
     <Drawer variant="permanent" open={open}>
       <DrawerHeader>
         <IconButton onClick={handleDrawerClose}>
-          {theme.direction === "rtl" ? (
-            <ChevronRightIcon />
-          ) : (
-            <ChevronLeftIcon />
-          )}
+          {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </IconButton>
       </DrawerHeader>
       <Divider />
@@ -233,10 +235,7 @@ const Sidebar = ({ open, handleDrawerClose, role, pathname }) => {
       >
         {initials}
       </Avatar>
-      <Typography
-        align="center"
-        sx={{ fontSize: open ? 17 : 0, transition: "0.25s" }}
-      >
+      <Typography align="center" sx={{ fontSize: open ? 17 : 0, transition: "0.25s" }}>
         {name}
       </Typography>
       <Typography

@@ -1,35 +1,25 @@
-# backend/data/ml_utils/train_models.py
-import joblib
 import pandas as pd
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LinearRegression
-from .data_preprocessing import prepare_data
+import numpy as np
+from sklearn.ensemble import IsolationForest
+from sklearn.cluster import KMeans
 
-def train_classification_model():
-    X_train, X_test, y_train, y_test, scaler = prepare_data()
+# Load preprocessed data
+df = pd.read_csv("processed_data.csv")
+score_columns = df.columns.difference(['assiduite', 'presence'])
+student_profiles = df.drop(columns=['assiduite', 'presence'])
 
-    # Définir les catégories de performance
-    y_train_class = pd.cut(y_train, bins=[0, 10, 14, 20], labels=['à risque', 'moyen', 'bon'])
-    y_test_class = pd.cut(y_test, bins=[0, 10, 14, 20], labels=['à risque', 'moyen', 'bon'])
+# Train Isolation Forest for risk detection
+def calculate_risk_score(df):
+    model = IsolationForest(contamination=0.1)
+    risk_scores = model.fit_predict(student_profiles)
+    df['risk_score'] = np.where(risk_scores == -1, 'High Risk', 'Low Risk')
+    return df
 
-    # Entraîner un modèle de classification
-    classifier = DecisionTreeClassifier(random_state=42)
-    classifier.fit(X_train, y_train_class)
+df = calculate_risk_score(df)
 
-    # Sauvegarder le modèle
-    joblib.dump(classifier, 'backend/data/ml_models/classifier.pkl')
+# Train KMeans for clustering
+kmeans = KMeans(n_clusters=3, random_state=42)
+df['cluster'] = kmeans.fit_predict(student_profiles)
 
-def train_regression_model():
-    X_train, X_test, y_train, y_test, scaler = prepare_data()
-
-    # Entraîner un modèle de régression
-    regressor = LinearRegression()
-    regressor.fit(X_train, y_train)
-
-    # Sauvegarder le modèle
-    joblib.dump(regressor, 'backend/data/ml_models/regressor.pkl')
-    joblib.dump(scaler, 'backend/data/ml_models/scaler.pkl')  # Sauvegarder le scaler
-
-if __name__ == "__main__":
-    train_classification_model()
-    train_regression_model()
+# Save the trained model results
+df.to_csv("trained_model_results.csv", index=False)

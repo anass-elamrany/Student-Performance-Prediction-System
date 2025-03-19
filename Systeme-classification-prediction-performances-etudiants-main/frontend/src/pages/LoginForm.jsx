@@ -90,17 +90,9 @@ const LoginForm = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    // Simple validation
-    if (!formData.username.trim() || !formData.password.trim()) {
-      setError('Veuillez entrer à la fois le nom d\'utilisateur et le mot de passe');
-      setLoading(false);
-      return;
-    }
-
+  
     try {
-      // Call the backend API
-      const response = await fetch('/api/login/', {
+      const response = await fetch('http://localhost:8000/api/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,25 +102,19 @@ const LoginForm = () => {
           password: formData.password,
           role: role
         }),
-        credentials: 'include' // Include cookies for session authentication
       });
       
       const data = await response.json();
       
       if (response.ok && data.success) {
-        // Save in localStorage if "remember me" is checked
-        if (formData.rememberMe) {
-          localStorage.setItem('username', formData.username);
-          localStorage.setItem('userRole', role);
-        } else {
-          localStorage.removeItem('username');
-          localStorage.removeItem('userRole');
-        }
-        
-        // Save user info in sessionStorage for easy access
+        // Stocker les tokens dans localStorage
+        localStorage.setItem('accessToken', data.access);
+        localStorage.setItem('refreshToken', data.refresh);
+  
+        // Stocker les informations de l'utilisateur dans sessionStorage
         sessionStorage.setItem('currentUser', JSON.stringify(data.user));
         
-        // Redirect to appropriate dashboard
+        // Rediriger vers le tableau de bord approprié
         navigate(roleInfo[role].redirectPath);
       } else {
         setError(data.message || 'Erreur de connexion');
