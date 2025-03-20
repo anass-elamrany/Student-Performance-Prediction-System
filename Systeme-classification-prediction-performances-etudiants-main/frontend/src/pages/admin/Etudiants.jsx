@@ -28,6 +28,8 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import GetAppIcon from "@mui/icons-material/GetApp";
 
 const AdminEtudiants = () => {
   const [etudiants, setEtudiants] = useState([]);
@@ -61,7 +63,6 @@ const AdminEtudiants = () => {
     try {
       const response = await fetch("http://localhost:8000/api/students/");
       const data = await response.json();
-      console.log("Fetched students:", data); // Affichez les données dans la console
       setEtudiants(data);
       setFilteredEtudiants(data);
     } catch (error) {
@@ -147,8 +148,6 @@ const AdminEtudiants = () => {
         classes: formData.classes,
       });
 
-      console.log("Sending data:", body); // Affichez les données envoyées
-
       const response = await fetch(url, {
         method: method,
         headers: {
@@ -157,6 +156,7 @@ const AdminEtudiants = () => {
         body: body,
       });
 
+      const responseData = await response.json();
       if (response.ok) {
         fetchStudents();
         setSnackbar({
@@ -168,15 +168,12 @@ const AdminEtudiants = () => {
         });
         handleCloseDialog();
       } else {
-        const errorData = await response.json(); // Affichez l'erreur renvoyée par le backend
-        console.error("Error response:", errorData);
-        throw new Error("Erreur lors de la requête");
+        throw new Error(responseData.error || "Erreur lors de la requête");
       }
     } catch (error) {
-      console.error("Error:", error); // Affichez l'erreur dans la console
       setSnackbar({
         open: true,
-        message: "Une erreur est survenue",
+        message: error.message || "Une erreur est survenue",
         severity: "error",
       });
     }
@@ -218,6 +215,60 @@ const AdminEtudiants = () => {
     setSelectedClass(e.target.value);
   };
 
+  // Handle CSV file upload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:8000/api/students/import/", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        fetchStudents();
+        setSnackbar({
+          open: true,
+          message: "Étudiants importés avec succès",
+          severity: "success",
+        });
+      } else {
+        throw new Error("Erreur lors de l'importation du fichier CSV");
+      }
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.message || "Une erreur est survenue",
+        severity: "error",
+      });
+    }
+  };
+
+  // Handle downloading the CSV template
+  const downloadTemplate = () => {
+    const headers = [
+      "Nom",
+      "Prénom",
+      "Email",
+      "Téléphone",
+      "Numéro Apogee",
+      "Classe",
+    ];
+    const csvContent = headers.join(",") + "\n";
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "template_etudiants.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box>
       <Box
@@ -231,13 +282,37 @@ const AdminEtudiants = () => {
         <Typography variant="h4" component="h1">
           Gestion des Étudiants
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Nouvel Étudiant
-        </Button>
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<GetAppIcon />}
+            onClick={downloadTemplate}
+            sx={{ mr: 2 }}
+          >
+            Télécharger le Modèle
+          </Button>
+          <Button
+            variant="contained"
+            component="label"
+            startIcon={<CloudUploadIcon />}
+            sx={{ mr: 2 }}
+          >
+            Importer CSV
+            <input
+              type="file"
+              hidden
+              accept=".csv"
+              onChange={handleFileUpload}
+            />
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Nouvel Étudiant
+          </Button>
+        </Box>
       </Box>
 
       {/* Sélecteur de classe pour filtrer les étudiants */}
@@ -273,48 +348,30 @@ const AdminEtudiants = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-  {filteredEtudiants.map((etudiant) => (
-    <TableRow
-      key={etudiant.id}
-      sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-    >
-      <TableCell component="th" scope="row">
-        <Typography>
-          {etudiant.first_name} {etudiant.last_name}
-        </Typography>
-      </TableCell>
-      <TableCell align="center">{etudiant.n_appogie}</TableCell>
-      <TableCell align="center">{etudiant.email}</TableCell>
-      <TableCell align="center">{etudiant.phone}</TableCell>
-      <TableCell align="center">
-        {etudiant.classe ? (
-          <Chip
-            label={etudiant.classe.nom} // Affichez le nom de la classe
-            size="small"
-            color="secondary"
-            variant="outlined"
-          />
-        ) : (
-          "Aucune classe"
-        )}
-      </TableCell>
-      <TableCell align="center">
-        <IconButton
-          color="primary"
-          onClick={() => handleOpenDialog(etudiant)}
-        >
-          <EditIcon />
-        </IconButton>
-        <IconButton
-          color="error"
-          onClick={() => handleDelete(etudiant.id)}
-        >
-          <DeleteIcon />
-        </IconButton>
-      </TableCell>
-    </TableRow>
-  ))}
-</TableBody>
+            {filteredEtudiants.map((etudiant) => (
+              <TableRow key={etudiant.id}>
+                <TableCell>{etudiant.first_name} {etudiant.last_name}</TableCell>
+                <TableCell align="center">{etudiant.n_appogie}</TableCell>
+                <TableCell align="center">{etudiant.email}</TableCell>
+                <TableCell align="center">{etudiant.phone}</TableCell>
+                <TableCell align="center">
+                  {etudiant.classe ? (
+                    <Chip label={etudiant.classe.nom} size="small" color="secondary" variant="outlined" />
+                  ) : (
+                    "Aucune classe"
+                  )}
+                </TableCell>
+                <TableCell align="center">
+                  <IconButton color="primary" onClick={() => handleOpenDialog(etudiant)}>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton color="error" onClick={() => handleDelete(etudiant.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </TableContainer>
 

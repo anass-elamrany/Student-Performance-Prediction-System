@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/students/create/', views.create_student, name='create-student'),
     path('api/students/update/<int:id>/', views.update_student, name='update-student'),
     path('api/students/delete/<int:id>/', views.delete_student, name='delete-student'),
+    path('api/students/import/', views.import_students, name='import_students'),
 
     # Classes
     path('api/classes/', views.list_classes, name='list-classes'),

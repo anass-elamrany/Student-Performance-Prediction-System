@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Avg, Count, F
+from django.db import IntegrityError
 from datetime import datetime, timedelta
 import json
 from .models import Utilisateur, Classe, Note, Performance, Alerte, Recommandation, Matiere
@@ -130,18 +131,19 @@ def create_student(request):
             student = Utilisateur.objects.create_user(
                 username=data['email'],
                 email=data['email'],
-                password='defaultpassword',
+                password=data['n_appogie'],  # Use n_appogie as the password
                 first_name=data['first_name'],
                 last_name=data['last_name'],
                 phone=data['phone'],
-                n_appogie=data['n_appogie'],
+                n_appogie=data['n_appogie'],  # Set n_appogie
                 classe=classe,
                 user_type='student'
             )
             return JsonResponse({'success': True, 'id': student.id})
+        except IntegrityError as e:
+            return JsonResponse({'success': False, 'error': 'Le numéro Apogee doit être unique.'}, status=400)
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 @csrf_exempt
 def update_student(request, id):
     """
@@ -151,17 +153,21 @@ def update_student(request, id):
         data = json.loads(request.body)
         try:
             student = Utilisateur.objects.get(id=id, user_type='student')
+            # Check if n_appogie is being updated and if it's unique
+            if 'n_appogie' in data and data['n_appogie'] != student.n_appogie:
+                if Utilisateur.objects.filter(n_appogie=data['n_appogie']).exists():
+                    return JsonResponse({'success': False, 'error': 'Le numéro Apogee doit être unique.'}, status=400)
+                student.n_appogie = data['n_appogie']
+                student.set_password(data['n_appogie'])  # Update password if n_appogie changes
             student.first_name = data.get('first_name', student.first_name)
             student.last_name = data.get('last_name', student.last_name)
             student.email = data.get('email', student.email)
             student.phone = data.get('phone', student.phone)
-            student.n_appogie = data.get('n_appogie', student.n_appogie)
             student.classe = Classe.objects.get(nom=data['classes'][0]) if data.get('classes') else None
             student.save()
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 @csrf_exempt
 def delete_student(request, id):
     """
@@ -174,7 +180,42 @@ def delete_student(request, id):
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
+import csv
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from .models import Utilisateur, Classe
 
+@csrf_exempt
+def import_students(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        file = request.FILES['file']
+        if not file.name.endswith('.csv'):
+            return JsonResponse({'success': False, 'error': 'Le fichier doit être un CSV.'}, status=400)
+
+        try:
+            decoded_file = file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file)
+
+            for row in reader:
+                classe = Classe.objects.get(nom=row['Classe']) if row.get('Classe') else None
+                Utilisateur.objects.create_user(
+                    username=row['Email'],
+                    email=row['Email'],
+                    password=row['Numéro Apogee'],
+                    first_name=row['Prénom'],
+                    last_name=row['Nom'],
+                    phone=row['Téléphone'],
+                    n_appogie=row['Numéro Apogee'],
+                    classe=classe,
+                    user_type='student'
+                )
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+    return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
 # Teacher Views
 @csrf_exempt
 def list_enseignants(request):

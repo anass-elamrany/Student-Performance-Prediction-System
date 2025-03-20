@@ -13,7 +13,7 @@ class Utilisateur(AbstractUser):
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='student')
 
     # Champs spécifiques aux étudiants
-    n_appogie = models.CharField(max_length=20, blank=True, null=True)
+    n_appogie = models.CharField(max_length=20, blank=True, null=True, unique=True)  # Add unique=True
     classe = models.ForeignKey('Classe', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
 
     groups = models.ManyToManyField(
@@ -62,7 +62,7 @@ class Matiere(models.Model):
 
     nom = models.CharField(max_length=100)
     coefficient = models.FloatField()
-    semestre = models.IntegerField(choices=SEMESTRE_CHOICES)  # Semestre associé à la matière
+    semestre = models.IntegerField(choices=SEMESTRE_CHOICES)  
     classe = models.ForeignKey('Classe', on_delete=models.CASCADE, null=True,blank=True,related_name='matieres')
     enseignant = models.ForeignKey(
         Utilisateur, on_delete=models.SET_NULL, null=True, blank=True,
