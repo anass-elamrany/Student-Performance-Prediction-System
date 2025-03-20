@@ -13,10 +13,12 @@ import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import AdminClasses from "./pages/admin/Classes ";
 import AdminEnseignants from "./pages/admin/Enseignants.jsx";
 import Etudiants from "./pages/admin/Etudiants";
-import AdminPerformance from "./pages/admin/Performances ";
+import AdminRecommendations from "./pages/admin/AdminRecommendations";
 import AdminAnalyse from "./pages/admin/Analyse";
 import AdminMatieres from "./pages/admin/Matieres";
-
+import AdminPredict from "./pages/admin/AdminPredict";
+import AdminClassment from "./pages/admin/AdminClassment";
+import AdminAlerts from "./pages/admin/AdminAlerts";
 // Dashboard Pages - Teacher
 import TeacherDashboard from "./pages/teacher/Dashboard";
 import TeacherNotes from "./pages/teacher/Notes ";
@@ -48,10 +50,14 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <AdminDashboard /> },
       { path: "Classes", element: <AdminClasses /> },
       { path: "Enseignants", element: <AdminEnseignants /> },
-      { path: "Performances", element: <AdminPerformance  /> },
+
       { path: "Analyse", element: <AdminAnalyse  /> },
       { path: "Etudiants", element: <Etudiants/> },
       { path: "Matieres", element: <AdminMatieres/> },
+      { path: "Predict", element: <AdminPredict/> },
+      { path: "Classment", element: <AdminClassment/> },
+      { path: "Alerts", element: <AdminAlerts/> },
+      { path: "Recommendations", element: <AdminRecommendations/> },
     ],
   },
 

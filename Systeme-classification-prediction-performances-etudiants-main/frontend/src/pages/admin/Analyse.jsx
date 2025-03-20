@@ -61,8 +61,8 @@ const AdminAnalyse = () => {
         const subjectsData = await subjectsResponse.json();
         setSubjects(subjectsData);
 
-        // Fetch students
-        const studentsResponse = await fetch("/api/students/");
+        // Fetch students with their alerts and recommendations
+        const studentsResponse = await fetch("/api/students-with-alerts-recommendations/");
         const studentsData = await studentsResponse.json();
         setStudents(studentsData);
         setFilteredStudents(studentsData);
@@ -245,6 +245,7 @@ const AdminAnalyse = () => {
         >
           <Tab label="Étudiants" />
           <Tab label="Recommandations" />
+          <Tab label="Alertes" />
         </Tabs>
       </Paper>
 
@@ -406,6 +407,63 @@ const AdminAnalyse = () => {
                     ) : (
                       <Typography variant="body1" color="textSecondary">
                         Aucune recommandation pour cet étudiant actuellement.
+                      </Typography>
+                    )}
+                  </Paper>
+                </Grid>
+              ))
+            ) : (
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="body1" align="center">
+                    Aucun étudiant ne correspond aux critères de filtre sélectionnés
+                  </Typography>
+                </Paper>
+              </Grid>
+            )}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Alerts Tab */}
+      {tabValue === 2 && (
+        <Box>
+          <Grid container spacing={3}>
+            {filteredStudents.length > 0 ? (
+              filteredStudents.map((student) => (
+                <Grid item xs={12} key={student.id}>
+                  <Paper sx={{ p: 2 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                      <Typography variant="h6">{student.nom}</Typography>
+                      <Chip
+                        label={student.statut}
+                        sx={{
+                          backgroundColor: getStatusColor(student.statut),
+                          color: "white",
+                        }}
+                      />
+                    </Box>
+                    <Divider sx={{ mb: 2 }} />
+
+                    {student.alertes && student.alertes.length > 0 ? (
+                      <>
+                        <Typography variant="subtitle1" gutterBottom>
+                          Alertes:
+                        </Typography>
+                        {student.alertes.map((alerte, index) => (
+                          <Card key={index} sx={{ mb: 1, backgroundColor: "#FFEBEE" }}>
+                            <CardContent>
+                              <Box sx={{ display: "flex", alignItems: "center" }}>
+                                <Warning sx={{ mr: 1, color: "#F44336" }} />
+                                <Typography>{alerte.message}</Typography>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </>
+                    ) : (
+                      <Typography variant="body1" color="textSecondary">
+                        Aucune alerte pour cet étudiant actuellement.
                       </Typography>
                     )}
                   </Paper>

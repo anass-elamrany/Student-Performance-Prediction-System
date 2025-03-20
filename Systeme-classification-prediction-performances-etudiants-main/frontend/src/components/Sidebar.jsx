@@ -82,8 +82,13 @@ const adminMenuItems = {
     { text: "Enseignants", icon: <PersonOutlinedIcon />, path: "/admin/Enseignants" },
     { text: "Étudiants", icon: <SchoolOutlinedIcon />, path: "/admin/Etudiants" },
     { text: "Matieres", icon: <SchoolOutlinedIcon />, path: "/admin/Matieres" },
-    { text: "Performances", icon: <AssessmentOutlinedIcon />, path: "/admin/Performances" },
     { text: "Analyse", icon: <AnalyticsOutlinedIcon />, path: "/admin/Analyse" },
+    { text: "Predict", icon: <AnalyticsOutlinedIcon />, path: "/admin/Predict" },
+    { text: "Classment", icon: <AnalyticsOutlinedIcon />, path: "/admin/Classment" },
+    { text: "Alerts", icon: <AnalyticsOutlinedIcon />, path: "/admin/Alerts" },
+    { text: "Recommendations", icon: <AnalyticsOutlinedIcon />, path: "/admin/Recommendations" },
+    
+   
   ],
 };
 
