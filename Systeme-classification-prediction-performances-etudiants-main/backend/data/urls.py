@@ -28,7 +28,7 @@ urlpatterns = [
     path('api/enseignants/create/', views.create_enseignant, name='create-enseignant'),
     path('api/enseignants/update/<int:id>/', views.update_enseignant, name='update-enseignant'),
     path('api/enseignants/delete/<int:id>/', views.delete_enseignant, name='delete-enseignant'),
-
+    path('api/enseignants/import/', views.import_enseignants, name='import_enseignants'),
     # Subjects
     path('api/matieres/', views.list_matieres, name='list-matieres'),
     path('api/matieres/create/', views.create_matiere, name='create-matiere'),

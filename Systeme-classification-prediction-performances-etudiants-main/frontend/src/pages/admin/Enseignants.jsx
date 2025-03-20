@@ -25,6 +25,8 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import GetAppIcon from "@mui/icons-material/GetApp";
 import PersonIcon from "@mui/icons-material/Person";
 
 const AdminEnseignants = () => {
@@ -49,7 +51,6 @@ const AdminEnseignants = () => {
     try {
       const response = await fetch("http://localhost:8000/api/enseignants/");
       const data = await response.json();
-      console.log("Fetched enseignants:", data); // Affichez les données dans la console
       setEnseignants(data);
     } catch (error) {
       console.error("Error fetching enseignants:", error);
@@ -60,6 +61,7 @@ const AdminEnseignants = () => {
       });
     }
   };
+
   // Load data on component mount
   useEffect(() => {
     fetchEnseignants();
@@ -173,6 +175,58 @@ const AdminEnseignants = () => {
     }
   };
 
+  // Handle CSV file upload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:8000/api/enseignants/import/", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        fetchEnseignants();
+        setSnackbar({
+          open: true,
+          message: "Enseignants importés avec succès",
+          severity: "success",
+        });
+      } else {
+        throw new Error("Erreur lors de l'importation du fichier CSV");
+      }
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.message || "Une erreur est survenue",
+        severity: "error",
+      });
+    }
+  };
+
+  // Handle downloading the CSV template
+  const downloadTemplate = () => {
+    const headers = [
+      "Nom",
+      "Prénom",
+      "Email",
+      "Téléphone",
+    ];
+    const csvContent = headers.join(",") + "\n";
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "template_enseignants.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Close Snackbar
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -192,13 +246,37 @@ const AdminEnseignants = () => {
         <Typography variant="h4" component="h1">
           Gestion des Enseignants
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Nouvel Enseignant
-        </Button>
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<GetAppIcon />}
+            onClick={downloadTemplate}
+            sx={{ mr: 2 }}
+          >
+            Télécharger le Modèle
+          </Button>
+          <Button
+            variant="contained"
+            component="label"
+            startIcon={<CloudUploadIcon />}
+            sx={{ mr: 2 }}
+          >
+            Importer CSV
+            <input
+              type="file"
+              hidden
+              accept=".csv"
+              onChange={handleFileUpload}
+            />
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Nouvel Enseignant
+          </Button>
+        </Box>
       </Box>
 
       {/* Statistics Cards */}

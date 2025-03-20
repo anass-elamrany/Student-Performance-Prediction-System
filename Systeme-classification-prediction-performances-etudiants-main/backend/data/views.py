@@ -278,6 +278,34 @@ def delete_enseignant(request, id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+
+@csrf_exempt
+def import_enseignants(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        file = request.FILES['file']
+        if not file.name.endswith('.csv'):
+            return JsonResponse({'success': False, 'error': 'Le fichier doit être un CSV.'}, status=400)
+
+        try:
+            decoded_file = file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file)
+
+            for row in reader:
+                Utilisateur.objects.create_user(
+                    username=row['Email'],
+                    email=row['Email'],
+                    password='defaultpassword',  # Set a default password
+                    first_name=row['Prénom'],
+                    last_name=row['Nom'],
+                    phone=row['Téléphone'],
+                    user_type='teacher'
+                )
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+    return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
 # Class Views
 @csrf_exempt
 def list_classes(request):
