@@ -57,30 +57,32 @@ export const checkAuthStatus = async () => {
   try {
     let token = localStorage.getItem('accessToken');
     let response = await fetch('http://localhost:8000/api/user-info/', {
+      method: 'GET',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
-    
-    // Si la requête échoue avec une erreur 401, essayer de rafraîchir le token
+
+    // If the request fails with a 401 error, try refreshing the token
     if (response.status === 401) {
       const newToken = await refreshToken();
       if (newToken) {
-        // Réessayer la requête avec le nouveau token
+        // Retry the request with the new token
         response = await fetch('http://localhost:8000/api/user-info/', {
+          method: 'GET',
           headers: {
-            Authorization: `Bearer ${newToken}`,
+            'Authorization': `Bearer ${newToken}`,
           },
         });
       } else {
-        // Déconnecter l'utilisateur si le rafraîchissement échoue
+        // Log out the user if the refresh fails
         logout();
         return null;
       }
     }
-    
+
     const data = await response.json();
-    
+
     if (response.ok && data.success) {
       sessionStorage.setItem('currentUser', JSON.stringify(data.user));
       return data.user;

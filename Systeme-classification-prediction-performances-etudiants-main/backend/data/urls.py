@@ -41,9 +41,18 @@ urlpatterns = [
     path('api/notes/<int:student_id>/<int:matiere_id>/', views.get_student_notes, name='get_student_notes'),
     path('api/notes/update/<int:student_id>/<int:matiere_id>/', views.update_student_note, name='update_student_note'),
     
-        # Machine Learning
+    # Machine Learning
     path('api/classify-students/', views.classify_students, name='classify-students'),
     path('api/predict-performance/', views.predict_student_performance, name='predict-performance'),
     path('api/generate-alerts/', views.generate_alerts, name='generate-alerts'),
     path('api/generate-recommendations/', views.generate_recommendations, name='generate-recommendations'),
+
+    # New URLs for AdminDashboard
+    path('api/matieres/by_class_semester/', views.get_matieres_by_class_semester, name='get_matieres_by_class_semester'),
+    path('api/attendance/', views.get_attendance_data, name='get_attendance_data'),
+    path('api/summary_stats/', views.get_summary_stats, name='get_summary_stats'),
+    path('api/subjects-performance/', views.get_subjects_performance, name='get_subjects_performance'),
+    path('api/global-attendance/', views.get_global_attendance, name='get_global_attendance'),
+    path('api/summary_stats/', views.get_global_summary_stats, name='get_global_summary_stats'),
+   
 ]

@@ -361,87 +361,6 @@ def delete_matiere(request, id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# Teacher Dashboard Views
-@api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def get_enseignant_matieres(request):
-    """
-    Vue pour obtenir les matières enseignées par l'enseignant connecté.
-    """
-    enseignant_id = request.user.id
-    matieres = Matiere.objects.filter(enseignant_id=enseignant_id)
-    
-    # Sérialiser les matières
-    serializer = MatiereSerializer(matieres, many=True)
-    
-    # Renvoyer un tableau, même vide
-    return Response(serializer.data if matieres.exists() else [])
-
-@csrf_exempt
-def get_classe_students(request, classe_id):
-    """
-    Vue pour obtenir les étudiants d'une classe.
-    """
-    if request.method == 'GET':
-        students = Utilisateur.objects.filter(classe_id=classe_id, user_type='student')
-        serializer = UtilisateurSerializer(students, many=True)
-        return JsonResponse(serializer.data, safe=False)
-
-@api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def get_enseignant_matiere_classe(request, classe_id):
-    """
-    Vue pour obtenir la matière enseignée par l'enseignant dans une classe spécifique.
-    """
-    enseignant_id = request.user.id
-    matiere = Matiere.objects.filter(enseignant_id=enseignant_id, classe_id=classe_id).first()
-    
-    if matiere:
-        serializer = MatiereSerializer(matiere)
-        return Response(serializer.data)
-    else:
-        return Response({"error": "Aucune matière trouvée pour cette classe."}, status=404)
-
-@csrf_exempt
-def get_student_notes(request, student_id, matiere_id):
-    """
-    Vue pour obtenir les notes d'un étudiant pour une matière spécifique.
-    """
-    if request.method == 'GET':
-        notes = Note.objects.filter(etudiant_id=student_id, matiere_id=matiere_id)
-        serializer = NoteSerializer(notes, many=True)
-        return JsonResponse(serializer.data, safe=False)
-
-@csrf_exempt
-def update_student_note(request, student_id, matiere_id):
-    """
-    Vue pour créer ou mettre à jour les notes d'un étudiant.
-    """
-    if request.method == 'PUT':
-        data = json.loads(request.body)
-        try:
-            note, created = Note.objects.get_or_create(
-                etudiant_id=student_id,
-                matiere_id=matiere_id,
-                defaults={
-                    'note_module': data.get('note_module', 0),
-                    'note_devoir_projet': data.get('note_devoir_projet', 0),
-                    'assiduite': data.get('assiduite', 0),
-                    'presence': data.get('presence', 0),
-                }
-            )
-            if not created:
-                note.note_module = data.get('note_module', note.note_module)
-                note.note_devoir_projet = data.get('note_devoir_projet', note.note_devoir_projet)
-                note.assiduite = data.get('assiduite', note.assiduite)
-                note.presence = data.get('presence', note.presence)
-                note.save()
-            return JsonResponse({'success': True})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 
 # Machine Learning Views
 from django.http import JsonResponse
@@ -651,6 +570,264 @@ def generate_recommendations(request):
                             )
 
             return JsonResponse({'recommendations': recommendations})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+
+
+
+# Teacher Dashboard Views
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_enseignant_matieres(request):
+    """
+    Vue pour obtenir les matières enseignées par l'enseignant connecté.
+    """
+    enseignant_id = request.user.id
+    matieres = Matiere.objects.filter(enseignant_id=enseignant_id)
+    
+    # Sérialiser les matières
+    serializer = MatiereSerializer(matieres, many=True)
+    
+    # Renvoyer un tableau, même vide
+    return Response(serializer.data if matieres.exists() else [])
+
+@csrf_exempt
+def get_classe_students(request, classe_id):
+    """
+    Vue pour obtenir les étudiants d'une classe.
+    """
+    if request.method == 'GET':
+        students = Utilisateur.objects.filter(classe_id=classe_id, user_type='student')
+        serializer = UtilisateurSerializer(students, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_enseignant_matiere_classe(request, classe_id):
+    """
+    Vue pour obtenir la matière enseignée par l'enseignant dans une classe spécifique.
+    """
+    enseignant_id = request.user.id
+    matiere = Matiere.objects.filter(enseignant_id=enseignant_id, classe_id=classe_id).first()
+    
+    if matiere:
+        serializer = MatiereSerializer(matiere)
+        return Response(serializer.data)
+    else:
+        return Response({"error": "Aucune matière trouvée pour cette classe."}, status=404)
+
+@csrf_exempt
+def get_student_notes(request, student_id, matiere_id):
+    """
+    Vue pour obtenir les notes d'un étudiant pour une matière spécifique.
+    """
+    if request.method == 'GET':
+        notes = Note.objects.filter(etudiant_id=student_id, matiere_id=matiere_id)
+        serializer = NoteSerializer(notes, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+@csrf_exempt
+def update_student_note(request, student_id, matiere_id):
+    """
+    Vue pour créer ou mettre à jour les notes d'un étudiant.
+    """
+    if request.method == 'PUT':
+        data = json.loads(request.body)
+        try:
+            note, created = Note.objects.get_or_create(
+                etudiant_id=student_id,
+                matiere_id=matiere_id,
+                defaults={
+                    'note_module': data.get('note_module', 0),
+                    'note_devoir_projet': data.get('note_devoir_projet', 0),
+                    'assiduite': data.get('assiduite', 0),
+                    'presence': data.get('presence', 0),
+                }
+            )
+            if not created:
+                note.note_module = data.get('note_module', note.note_module)
+                note.note_devoir_projet = data.get('note_devoir_projet', note.note_devoir_projet)
+                note.assiduite = data.get('assiduite', note.assiduite)
+                note.presence = data.get('presence', note.presence)
+                note.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+
+# Add these imports at the top of your views file
+from django.db.models import Avg, Count, Sum
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+# Fetch Matières by Class and Semester
+@csrf_exempt
+def get_matieres_by_class_semester(request):
+    """
+    Fetch matières for a specific class and semester.
+    """
+    if request.method == 'GET':
+        classe_id = request.GET.get('classe_id')
+        semestre = request.GET.get('semestre')
+        
+        if not classe_id or not semestre:
+            return JsonResponse({'error': 'classe_id and semestre are required'}, status=400)
+        
+        matieres = Matiere.objects.filter(classe_id=classe_id, semestre=semestre)
+        serializer = MatiereSerializer(matieres, many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+# Fetch Attendance Data
+@csrf_exempt
+def get_attendance_data(request):
+    if request.method == 'GET':
+        classe_id = request.GET.get('classe_id')
+        semestre = request.GET.get('semestre')
+        
+        if not classe_id or not semestre:
+            return JsonResponse({'error': 'classe_id and semestre are required'}, status=400)
+        
+        # Calculate attendance rate for each student
+        students = Utilisateur.objects.filter(classe_id=classe_id, user_type='student')
+        attendance_data = []
+        
+        for student in students:
+            notes = Note.objects.filter(etudiant=student, matiere__semestre=semestre)
+            total_presence = notes.aggregate(total_presence=Sum('presence'))['total_presence'] or 0
+            total_sessions = notes.count() * 100  # Assuming 100 is the max presence per session
+            
+            attendance_rate = (total_presence / total_sessions) * 100 if total_sessions > 0 else 0
+            attendance_data.append({
+                'student_id': student.id,
+                'student_name': f"{student.first_name} {student.last_name}",
+                'attendance_rate': round(attendance_rate, 2),
+            })
+        
+        return JsonResponse({'attendance_data': attendance_data})
+# Fetch Summary Stats
+@csrf_exempt
+def get_summary_stats(request):
+    """
+    Fetch summary statistics for a specific class and semester.
+    """
+    if request.method == 'GET':
+        classe_id = request.GET.get('classe_id')
+        semestre = request.GET.get('semestre')
+        
+        if not classe_id or not semestre:
+            return JsonResponse({'error': 'classe_id and semestre are required'}, status=400)
+        
+        # Calculate average performance
+        notes = Note.objects.filter(matiere__classe_id=classe_id, matiere__semestre=semestre)
+        average_performance = notes.aggregate(avg_performance=Avg('note_module'))['avg_performance'] or 0
+        
+        # Calculate success rate
+        success_rate = notes.filter(note_module__gte=10).count() / notes.count() * 100 if notes.count() > 0 else 0
+        
+        # Calculate at-risk students
+        at_risk_students = notes.filter(note_module__lt=10).values('etudiant').distinct().count()
+        
+        # Calculate attendance rate
+        total_presence = notes.aggregate(total_presence=Sum('presence'))['total_presence'] or 0
+        total_sessions = notes.count() * 100  # Assuming 100 is the max presence per session
+        attendance_rate = (total_presence / total_sessions) * 100 if total_sessions > 0 else 0
+        
+        return JsonResponse({
+            'average_performance': round(average_performance, 2),
+            'success_rate': round(success_rate, 2),
+            'at_risk_students': at_risk_students,
+            'attendance_rate': round(attendance_rate, 2),
+        })
+    
+# Fetch Subjects Performance Data
+@csrf_exempt
+def get_subjects_performance(request):
+    """
+    Fetch subjects performance data.
+    """
+    if request.method == 'GET':
+        try:
+            # Calculate success rate for each subject
+            matieres = Matiere.objects.all()
+            subjects_performance = []
+            
+            for matiere in matieres:
+                notes = Note.objects.filter(matiere=matiere)
+                total_students = notes.count()
+                if total_students > 0:
+                    success_rate = notes.filter(note_module__gte=10).count() / total_students * 100
+                    subjects_performance.append({
+                        'subject': matiere.nom,
+                        'success_rate': round(success_rate, 2),
+                    })
+            
+            return JsonResponse({'subjects_performance': subjects_performance})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+# Fetch Attendance Data (Global)
+@csrf_exempt
+def get_global_attendance(request):
+    """
+    Fetch global attendance data.
+    """
+    if request.method == 'GET':
+        try:
+            # Calculate attendance rate for all students
+            students = Utilisateur.objects.filter(user_type='student')
+            attendance_data = []
+            
+            for student in students:
+                notes = Note.objects.filter(etudiant=student)
+                total_presence = notes.aggregate(total_presence=Sum('presence'))['total_presence'] or 0
+                total_sessions = notes.count() * 100  # Assuming 100 is the max presence per session
+                
+                attendance_rate = (total_presence / total_sessions) * 100 if total_sessions > 0 else 0
+                attendance_data.append({
+                    'student_id': student.id,
+                    'student_name': f"{student.first_name} {student.last_name}",
+                    'attendance_rate': round(attendance_rate, 2),
+                })
+            
+            return JsonResponse({'attendance_data': attendance_data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+# Fetch Global Summary Stats
+@csrf_exempt
+def get_global_summary_stats(request):
+    """
+    Fetch global summary statistics.
+    """
+    if request.method == 'GET':
+        try:
+            # Calculate average performance
+            notes = Note.objects.all()
+            average_performance = notes.aggregate(avg_performance=Avg('note_module'))['avg_performance'] or 0
+            
+            # Calculate success rate
+            success_rate = notes.filter(note_module__gte=10).count() / notes.count() * 100 if notes.count() > 0 else 0
+            
+            # Calculate at-risk students
+            at_risk_students = notes.filter(note_module__lt=10).values('etudiant').distinct().count()
+            
+            # Calculate attendance rate
+            total_presence = notes.aggregate(total_presence=Sum('presence'))['total_presence'] or 0
+            total_sessions = notes.count() * 100  # Assuming 100 is the max presence per session
+            attendance_rate = (total_presence / total_sessions) * 100 if total_sessions > 0 else 0
+            
+            return JsonResponse({
+                'average_performance': round(average_performance, 2),
+                'success_rate': round(success_rate, 2),
+                'at_risk_students': at_risk_students,
+                'attendance_rate': round(attendance_rate, 2),
+            })
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)

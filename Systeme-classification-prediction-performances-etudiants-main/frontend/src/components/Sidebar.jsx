@@ -18,8 +18,13 @@ import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
 import GradingOutlinedIcon from "@mui/icons-material/GradingOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
+import LeaderboardOutlinedIcon from "@mui/icons-material/LeaderboardOutlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
+import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import EmojiObjectsOutlinedIcon from "@mui/icons-material/EmojiObjectsOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
 import { useNavigate } from "react-router-dom";
 import { grey, blue } from "@mui/material/colors";
 import { getCurrentUser, getUserRole } from "../utils/auth"; // Importez les fonctions d'authentification
@@ -78,25 +83,23 @@ const Drawer = styled(MuiDrawer, {
 const adminMenuItems = {
   main: [
     { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/admin/dashboard" },
-    { text: "Classes", icon: <ClassOutlinedIcon />, path: "/admin/Classes" },
-    { text: "Enseignants", icon: <PersonOutlinedIcon />, path: "/admin/Enseignants" },
+    { text: "Classes", icon: <SchoolOutlinedIcon />, path: "/admin/Classes" },
+    { text: "Enseignants", icon: <PeopleOutlineOutlinedIcon />, path: "/admin/Enseignants" },
     { text: "Étudiants", icon: <SchoolOutlinedIcon />, path: "/admin/Etudiants" },
-    { text: "Matieres", icon: <SchoolOutlinedIcon />, path: "/admin/Matieres" },
-    { text: "Analyse", icon: <AnalyticsOutlinedIcon />, path: "/admin/Analyse" },
-    { text: "Predict", icon: <AnalyticsOutlinedIcon />, path: "/admin/Predict" },
-    { text: "Classment", icon: <AnalyticsOutlinedIcon />, path: "/admin/Classment" },
-    { text: "Alerts", icon: <AnalyticsOutlinedIcon />, path: "/admin/Alerts" },
-    { text: "Recommendations", icon: <AnalyticsOutlinedIcon />, path: "/admin/Recommendations" },
-    
-   
+    { text: "Matieres", icon: <MenuBookOutlinedIcon />, path: "/admin/Matieres" },
+    { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/admin/Analyse" },
+    { text: "Predict", icon: <TimelineOutlinedIcon />, path: "/admin/Predict" },
+    { text: "Classment", icon: <LeaderboardOutlinedIcon />, path: "/admin/Classment" },
+    { text: "Alerts", icon: <NotificationsActiveOutlinedIcon />, path: "/admin/Alerts" },
+    { text: "Recommendations", icon: <ThumbUpOutlinedIcon />, path: "/admin/Recommendations" },
   ],
 };
 
 const teacherMenuItems = {
   main: [
     { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/teacher/dashboard" },
-    { text: "Notes", icon: <GradingOutlinedIcon />, path: "/teacher/Notes" },
-    { text: "Analyse", icon: <AnalyticsOutlinedIcon />, path: "/teacher/Analyse" },
+    { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/teacher/Notes" },
+    { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/teacher/Analyse" },
     { text: "Alertes", icon: <NotificationsActiveOutlinedIcon />, path: "/teacher/Alertes" },
   ],
 };
@@ -106,7 +109,7 @@ const studentMenuItems = {
     { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/student/dashboard" },
     { text: "Guidance", icon: <EmojiObjectsOutlinedIcon />, path: "/student/Guidance" },
     { text: "Alerts", icon: <NotificationsActiveOutlinedIcon />, path: "/student/Alerts" },
-    { text: "Notes", icon: <GradingOutlinedIcon />, path: "/student/Notes" },
+    { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/student/Notes" },
   ],
 };
 
