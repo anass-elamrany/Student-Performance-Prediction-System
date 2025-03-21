@@ -63,4 +63,8 @@ urlpatterns = [
     path('api/teacher/statistics/', views.get_teacher_statistics, name='get_teacher_statistics'),
     path('api/teacher/grade-distribution/', views.get_grade_distribution, name='get_grade_distribution'),
     path('api/teacher/weekly-attendance/', views.get_weekly_attendance, name='get_weekly_attendance'),
+    path('api/teacher/alerts/', views.get_teacher_alerts, name='get_teacher_alerts'),
+    path('api/teacher/classifications/', views.get_teacher_classifications, name='get_teacher_classifications'),
+    path('api/teacher/predictions/', views.get_teacher_predictions, name='get_teacher_predictions'),
+    path('api/teacher/recommendations/', views.get_teacher_recommendations, name='get_teacher_recommendations'),
 ]

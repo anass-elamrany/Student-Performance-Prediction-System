@@ -97,3 +97,40 @@ export const checkAuthStatus = async () => {
     return null;
   }
 };
+
+export const fetchWithTokenRefresh = async (url, options = {}) => {
+  try {
+    // Get the current access token
+    let token = localStorage.getItem('accessToken');
+
+    // Add the Authorization header to the request
+    options.headers = {
+      ...options.headers,
+      Authorization: `Bearer ${token}`,
+    };
+
+    // Make the initial request
+    let response = await fetch(url, options);
+
+    // If the request fails with a 401 error, try refreshing the token
+    if (response.status === 401) {
+      const newToken = await refreshToken();
+      if (newToken) {
+        // Update the Authorization header with the new token
+        options.headers.Authorization = `Bearer ${newToken}`;
+
+        // Retry the request with the new token
+        response = await fetch(url, options);
+      } else {
+        // Log out the user if the refresh fails
+        logout();
+        return null;
+      }
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Fetch with token refresh error:', error);
+    throw error;
+  }
+};

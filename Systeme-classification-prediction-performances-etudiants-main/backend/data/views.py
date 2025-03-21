@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import json
 from .models import Utilisateur, Classe, Note, Performance, Alerte, Recommandation, Matiere
 from .serializers import MatiereSerializer, UtilisateurSerializer, ClasseSerializer, NoteSerializer
-from django.db.models import Avg, Count, Sum, Max
+from django.db.models import Avg, Count, Sum, Max, Case, When, Value
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -1154,7 +1154,7 @@ def get_teacher_statistics(request):
             'message': 'Une erreur est survenue lors de la récupération des statistiques'
         }, status=500)
     
-    
+
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -1229,3 +1229,165 @@ def get_weekly_attendance(request):
         'success': True,
         'attendance_data': attendance_data,
     })
+
+from django.db.models import Avg, Count, Sum
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .models import Matiere, Note, Alerte, Recommandation
+from .serializers import MatiereSerializer, NoteSerializer, AlerteSerializer, RecommandationSerializer
+import logging
+
+logger = logging.getLogger(__name__)
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_teacher_alerts(request):
+    try:
+        matiere_id = request.query_params.get('matiere_id')
+        if not matiere_id:
+            return Response({
+                'success': False,
+                'message': 'matiere_id is required'
+            }, status=400)
+
+        # Fetch alerts for the specified matiere
+        alerts = Alerte.objects.filter(matiere_id=matiere_id).select_related('etudiant')
+        alerts_data = []
+        for alert in alerts:
+            alerts_data.append({
+                'id': alert.id,
+                'message': alert.message,
+                'student_id': alert.etudiant.id,
+                'student_name': f"{alert.etudiant.first_name} {alert.etudiant.last_name}",  # Add student name
+            })
+
+        return Response({
+            'success': True,
+            'alerts': alerts_data
+        })
+    except Exception as e:
+        logger.error(f"Error in get_teacher_alerts: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'message': 'An error occurred while fetching alerts'
+        }, status=500)
+
+# Fetch Classifications for Teacher's Matières
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_teacher_classifications(request):
+    try:
+        if request.user.user_type != 'teacher':
+            return Response({
+                'success': False,
+                'message': 'Accès non autorisé'
+            }, status=403)
+
+        # Fetch matières taught by the teacher
+        matieres = Matiere.objects.filter(enseignant=request.user)
+        classifications = Note.objects.filter(matiere__in=matieres).select_related('etudiant').values('etudiant').annotate(
+            average_grade=Avg('note_module'),
+            performance_category=Case(
+                When(average_grade__gte=16, then=Value('Excellent')),
+                When(average_grade__gte=12, then=Value('Good')),
+                When(average_grade__gte=10, then=Value('Average')),
+                default=Value('At Risk'),
+            )
+        )
+        classifications_data = []
+        for classification in classifications:
+            student = Utilisateur.objects.get(id=classification['etudiant'])
+            classifications_data.append({
+                'student_id': student.id,
+                'student_name': f"{student.first_name} {student.last_name}",  # Add student name
+                'performance_category': classification['performance_category'],
+            })
+
+        return Response({
+            'success': True,
+            'classifications': classifications_data
+        })
+    except Exception as e:
+        logger.error(f"Error in get_teacher_classifications: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'message': 'Une erreur est survenue lors de la récupération des classifications'
+        }, status=500)
+    
+
+# Fetch Predictions for Teacher's Matières
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_teacher_predictions(request):
+    try:
+        if request.user.user_type != 'teacher':
+            return Response({
+                'success': False,
+                'message': 'Accès non autorisé'
+            }, status=403)
+
+        # Fetch matières taught by the teacher
+        matieres = Matiere.objects.filter(enseignant=request.user)
+        predictions = Note.objects.filter(matiere__in=matieres).select_related('etudiant').values('etudiant').annotate(
+            predicted_score=Avg('note_module') + F('note_devoir_projet') * 0.3
+        )
+        predictions_data = []
+        for prediction in predictions:
+            student = Utilisateur.objects.get(id=prediction['etudiant'])
+            predictions_data.append({
+                'student_id': student.id,
+                'student_name': f"{student.first_name} {student.last_name}",  # Add student name
+                'predicted_score': prediction['predicted_score'],
+            })
+
+        return Response({
+            'success': True,
+            'predictions': predictions_data
+        })
+    except Exception as e:
+        logger.error(f"Error in get_teacher_predictions: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'message': 'Une erreur est survenue lors de la récupération des prédictions'
+        }, status=500)
+    
+
+# Fetch Recommendations for Teacher's Matières
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_teacher_recommendations(request):
+    try:
+        if request.user.user_type != 'teacher':
+            return Response({
+                'success': False,
+                'message': 'Accès non autorisé'
+            }, status=403)
+
+        # Fetch matières taught by the teacher
+        matieres = Matiere.objects.filter(enseignant=request.user)
+        recommendations = Recommandation.objects.filter(matiere__in=matieres).select_related('etudiant')
+        recommendations_data = []
+        for recommendation in recommendations:
+            recommendations_data.append({
+                'id': recommendation.id,
+                'student_id': recommendation.etudiant.id,
+                'student_name': f"{recommendation.etudiant.first_name} {recommendation.etudiant.last_name}",  # Add student name
+                'message': recommendation.contenu,
+            })
+
+        return Response({
+            'success': True,
+            'recommendations': recommendations_data
+        })
+    except Exception as e:
+        logger.error(f"Error in get_teacher_recommendations: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'message': 'Une erreur est survenue lors de la récupération des recommandations'
+        }, status=500)

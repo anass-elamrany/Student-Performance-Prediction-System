@@ -100,7 +100,6 @@ const teacherMenuItems = {
     { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/teacher/dashboard" },
     { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/teacher/Notes" },
     { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/teacher/Analyse" },
-    { text: "Alertes", icon: <NotificationsActiveOutlinedIcon />, path: "/teacher/Alertes" },
   ],
 };
 
