@@ -69,9 +69,10 @@ class EnseignantSerializer(serializers.ModelSerializer):
         
 
 class NoteSerializer(serializers.ModelSerializer):
+    matiere = MatiereSerializer(read_only=True)
     class Meta:
         model = Note
-        fields = ['id', 'etudiant', 'matiere', 'note_module', 'note_devoir_projet', 'assiduite', 'presence']
+        fields = ['id', 'etudiant', 'matiere', 'note_module', 'note_devoir_projet', 'assiduite', 'presence','date_ajout']
 
 class PerformanceSerializer(serializers.ModelSerializer):
     class Meta:

@@ -28,7 +28,7 @@ import TeacherAnalysis from "./pages/teacher/Analyse";
 
 // Dashboard Pages - Student
 import StudentDashboard from "./pages/student/Dashboard";
-import StudentGuidance from "./pages/student/Guidance ";
+import StudentRecommendations from "./pages/student/Recommendations";
 import StudentAlerts from "./pages/student/MesAlerts";
 import StudentNotes from "./pages/student/Mes Notes ";
 
@@ -87,7 +87,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: "dashboard", element: <StudentDashboard /> },
-      { path: "Guidance", element: <StudentGuidance /> },
+      { path: "Guidance", element: <StudentRecommendations/> },
       { path: "Notes", element: <StudentNotes /> },
       { path: "Alerts", element: <StudentAlerts /> }, 
     ],

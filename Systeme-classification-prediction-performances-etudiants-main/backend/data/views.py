@@ -1391,3 +1391,39 @@ def get_teacher_recommendations(request):
             'success': False,
             'message': 'Une erreur est survenue lors de la récupération des recommandations'
         }, status=500)
+    
+
+
+
+#students
+
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .models import Note
+
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .models import Note
+from .serializers import NoteSerializer
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_student_notes(request):
+    if request.user.user_type != 'student':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    # Fetch notes for the logged-in student
+    notes = Note.objects.filter(etudiant=request.user)
+    serializer = NoteSerializer(notes, many=True)
+    return Response({
+        'success': True,
+        'notes': serializer.data
+    })
