@@ -73,5 +73,6 @@ urlpatterns = [
     # Student Dashboard
     path('api/student/notes/', views.get_student_notes, name='get_student_notes'),
     path('api/student/dashboard/', views.student_dashboard, name='student_dashboard'),
-    
+    path('api/student/recommendations/', views.student_recommendations, name='student_recommendations'),
+    path('api/student/alerts/', views.student_alerts, name='student_alerts'),
 ]

@@ -1554,3 +1554,102 @@ def student_dashboard(request):
             'success': False,
             'message': f'Une erreur est survenue: {str(e)}'
         }, status=500)  
+    
+from django.shortcuts import render
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import Recommandation
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def student_recommendations(request):
+    """
+    API view for student's recommendations
+    Returns all recommendations for the logged-in student
+    """
+    if not request.user.is_etudiant():
+        return Response({
+            'success': False,
+            'message': 'Seuls les étudiants peuvent accéder à leurs recommandations.'
+        }, status=403)
+    
+    try:
+        student = request.user
+        recommendations = Recommandation.objects.filter(etudiant=student).order_by('-date_creation')
+        
+        recommendations_data = []
+        for recommendation in recommendations:
+            matiere_data = None
+            if recommendation.matiere:
+                matiere_data = {
+                    'id': recommendation.matiere.id,
+                    'nom': recommendation.matiere.nom,
+                    'semestre': recommendation.matiere.get_semestre_display()
+                }
+            
+            recommendations_data.append({
+                'id': recommendation.id,
+                'matiere': matiere_data,
+                'contenu': recommendation.contenu,
+                'date_creation': recommendation.date_creation.strftime('%d/%m/%Y')
+            })
+        
+        return Response({
+            'success': True,
+            'recommendations': recommendations_data
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Une erreur est survenue: {str(e)}'
+        }, status=500)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def student_alerts(request):
+    """
+    API view for student's alerts
+    Returns all alerts for the logged-in student
+    """
+    if not request.user.is_etudiant():
+        return Response({
+            'success': False,
+            'message': 'Seuls les étudiants peuvent accéder à leurs alertes.'
+        }, status=403)
+    
+    try:
+        student = request.user
+        alerts = Alerte.objects.filter(etudiant=student).order_by('-date_creation')
+        
+        alerts_data = []
+        for alert in alerts:
+            matiere_data = None
+            if alert.matiere:
+                matiere_data = {
+                    'id': alert.matiere.id,
+                    'nom': alert.matiere.nom,
+                    'semestre': alert.matiere.get_semestre_display()
+                }
+            
+            alerts_data.append({
+                'id': alert.id,
+                'titre': alert.titre,
+                'contenu': alert.contenu,
+                'priorite': alert.get_priorite_display() if hasattr(alert, 'get_priorite_display') else alert.priorite,
+                'matiere': matiere_data,
+                'date_creation': alert.date_creation.strftime('%d/%m/%Y'),
+                'est_lu': alert.est_lu
+            })
+        
+        return Response({
+            'success': True,
+            'alerts': alerts_data
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Une erreur est survenue: {str(e)}'
+        }, status=500)

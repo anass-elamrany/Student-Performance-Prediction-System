@@ -1,103 +1,156 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
 import { 
-  Container, 
-  Typography, 
   Box, 
-  Alert, 
-  CircularProgress,
-  Card,
-  CardContent,
+  Typography, 
+  Paper, 
+  Card, 
+  CardContent, 
+  CardHeader,
+  LinearProgress,
   Grid,
   Divider,
-  Chip,
-  Paper
-} from '@mui/material';
+  Chip
+} from "@mui/material";
+import { Lightbulb, School, CalendarToday } from "@mui/icons-material";
+import { fetchWithTokenRefresh } from "../../utils/auth";
 
 const StudentRecommendations = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/recommendations/");
+      const data = await response.json();
+
+      console.log("API Response:", data); // Debugging: Log the API response
+
+      if (data.success && Array.isArray(data.recommendations)) {
+        setRecommendations(data.recommendations);
+      } else {
+        console.error("Invalid API response format:", data);
+        setRecommendations([]);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des recommandations:", error);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchRecommendations = async () => {
-      try {
-        setLoading(true);
-        
-        const response = await axios.get('/api/student/recommendations/', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
-        });
-        
-        setRecommendations(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError('Erreur lors du chargement des recommandations. Veuillez réessayer plus tard.');
-        setLoading(false);
-        console.error('Error fetching recommendations:', err);
-      }
-    };
-    
-    fetchRecommendations();
+    fetchData();
   }, []);
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress />
+      <Box sx={{ width: "100%", mt: 4 }}>
+        <LinearProgress />
       </Box>
     );
   }
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
+  // Group recommendations by subject
+  const groupedRecommendations = recommendations.reduce((groups, recommendation) => {
+    const subject = recommendation.matiere ? recommendation.matiere.nom : "Général";
+    if (!groups[subject]) {
+      groups[subject] = [];
+    }
+    groups[subject].push(recommendation);
+    return groups;
+  }, {});
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom component="div" sx={{ fontWeight: 'bold', mb: 3 }}>
-        Mes recommandations
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Mes Recommandations
       </Typography>
-      
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      
-      <Grid container spacing={3}>
-        {recommendations.length > 0 ? (
-          recommendations.map((recommendation) => (
-            <Grid item xs={12} md={6} key={recommendation.id}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Chip 
-                      label={recommendation.matiere} 
-                      color="primary" 
-                      size="small" 
-                    />
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(recommendation.date_creation)}
-                    </Typography>
-                  </Box>
-                  <Divider sx={{ mb: 2 }} />
-                  <Typography variant="body1">
-                    {recommendation.contenu}
-                  </Typography>
-                </CardContent>
-              </Card>
+      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+        Consultez les recommandations personnalisées pour améliorer vos performances
+      </Typography>
+
+      {recommendations.length === 0 ? (
+        <Paper sx={{ p: 3, textAlign: "center", mt: 3 }}>
+          <Lightbulb sx={{ fontSize: 40, color: "text.secondary", mb: 2 }} />
+          <Typography variant="h6">
+            Aucune recommandation disponible pour le moment.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Les recommandations apparaîtront ici lorsque vos enseignants ou le système en génèreront.
+          </Typography>
+        </Paper>
+      ) : (
+        <>
+          {/* Recent recommendations */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              <Lightbulb sx={{ mr: 1, verticalAlign: "middle" }} />
+              Recommandations récentes
+            </Typography>
+            <Grid container spacing={3}>
+              {recommendations.slice(0, 3).map((recommendation) => (
+                <Grid item xs={12} md={4} key={recommendation.id}>
+                  <Card sx={{ height: "100%" }}>
+                    <CardContent>
+                      {recommendation.matiere && (
+                        <Chip 
+                          icon={<School />} 
+                          label={recommendation.matiere.nom} 
+                          color="primary" 
+                          size="small" 
+                          sx={{ mb: 2 }} 
+                        />
+                      )}
+                      <Typography variant="body1" sx={{ mb: 1 }}>
+                        {recommendation.contenu}
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+                        <CalendarToday fontSize="small" sx={{ color: "text.secondary", mr: 1 }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {recommendation.date_creation}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
             </Grid>
-          ))
-        ) : (
-          <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="body1">
-                Aucune recommandation à afficher pour le moment.
-              </Typography>
-            </Paper>
-          </Grid>
-        )}
-      </Grid>
-    </Container>
+          </Box>
+
+          {/* All recommendations by subject */}
+          <Box>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              <School sx={{ mr: 1, verticalAlign: "middle" }} />
+              Recommandations par matière
+            </Typography>
+            
+            {Object.entries(groupedRecommendations).map(([subject, subjectRecommendations]) => (
+              <Paper key={subject} sx={{ mb: 3, p: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+                  {subject}
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                
+                {subjectRecommendations.map((recommendation) => (
+                  <Box key={recommendation.id} sx={{ mb: 2, pb: 2, borderBottom: 1, borderColor: "divider" }}>
+                    <Typography variant="body1">
+                      {recommendation.contenu}
+                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                      <CalendarToday fontSize="small" sx={{ color: "text.secondary", mr: 1 }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {recommendation.date_creation}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Paper>
+            ))}
+          </Box>
+        </>
+      )}
+    </Box>
   );
 };
 
