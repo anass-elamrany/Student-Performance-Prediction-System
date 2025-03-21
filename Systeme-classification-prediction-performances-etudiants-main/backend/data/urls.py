@@ -35,13 +35,6 @@ urlpatterns = [
     path('api/matieres/update/<int:id>/', views.update_matiere, name='update-matiere'),
     path('api/matieres/delete/<int:id>/', views.delete_matiere, name='delete-matiere'),
 
-    # Teacher Dashboard
-    path('api/get_enseignant_matieres/', views.get_enseignant_matieres, name='get_enseignant_matieres'),
-    path('api/get_classe_students/<int:classe_id>/', views.get_classe_students, name='get_classe_students'),
-    path('api/get_enseignant_matiere_classe/<int:classe_id>/', views.get_enseignant_matiere_classe, name='get_enseignant_matiere_classe'),
-    path('api/notes/<int:student_id>/<int:matiere_id>/', views.get_student_notes, name='get_student_notes'),
-    path('api/notes/update/<int:student_id>/<int:matiere_id>/', views.update_student_note, name='update_student_note'),
-    
     # Machine Learning
     path('api/classify-students/', views.classify_students, name='classify-students'),
     path('api/predict-performance/', views.predict_student_performance, name='predict-performance'),
@@ -55,5 +48,13 @@ urlpatterns = [
     path('api/subjects-performance/', views.get_subjects_performance, name='get_subjects_performance'),
     path('api/global-attendance/', views.get_global_attendance, name='get_global_attendance'),
     path('api/summary_stats/', views.get_global_summary_stats, name='get_global_summary_stats'),
-   
+
+    # Teacher Dashboard
+    path('api/teacher/matieres/', views.get_teacher_matieres, name='get_teacher_matieres'),
+    path('api/teacher/notes/', views.get_teacher_notes, name='get_teacher_notes'),
+    path('api/teacher/notes/create-update/', views.create_or_update_note, name='create_or_update_note'),
+    path('api/teacher/notes/delete/<int:id>/', views.delete_note, name='delete_note'),
+    path('api/teacher/notes/import/', views.import_notes, name='import_notes'),
+    path('api/teacher/classes/', views.get_teacher_classes, name='get_teacher_classes'),
+    path('api/teacher/students-by-matiere/', views.get_students_by_matiere, name='get_students_by_matiere'),  
 ]

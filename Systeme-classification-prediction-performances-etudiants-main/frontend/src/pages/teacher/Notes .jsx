@@ -17,171 +17,227 @@ import {
   TextField,
   IconButton,
   Grid,
+  Alert,
+  Snackbar,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Snackbar,
-  Alert,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
-import CancelIcon from "@mui/icons-material/Cancel";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import GetAppIcon from "@mui/icons-material/GetApp";
+import { refreshToken, checkAuthStatus, getUserRole } from "../../utils/auth"; // Import the auth functions
+import { useNavigate } from "react-router-dom";
 
 const TeacherNotes = () => {
-  const [classes, setClasses] = useState([]);
-  const [matiere, setMatiere] = useState(null);
-  const [students, setStudents] = useState([]);
   const [notes, setNotes] = useState([]);
-  const [selectedClass, setSelectedClass] = useState("");
+  const [matieres, setMatieres] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [selectedMatiere, setSelectedMatiere] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
-  const [currentNote, setCurrentNote] = useState(null);
+  const [formData, setFormData] = useState({
+    id: null,
+    matiere_id: "",
+    etudiant_id: "",
+    note_module: "",
+    note_devoir_projet: "",
+    assiduite: "",
+    presence: "",
+  });
+  const [editMode, setEditMode] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  // Fonction pour rafraîchir le token JWT
-  const refreshToken = async () => {
-    try {
-      const refreshToken = localStorage.getItem("refreshToken");
-      const response = await fetch("http://localhost:8000/api/token/refresh/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refresh: refreshToken }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erreur lors du rafraîchissement du token");
-      }
-
-      const data = await response.json();
-      localStorage.setItem("accessToken", data.access); // Mettre à jour le token d'accès
-      return data.access;
-    } catch (error) {
-      console.error("Refresh token error:", error);
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      sessionStorage.removeItem("currentUser");
-      window.location.href = "/login"; // Rediriger vers la page de connexion
-      return null;
-    }
-  };
-
-  // Fetch classes from the backend
+  // Fetch Matieres and Notes
   useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        const response = await fetch("http://localhost:8000/api/classes/", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setClasses(data);
-      } catch (error) {
-        console.error("Error fetching classes:", error);
-        setError("Erreur lors de la récupération des classes. Veuillez réessayer.");
-      }
-    };
-
-    fetchClasses();
+    fetchMatieres();
   }, []);
 
-  // Fetch students and matiere based on selected class
   useEffect(() => {
-    if (selectedClass) {
-      const fetchStudentsAndMatiere = async () => {
-        try {
-          const token = localStorage.getItem("accessToken");
-
-          // Fetch students
-          const studentsResponse = await fetch(
-            `http://localhost:8000/api/get_classe_students/${selectedClass}/`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (!studentsResponse.ok) {
-            throw new Error(`Erreur HTTP: ${studentsResponse.status}`);
-          }
-
-          const studentsData = await studentsResponse.json();
-          setStudents(studentsData);
-
-          // Fetch matiere
-          const matiereResponse = await fetch(
-            `http://localhost:8000/api/get_enseignant_matiere_classe/${selectedClass}/`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (!matiereResponse.ok) {
-            throw new Error(`Erreur HTTP: ${matiereResponse.status}`);
-          }
-
-          const matiereData = await matiereResponse.json();
-          setMatiere(matiereData);
-
-          // Fetch notes for each student
-          const notesData = [];
-          for (const student of studentsData) {
-            const notesResponse = await fetch(
-              `http://localhost:8000/api/notes/${student.id}/${matiereData.id}/`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-
-            if (notesResponse.ok) {
-              const noteData = await notesResponse.json();
-              if (noteData.length > 0) {
-                notesData.push({
-                  ...noteData[0],
-                  etudiant_id: student.id, // Ajouter l'ID de l'étudiant pour faciliter la recherche
-                  studentName: `${student.first_name} ${student.last_name}`,
-                  id: noteData[0].id,
-                });
-              }
-            }
-          }
-          setNotes(notesData);
-        } catch (error) {
-          console.error("Error fetching data:", error);
-          setError("Erreur lors de la récupération des données. Veuillez réessayer.");
-        }
-      };
-
-      fetchStudentsAndMatiere();
+    if (selectedMatiere) {
+      fetchStudents().then(() => fetchNotes()); // Fetch students first, then notes
     }
-  }, [selectedClass]);
+  }, [selectedMatiere]);
 
-  // Handle class selection change
-  const handleClassChange = (event) => {
-    setSelectedClass(event.target.value);
+  const fetchWithTokenRefresh = async (url, options = {}) => {
+    let response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+    });
+
+    if (response.status === 401) {
+      const newAccessToken = await refreshToken();
+      if (newAccessToken) {
+        response = await fetch(url, {
+          ...options,
+          headers: {
+            ...options.headers,
+            Authorization: `Bearer ${newAccessToken}`,
+          },
+        });
+      } else {
+        throw new Error("Failed to refresh token");
+      }
+    }
+
+    return response;
   };
 
-  // Open dialog for editing a note
-  const handleOpenDialog = (note) => {
-    setCurrentNote(note);
+  const fetchMatieres = async () => {
+    try {
+      const response = await fetchWithTokenRefresh("http://localhost:8000/api/teacher/matieres/");
+      const data = await response.json();
+      if (data.success) {
+        setMatieres(data.matieres);
+      }
+    } catch (error) {
+      console.error("Error fetching matieres:", error);
+      setSnackbar({
+        open: true,
+        message: "Erreur lors de la récupération des matières",
+        severity: "error",
+      });
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetchWithTokenRefresh(
+        `http://localhost:8000/api/teacher/students-by-matiere/?matiere_id=${selectedMatiere}`
+      );
+      const data = await response.json();
+      console.log("Fetched Students:", data.students); // Debugging log
+      if (data.success) {
+        setStudents(data.students);
+      }
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      setSnackbar({
+        open: true,
+        message: "Erreur lors de la récupération des étudiants",
+        severity: "error",
+      });
+    }
+  };
+
+  const fetchNotes = async () => {
+    try {
+      const response = await fetchWithTokenRefresh(
+        `http://localhost:8000/api/teacher/notes/?matiere_id=${selectedMatiere}`
+      );
+      const data = await response.json();
+      console.log("Fetched Notes:", data.notes); // Debugging log
+      if (data.success) {
+        // Map the notes to include the full student object
+        const notesWithStudents = data.notes.map((note) => {
+          const student = students.find((s) => s.id === note.etudiant);
+          return {
+            ...note,
+            etudiant: student || { id: note.etudiant }, // Fallback to ID if student not found
+          };
+        });
+        setNotes(notesWithStudents);
+      }
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+      setSnackbar({
+        open: true,
+        message: "Erreur lors de la récupération des notes",
+        severity: "error",
+      });
+    }
+  };
+
+  // Handle CSV file upload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetchWithTokenRefresh("http://localhost:8000/api/teacher/notes/import/", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        fetchNotes();
+        setSnackbar({
+          open: true,
+          message: data.message || "Notes importées avec succès",
+          severity: "success",
+        });
+      } else {
+        throw new Error(data.message || "Erreur lors de l'importation du fichier CSV");
+      }
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.message || "Une erreur est survenue",
+        severity: "error",
+      });
+    }
+  };
+
+  // Handle downloading the CSV template
+  const downloadTemplate = () => {
+    const headers = [
+      "matiere_id",
+      "etudiant_id",
+      "note_module",
+      "note_devoir_projet",
+      "assiduite",
+      "presence",
+    ];
+    const csvContent = headers.join(",") + "\n";
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "template_notes.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Open dialog for adding/editing a note
+  const handleOpenDialog = (note = null) => {
+    if (note) {
+      setFormData({
+        id: note.id,
+        matiere_id: note.matiere?.id || selectedMatiere,
+        etudiant_id: note.etudiant?.id || "",
+        note_module: note.note_module || "",
+        note_devoir_projet: note.note_devoir_projet || "",
+        assiduite: note.assiduite || "",
+        presence: note.presence || "",
+      });
+      setEditMode(true);
+    } else {
+      setFormData({
+        id: null,
+        matiere_id: selectedMatiere,
+        etudiant_id: "",
+        note_module: "",
+        note_devoir_projet: "",
+        assiduite: "",
+        presence: "",
+      });
+      setEditMode(false);
+    }
     setOpenDialog(true);
   };
 
@@ -193,60 +249,88 @@ const TeacherNotes = () => {
   // Handle input changes in the form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setCurrentNote({
-      ...currentNote,
+    setFormData({
+      ...formData,
       [name]: value,
     });
   };
 
-  // Submit form (update or create note)
+  // Submit form (create or update note)
   const handleSubmit = async () => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch(
-        `http://localhost:8000/api/notes/update/${currentNote.etudiant_id}/${matiere.id}/`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            note_module: currentNote.note_module,
-            note_devoir_projet: currentNote.note_devoir_projet,
-            assiduite: currentNote.assiduite,
-            presence: currentNote.presence,
-          }),
-        }
-      );
+      const url = "http://localhost:8000/api/teacher/notes/create-update/";
+      const method = "POST";
 
+      const response = await fetchWithTokenRefresh(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
       if (response.ok) {
+        fetchNotes();
         setSnackbar({
           open: true,
-          message: "Note mise à jour avec succès",
+          message: data.message || "Note créée/mise à jour avec succès",
           severity: "success",
         });
         handleCloseDialog();
       } else {
-        throw new Error("Erreur lors de la mise à jour de la note");
+        throw new Error(data.message || "Erreur lors de la requête");
       }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: "Une erreur est survenue",
+        message: error.message || "Une erreur est survenue",
         severity: "error",
       });
     }
   };
 
-  // Close Snackbar
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+  // Delete a note
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetchWithTokenRefresh(`http://localhost:8000/api/teacher/notes/delete/${id}/`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        fetchNotes();
+        setSnackbar({
+          open: true,
+          message: "Note supprimée avec succès",
+          severity: "info",
+        });
+      } else {
+        throw new Error("Erreur lors de la suppression");
+      }
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.message || "Une erreur est survenue",
+        severity: "error",
+      });
+    }
   };
+
+  // Handle Matiere filter change
+  const handleMatiereFilterChange = (e) => {
+    setSelectedMatiere(e.target.value);
+  };
+
+  // Redirect if user is not a teacher
+  useEffect(() => {
+    const userRole = getUserRole();
+    if (userRole !== "teacher") {
+      navigate("/login");
+    }
+  }, [navigate]);
 
   return (
     <Box>
-      {/* Header */}
       <Box
         sx={{
           display: "flex",
@@ -258,46 +342,65 @@ const TeacherNotes = () => {
         <Typography variant="h4" component="h1">
           Gestion des Notes
         </Typography>
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<GetAppIcon />}
+            onClick={downloadTemplate}
+            sx={{ mr: 2 }}
+          >
+            Télécharger le Modèle
+          </Button>
+          <Button
+            variant="contained"
+            component="label"
+            startIcon={<CloudUploadIcon />}
+            sx={{ mr: 2 }}
+          >
+            Importer CSV
+            <input
+              type="file"
+              hidden
+              accept=".csv"
+              onChange={handleFileUpload}
+            />
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Ajouter une Note
+          </Button>
+        </Box>
       </Box>
 
-      {/* Afficher les erreurs */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+      {/* Matiere Filter */}
+      <Box sx={{ mb: 3 }}>
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel id="matiere-filter-label">Filtrer par Matière</InputLabel>
+          <Select
+            labelId="matiere-filter-label"
+            value={selectedMatiere}
+            onChange={handleMatiereFilterChange}
+            label="Filtrer par Matière"
+          >
+            <MenuItem value="">Toutes les Matières</MenuItem>
+            {matieres.map((matiere) => (
+              <MenuItem key={matiere.id} value={matiere.id}>
+                {matiere.nom}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
-      {/* Afficher la matière enseignée */}
-      {matiere && (
-        <Typography variant="h6" sx={{ mb: 3 }}>
-          Matière enseignée : {matiere.nom}
-        </Typography>
-      )}
-
-      {/* Filtre pour sélectionner la classe */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Classe</InputLabel>
-            <Select value={selectedClass} onChange={handleClassChange} label="Classe">
-              {classes.map((classe) => (
-                <MenuItem key={classe.id} value={classe.id}>
-                  {classe.nom}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-      </Grid>
-
-      {/* Table des étudiants */}
-      <TableContainer component={Paper} sx={{ mb: 4 }}>
+      {/* Table of Students and Notes */}
+      <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
               <TableCell>Étudiant</TableCell>
-              <TableCell align="center">Nom</TableCell>
-              <TableCell align="center">Prénom</TableCell>
               <TableCell align="center">Note Module</TableCell>
               <TableCell align="center">Note Devoir/Projet</TableCell>
               <TableCell align="center">Assiduité</TableCell>
@@ -307,42 +410,37 @@ const TeacherNotes = () => {
           </TableHead>
           <TableBody>
             {students.map((student) => {
-              // Trouver les notes de l'étudiant
-              const studentNote = notes.find((note) => note.etudiant_id === student.id);
-
+              const note = notes.find((n) => n.etudiant.id === student.id);
               return (
                 <TableRow key={student.id}>
-                  <TableCell>{student.username}</TableCell>
-                  <TableCell align="center">{student.first_name}</TableCell>
-                  <TableCell align="center">{student.last_name}</TableCell>
+                  <TableCell>{`${student.first_name} ${student.last_name}`}</TableCell>
                   <TableCell align="center">
-                    {studentNote ? studentNote.note_module : "-"}
+                    {note ? note.note_module : "-"}
                   </TableCell>
                   <TableCell align="center">
-                    {studentNote ? studentNote.note_devoir_projet : "-"}
+                    {note ? note.note_devoir_projet : "-"}
                   </TableCell>
                   <TableCell align="center">
-                    {studentNote ? studentNote.assiduite : "-"}
+                    {note ? note.assiduite : "-"}
                   </TableCell>
                   <TableCell align="center">
-                    {studentNote ? studentNote.presence : "-"}
+                    {note ? note.presence : "-"}
                   </TableCell>
                   <TableCell align="center">
                     <IconButton
                       color="primary"
-                      onClick={() =>
-                        handleOpenDialog({
-                          etudiant_id: student.id,
-                          studentName: `${student.first_name} ${student.last_name}`,
-                          note_module: studentNote ? studentNote.note_module : 0,
-                          note_devoir_projet: studentNote ? studentNote.note_devoir_projet : 0,
-                          assiduite: studentNote ? studentNote.assiduite : 0,
-                          presence: studentNote ? studentNote.presence : 0,
-                        })
-                      }
+                      onClick={() => handleOpenDialog(note || { etudiant: student, matiere: { id: selectedMatiere } })}
                     >
                       <EditIcon />
                     </IconButton>
+                    {note && (
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDelete(note.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -351,9 +449,11 @@ const TeacherNotes = () => {
         </Table>
       </TableContainer>
 
-      {/* Dialog pour modifier ou ajouter une note */}
+      {/* Dialog for adding/editing a note */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>Modifier la Note</DialogTitle>
+        <DialogTitle>
+          {editMode ? "Modifier la Note" : "Ajouter une Note"}
+        </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
@@ -361,7 +461,7 @@ const TeacherNotes = () => {
                 name="note_module"
                 label="Note Module"
                 fullWidth
-                value={currentNote?.note_module || ""}
+                value={formData.note_module}
                 onChange={handleInputChange}
                 required
               />
@@ -371,7 +471,7 @@ const TeacherNotes = () => {
                 name="note_devoir_projet"
                 label="Note Devoir/Projet"
                 fullWidth
-                value={currentNote?.note_devoir_projet || ""}
+                value={formData.note_devoir_projet}
                 onChange={handleInputChange}
                 required
               />
@@ -381,7 +481,7 @@ const TeacherNotes = () => {
                 name="assiduite"
                 label="Assiduité"
                 fullWidth
-                value={currentNote?.assiduite || ""}
+                value={formData.assiduite}
                 onChange={handleInputChange}
                 required
               />
@@ -391,7 +491,7 @@ const TeacherNotes = () => {
                 name="presence"
                 label="Présence"
                 fullWidth
-                value={currentNote?.presence || ""}
+                value={formData.presence}
                 onChange={handleInputChange}
                 required
               />
@@ -399,26 +499,24 @@ const TeacherNotes = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} startIcon={<CancelIcon />}>
-            Annuler
-          </Button>
-          <Button onClick={handleSubmit} variant="contained" startIcon={<SaveIcon />}>
-            Enregistrer
+          <Button onClick={handleCloseDialog}>Annuler</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            {editMode ? "Mettre à jour" : "Ajouter"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar pour les notifications */}
+      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
         <Alert
-          onClose={handleCloseSnackbar}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           // @ts-ignore
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%" }}  
         >
           {snackbar.message}
         </Alert>

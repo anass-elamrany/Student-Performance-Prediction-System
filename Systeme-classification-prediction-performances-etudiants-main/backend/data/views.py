@@ -9,7 +9,9 @@ from datetime import datetime, timedelta
 import json
 from .models import Utilisateur, Classe, Note, Performance, Alerte, Recommandation, Matiere
 from .serializers import MatiereSerializer, UtilisateurSerializer, ClasseSerializer, NoteSerializer
-
+from django.db.models import Avg, Count, Sum
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
@@ -645,94 +647,6 @@ def generate_recommendations(request):
 
 
 
-
-# Teacher Dashboard Views
-@api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def get_enseignant_matieres(request):
-    """
-    Vue pour obtenir les matières enseignées par l'enseignant connecté.
-    """
-    enseignant_id = request.user.id
-    matieres = Matiere.objects.filter(enseignant_id=enseignant_id)
-    
-    # Sérialiser les matières
-    serializer = MatiereSerializer(matieres, many=True)
-    
-    # Renvoyer un tableau, même vide
-    return Response(serializer.data if matieres.exists() else [])
-
-@csrf_exempt
-def get_classe_students(request, classe_id):
-    """
-    Vue pour obtenir les étudiants d'une classe.
-    """
-    if request.method == 'GET':
-        students = Utilisateur.objects.filter(classe_id=classe_id, user_type='student')
-        serializer = UtilisateurSerializer(students, many=True)
-        return JsonResponse(serializer.data, safe=False)
-
-@api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def get_enseignant_matiere_classe(request, classe_id):
-    """
-    Vue pour obtenir la matière enseignée par l'enseignant dans une classe spécifique.
-    """
-    enseignant_id = request.user.id
-    matiere = Matiere.objects.filter(enseignant_id=enseignant_id, classe_id=classe_id).first()
-    
-    if matiere:
-        serializer = MatiereSerializer(matiere)
-        return Response(serializer.data)
-    else:
-        return Response({"error": "Aucune matière trouvée pour cette classe."}, status=404)
-
-@csrf_exempt
-def get_student_notes(request, student_id, matiere_id):
-    """
-    Vue pour obtenir les notes d'un étudiant pour une matière spécifique.
-    """
-    if request.method == 'GET':
-        notes = Note.objects.filter(etudiant_id=student_id, matiere_id=matiere_id)
-        serializer = NoteSerializer(notes, many=True)
-        return JsonResponse(serializer.data, safe=False)
-
-@csrf_exempt
-def update_student_note(request, student_id, matiere_id):
-    """
-    Vue pour créer ou mettre à jour les notes d'un étudiant.
-    """
-    if request.method == 'PUT':
-        data = json.loads(request.body)
-        try:
-            note, created = Note.objects.get_or_create(
-                etudiant_id=student_id,
-                matiere_id=matiere_id,
-                defaults={
-                    'note_module': data.get('note_module', 0),
-                    'note_devoir_projet': data.get('note_devoir_projet', 0),
-                    'assiduite': data.get('assiduite', 0),
-                    'presence': data.get('presence', 0),
-                }
-            )
-            if not created:
-                note.note_module = data.get('note_module', note.note_module)
-                note.note_devoir_projet = data.get('note_devoir_projet', note.note_devoir_projet)
-                note.assiduite = data.get('assiduite', note.assiduite)
-                note.presence = data.get('presence', note.presence)
-                note.save()
-            return JsonResponse({'success': True})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
-
-
-# Add these imports at the top of your views file
-from django.db.models import Avg, Count, Sum
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 # Fetch Matières by Class and Semester
 @csrf_exempt
 def get_matieres_by_class_semester(request):
@@ -900,3 +814,279 @@ def get_global_summary_stats(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+
+
+
+
+
+
+
+
+
+
+
+
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from .models import Utilisateur, Matiere, Note
+from .serializers import MatiereSerializer, NoteSerializer
+import csv
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+# Get Matieres for the logged-in teacher
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_teacher_matieres(request):
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    # Fetch matieres taught by the logged-in teacher
+    matieres = Matiere.objects.filter(enseignant=request.user)
+    serializer = MatiereSerializer(matieres, many=True)
+    return Response({
+        'success': True,
+        'matieres': serializer.data
+    })
+
+# Get Notes for the logged-in teacher's Matieres
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_teacher_notes(request):
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    matiere_id = request.query_params.get('matiere_id')
+    if not matiere_id:
+        return Response({
+            'success': False,
+            'message': 'matiere_id est requis'
+        }, status=400)
+
+    # Ensure the matiere belongs to the logged-in teacher
+    matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+    if not matiere:
+        return Response({
+            'success': False,
+            'message': 'Matière non trouvée ou accès non autorisé'
+        }, status=404)
+
+    # Fetch notes for the selected matiere
+    notes = Note.objects.filter(matiere=matiere)
+    serializer = NoteSerializer(notes, many=True)
+    return Response({
+        'success': True,
+        'notes': serializer.data
+    })
+
+# Create or Update a Note
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def create_or_update_note(request):
+    """
+    Vue pour créer ou mettre à jour une note.
+    """
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    data = request.data
+    matiere_id = data.get('matiere_id')
+    etudiant_id = data.get('etudiant_id')
+
+    # Check if the teacher teaches the Matiere
+    matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+    if not matiere:
+        return Response({
+            'success': False,
+            'message': 'Matière non trouvée ou accès non autorisé'
+        }, status=404)
+
+    # Check if the student is in the Matiere's class
+    etudiant = Utilisateur.objects.filter(id=etudiant_id, user_type='student', classe=matiere.classe).first()
+    if not etudiant:
+        return Response({
+            'success': False,
+            'message': 'Étudiant non trouvé ou accès non autorisé'
+        }, status=404)
+
+    # Create or update the Note
+    note, created = Note.objects.update_or_create(
+        matiere=matiere,
+        etudiant=etudiant,
+        defaults={
+            'note_module': data.get('note_module'),
+            'note_devoir_projet': data.get('note_devoir_projet'),
+            'assiduite': data.get('assiduite'),
+            'presence': data.get('presence'),
+        }
+    )
+
+    serializer = NoteSerializer(note)
+    return Response({
+        'success': True,
+        'note': serializer.data,
+        'message': 'Note créée/mise à jour avec succès'
+    })
+
+# Delete a Note
+@api_view(['DELETE'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def delete_note(request, id):
+    """
+    Vue pour supprimer une note.
+    """
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    note = Note.objects.filter(id=id, matiere__enseignant=request.user).first()
+    if not note:
+        return Response({
+            'success': False,
+            'message': 'Note non trouvée ou accès non autorisé'
+        }, status=404)
+
+    note.delete()
+    return Response({
+        'success': True,
+        'message': 'Note supprimée avec succès'
+    })
+
+# Import Notes from CSV
+@csrf_exempt
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def import_notes(request):
+    """
+    Vue pour importer des notes à partir d'un fichier CSV.
+    """
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    if not request.FILES.get('file'):
+        return Response({
+            'success': False,
+            'message': 'Aucun fichier trouvé'
+        }, status=400)
+
+    file = request.FILES['file']
+    if not file.name.endswith('.csv'):
+        return Response({
+            'success': False,
+            'message': 'Le fichier doit être un CSV'
+        }, status=400)
+
+    try:
+        decoded_file = file.read().decode('utf-8').splitlines()
+        reader = csv.DictReader(decoded_file)
+
+        for row in reader:
+            matiere_id = row.get('matiere_id')
+            etudiant_id = row.get('etudiant_id')
+
+            # Check if the teacher teaches the Matiere
+            matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+            if not matiere:
+                continue
+
+            # Check if the student is in the Matiere's class
+            etudiant = Utilisateur.objects.filter(id=etudiant_id, user_type='student', classe=matiere.classe).first()
+            if not etudiant:
+                continue
+
+            # Create or update the Note
+            Note.objects.update_or_create(
+                matiere=matiere,
+                etudiant=etudiant,
+                defaults={
+                    'note_module': row.get('note_module'),
+                    'note_devoir_projet': row.get('note_devoir_projet'),
+                    'assiduite': row.get('assiduite'),
+                    'presence': row.get('presence'),
+                }
+            )
+
+        return Response({
+            'success': True,
+            'message': 'Notes importées avec succès'
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+    
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_students_by_matiere(request):
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    matiere_id = request.query_params.get('matiere_id')
+    if not matiere_id:
+        return Response({
+            'success': False,
+            'message': 'matiere_id est requis'
+        }, status=400)
+
+    # Ensure the matiere belongs to the logged-in teacher
+    matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+    if not matiere:
+        return Response({
+            'success': False,
+            'message': 'Matière non trouvée ou accès non autorisé'
+        }, status=404)
+
+    # Fetch students enrolled in the class associated with the matiere
+    students = Utilisateur.objects.filter(classe=matiere.classe, user_type='student')
+    serializer = UtilisateurSerializer(students, many=True)
+    return Response({
+        'success': True,
+        'students': serializer.data
+    })
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_teacher_classes(request):
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    # Fetch classes taught by the logged-in teacher
+    classes = Classe.objects.filter(enseignant_responsable=request.user)
+    serializer = ClasseSerializer(classes, many=True)
+    return Response({
+        'success': True,
+        'classes': serializer.data
+    })

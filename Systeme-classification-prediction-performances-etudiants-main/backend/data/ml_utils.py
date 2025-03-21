@@ -41,3 +41,5 @@ def train_linear_regression_model():
     model = LinearRegression()
     model.fit(X, y)
     return model
+
+

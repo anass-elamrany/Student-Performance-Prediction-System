@@ -14,17 +14,21 @@ export const getUserRole = () => {
 
 export const logout = async () => {
   try {
-    // Supprimer les tokens côté client
+    await fetch('http://localhost:8000/api/logout/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+      },
+    });
+
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     sessionStorage.removeItem('currentUser');
-    return true;
+    window.location.href = '/login'; // Redirect to login page
   } catch (error) {
     console.error('Logout error:', error);
-    return false;
   }
 };
-
 export const refreshToken = async () => {
   try {
     const refreshToken = localStorage.getItem('refreshToken');
@@ -35,20 +39,18 @@ export const refreshToken = async () => {
       },
       body: JSON.stringify({ refresh: refreshToken }),
     });
-    
+
     const data = await response.json();
-    
     if (response.ok && data.access) {
-      // Mettre à jour le token d'accès
       localStorage.setItem('accessToken', data.access);
       return data.access;
     } else {
-      // Déconnecter l'utilisateur si le rafraîchissement échoue
-      logout();
+      logout(); // Log out the user if the refresh fails
       return null;
     }
   } catch (error) {
     console.error('Refresh token error:', error);
+    logout(); // Log out the user if an error occurs
     return null;
   }
 };
