@@ -90,3 +90,4 @@ class RecommandationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recommandation
         fields = '__all__'
+

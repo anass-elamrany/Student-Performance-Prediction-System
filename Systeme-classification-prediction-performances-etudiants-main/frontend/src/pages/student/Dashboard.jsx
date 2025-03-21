@@ -2,53 +2,27 @@ import React, { useState, useEffect } from "react";
 import { Box, Typography, Paper, Grid, LinearProgress } from "@mui/material";
 import { School, TrendingUp, Warning } from "@mui/icons-material";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { fetchWithTokenRefresh } from "../../utils/auth";
 
 const StudentDashboard = () => {
   const [studentData, setStudentData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simuler un appel API pour récupérer les données de l'étudiant
     const fetchStudentData = async () => {
       try {
-        // Remplacer par un vrai appel API
-        setTimeout(() => {
-          setStudentData({
-            name: "Alexandre Dupont",
-            currentAverage: 14.2,
-            attendanceRate: 92,
-            upcomingAssignments: [
-              { title: "Projet Machine Learning", date: "15/03/2025", course: "Intelligence Artificielle" },
-              { title: "Examen de mi-semestre", date: "20/03/2025", course: "Programmation Web" },
-            ],
-            recentGrades: [
-              { course: "Bases de Données", grade: 16, date: "01/03/2025" },
-              { course: "Algorithmique", grade: 13.5, date: "25/02/2025" },
-              { course: "Intelligence Artificielle", grade: 15, date: "15/02/2025" },
-            ],
-            monthlyPerformance: [
-              { month: "Oct", average: 13.2 },
-              { month: "Nov", average: 13.8 },
-              { month: "Dec", average: 14.5 },
-              { month: "Jan", average: 13.9 },
-              { month: "Fev", average: 14.2 },
-              { month: "Mar", average: 14.7 },
-            ],
-            subjectPerformance: [
-              { name: "Algorithmique", value: 13.5 },
-              { name: "Bases de Données", value: 16 },
-              { name: "Intelligence Artificielle", value: 15 },
-              { name: "Programmation Web", value: 14 },
-              { name: "Architecture", value: 12.5 },
-            ],
-            notifications: [
-              { type: "alert", message: "Votre performance en Architecture est en baisse. Une session de tutorat pourrait vous aider." },
-              { type: "info", message: "Vous êtes dans le top 15% de votre promotion en Bases de Données." },
-              { type: "success", message: "Votre moyenne a augmenté de 0.5 points ce mois-ci. Continuez comme ça!" },
-            ],
-          });
-          setLoading(false);
-        }, 1000);
+        const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/dashboard/");
+        const data = await response.json();
+
+        console.log("API Response:", data); // Debugging: Log the API response
+
+        if (data.success) {
+          setStudentData(data);
+        } else {
+          console.error("API error:", data.message);
+        }
+
+        setLoading(false);
       } catch (error) {
         console.error("Erreur lors de la récupération des données:", error);
         setLoading(false);

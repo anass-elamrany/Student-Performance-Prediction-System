@@ -1427,3 +1427,130 @@ def get_student_notes(request):
         'success': True,
         'notes': serializer.data
     })
+
+from django.shortcuts import render
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.db.models import Avg
+from datetime import datetime, timedelta
+from .models import (
+    Utilisateur, Classe, Matiere, Note, Performance, 
+    Alerte, Recommandation
+)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def student_dashboard(request):
+    """
+    API view for the student dashboard
+    Returns all the data needed for the student dashboard frontend
+    """
+    # Check if the user is a student
+    if not request.user.is_etudiant():
+        return Response({
+            'success': False,
+            'message': 'Seuls les étudiants peuvent accéder à ce tableau de bord.'
+        }, status=403)
+    
+    student = request.user
+    
+    try:
+        # Calculate current average from all notes
+        notes = Note.objects.filter(etudiant=student)
+        current_average = notes.aggregate(Avg('note_module'))['note_module__avg'] or 0
+        
+        # Calculate attendance rate
+        total_presence = notes.aggregate(Avg('presence'))['presence__avg'] or 0
+        # Assuming that presence is stored as a percentage or can be converted to one
+        attendance_rate = total_presence
+        
+        # Get recent grades
+        recent_grades = []
+        recent_notes = notes.order_by('-date_ajout')[:3]  # Get 3 most recent notes
+        for note in recent_notes:
+            recent_grades.append({
+                'course': note.matiere.nom,
+                'grade': note.note_module,
+                'date': note.date_ajout.strftime('%d/%m/%Y')
+            })
+        
+        # Generate monthly performance data
+        monthly_performance = []
+        # Get the last 6 months
+        for i in range(5, -1, -1):
+            month_date = datetime.now() - timedelta(days=30 * i)
+            month_name = month_date.strftime('%b')  # Abbreviated month name
+            
+            # Get notes from this month
+            month_start = month_date.replace(day=1)
+            if i > 0:
+                next_month = month_date.replace(day=1) + timedelta(days=32)
+                month_end = next_month.replace(day=1) - timedelta(days=1)
+            else:
+                month_end = datetime.now()
+            
+            month_notes = notes.filter(
+                date_ajout__gte=month_start,
+                date_ajout__lte=month_end
+            )
+            month_avg = month_notes.aggregate(Avg('note_module'))['note_module__avg'] or 0
+            
+            monthly_performance.append({
+                'month': month_name,
+                'average': round(month_avg, 1)
+            })
+        
+        # Calculate subject performance
+        subject_performance = []
+        subjects = Matiere.objects.filter(note__etudiant=student).distinct()
+        for subject in subjects:
+            subject_notes = notes.filter(matiere=subject)
+            subject_avg = subject_notes.aggregate(Avg('note_module'))['note_module__avg'] or 0
+            
+            subject_performance.append({
+                'name': subject.nom,
+                'value': round(subject_avg, 1)
+            })
+        
+        # Get alerts and recommendations
+        notifications = []
+        alerts = Alerte.objects.filter(etudiant=student).order_by('-date_creation')
+        
+        for alert in alerts:
+            notifications.append({
+                'type': 'alert',
+                'message': alert.message
+            })
+        
+        recommendations = Recommandation.objects.filter(etudiant=student).order_by('-date_creation')
+        for recommendation in recommendations:
+            notifications.append({
+                'type': 'info',
+                'message': recommendation.contenu
+            })
+        
+        # Get upcoming assignments - This is not in your model, but you might want to add this
+        # For now, return empty list
+        upcoming_assignments = []
+        
+        # Response data
+        data = {
+            'success': True,
+            'name': f"{student.first_name} {student.last_name}",
+            'currentAverage': round(current_average, 1),
+            'attendanceRate': round(attendance_rate),  # Round to nearest integer
+            'upcomingAssignments': upcoming_assignments,
+            'recentGrades': recent_grades,
+            'monthlyPerformance': monthly_performance,
+            'subjectPerformance': subject_performance,
+            'notifications': notifications
+        }
+        
+        return Response(data)
+    
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Une erreur est survenue: {str(e)}'
+        }, status=500)  
