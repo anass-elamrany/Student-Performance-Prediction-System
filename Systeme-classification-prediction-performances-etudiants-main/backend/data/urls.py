@@ -36,7 +36,7 @@ urlpatterns = [
     path('api/matieres/create/', views.create_matiere, name='create-matiere'),
     path('api/matieres/update/<int:id>/', views.update_matiere, name='update-matiere'),
     path('api/matieres/delete/<int:id>/', views.delete_matiere, name='delete-matiere'),
-
+    path('api/matieres/import/', views.import_matieres, name='import-matieres'),
     # Machine Learning
     path('api/classify-students/', views.classify_students, name='classify-students'),
     path('api/predict-performance/', views.predict_student_performance, name='predict-performance'),
@@ -60,7 +60,6 @@ urlpatterns = [
     path('api/teacher/classes/', views.get_teacher_classes, name='get_teacher_classes'),
     path('api/teacher/students-by-matiere/', views.get_students_by_matiere, name='get_students_by_matiere'),
 
-    # New URLs for Teacher Dashboard
     path('api/teacher/statistics/', views.get_teacher_statistics, name='get_teacher_statistics'),
     path('api/teacher/grade-distribution/', views.get_grade_distribution, name='get_grade_distribution'),
     path('api/teacher/weekly-attendance/', views.get_weekly_attendance, name='get_weekly_attendance'),
@@ -68,8 +67,9 @@ urlpatterns = [
     path('api/teacher/classifications/', views.get_teacher_classifications, name='get_teacher_classifications'),
     path('api/teacher/predictions/', views.get_teacher_predictions, name='get_teacher_predictions'),
     path('api/teacher/recommendations/', views.get_teacher_recommendations, name='get_teacher_recommendations'),
-
-
+    path('api/teacher/profile/', views.teacher_profile, name='teacher-profile'),
+    path('api/teacher/update-password/', views.update_teacher_password, name='update-teacher-password'),
+     
     # Student Dashboard
     path('api/student/notes/', views.get_student_notes, name='get_student_notes'),
     path('api/student/dashboard/', views.student_dashboard, name='student_dashboard'),

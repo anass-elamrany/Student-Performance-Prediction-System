@@ -210,13 +210,21 @@ const AdminEnseignants = () => {
 
   // Handle downloading the CSV template
   const downloadTemplate = () => {
-    const headers = [
-      "Nom",
-      "Prénom",
-      "Email",
-      "Téléphone",
-    ];
-    const csvContent = headers.join(",") + "\n";
+    const headers = ["Nom", "Prénom", "Email", "Téléphone"];
+    let csvContent = headers.join(",") + "\n";
+
+    // If there are enseignants, add their data to the CSV content
+    if (enseignants.length > 0) {
+      enseignants.forEach((enseignant) => {
+        const row = [
+          enseignant.last_name,
+          enseignant.first_name,
+          enseignant.email,
+          enseignant.phone,
+        ];
+        csvContent += row.join(",") + "\n";
+      });
+    }
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);

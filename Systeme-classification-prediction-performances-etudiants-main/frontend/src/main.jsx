@@ -24,13 +24,14 @@ import AdminAlerts from "./pages/admin/AdminAlerts";
 import TeacherDashboard from "./pages/teacher/Dashboard";
 import TeacherNotes from "./pages/teacher/Notes ";
 import TeacherAnalysis from "./pages/teacher/Analyse";
-
+import Profile from "./pages/teacher/Profile";
 
 // Dashboard Pages - Student
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentRecommendations from "./pages/student/Recommendations";
 import StudentAlerts from "./pages/student/MesAlerts";
 import StudentNotes from "./pages/student/Mes Notes ";
+
 
 
 
@@ -73,6 +74,7 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <TeacherDashboard /> },
       { path: "Notes", element: <TeacherNotes /> },
       { path: "Analyse", element: <TeacherAnalysis /> },
+      { path: "Profile", element: <Profile /> },
  
     ],
   },

@@ -98,6 +98,7 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
   // Gérer la déconnexion
   const handleLogout = async () => {
     const success = await logout();
+    // @ts-ignore
     if (success) {
       // Fermer le menu
       handleMenuClose();
@@ -129,15 +130,7 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
           <MenuIcon />
         </IconButton>
 
-        <Search>
-          <SearchIconWrapper>
-            <SearchIcon />
-          </SearchIconWrapper>
-          <StyledInputBase
-            placeholder="Search…"
-            inputProps={{ 'aria-label': 'search' }}
-          />
-        </Search>
+
         <Box flexGrow={1} />
         <Stack direction={"row"}>
           {theme.palette.mode === "light" ? (

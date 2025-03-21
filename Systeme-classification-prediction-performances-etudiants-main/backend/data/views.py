@@ -218,6 +218,8 @@ def import_students(request):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
     return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
+
+
 # Teacher Views
 @csrf_exempt
 def list_enseignants(request):
@@ -237,10 +239,12 @@ def create_enseignant(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         try:
+            # Use the phone number as the password
+            password = data['phone']
             enseignant = Utilisateur.objects.create_user(
                 username=data['email'],
                 email=data['email'],
-                password='defaultpassword',
+                password=password,  # Set password to phone number
                 first_name=data['first_name'],
                 last_name=data['last_name'],
                 phone=data['phone'],
@@ -249,7 +253,6 @@ def create_enseignant(request):
             return JsonResponse({'success': True, 'id': enseignant.id})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 @csrf_exempt
 def update_enseignant(request, id):
     """
@@ -281,6 +284,7 @@ def delete_enseignant(request, id):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
+
 @csrf_exempt
 def import_enseignants(request):
     if request.method == 'POST' and request.FILES.get('file'):
@@ -293,10 +297,12 @@ def import_enseignants(request):
             reader = csv.DictReader(decoded_file)
 
             for row in reader:
+                # Use the phone number as the password
+                password = row['Téléphone']
                 Utilisateur.objects.create_user(
                     username=row['Email'],
                     email=row['Email'],
-                    password='defaultpassword',  # Set a default password
+                    password=password,  # Set password to phone number
                     first_name=row['Prénom'],
                     last_name=row['Nom'],
                     phone=row['Téléphone'],
@@ -308,6 +314,7 @@ def import_enseignants(request):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
     return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
+
 # Class Views
 @csrf_exempt
 def list_classes(request):
@@ -432,6 +439,40 @@ def delete_matiere(request, id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+import csv
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Matiere, Classe, Utilisateur
+
+@csrf_exempt
+def import_matieres(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        file = request.FILES['file']
+        decoded_file = file.read().decode('utf-8').splitlines()
+        reader = csv.DictReader(decoded_file)
+
+        for row in reader:
+            try:
+                # Find the teacher by email
+                enseignant = Utilisateur.objects.get(email=row['Email'], user_type='teacher')
+                classe = Classe.objects.get(nom=row['Classe'])
+                Matiere.objects.create(
+                    nom=row['Nom'],
+                    coefficient=float(row['Coefficient']),
+                    semestre=int(row['Semestre']),
+                    classe=classe,
+                    enseignant=enseignant
+                )
+            except Utilisateur.DoesNotExist:
+                return JsonResponse({'success': False, 'error': f"Enseignant with email {row['Email']} not found"}, status=400)
+            except Classe.DoesNotExist:
+                return JsonResponse({'success': False, 'error': f"Classe {row['Classe']} not found"}, status=400)
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False, 'error': 'No file provided'}, status=400)
 
 # Machine Learning Views
 from django.http import JsonResponse
@@ -1392,6 +1433,70 @@ def get_teacher_recommendations(request):
             'message': 'Une erreur est survenue lors de la récupération des recommandations'
         }, status=500)
     
+
+
+from django.contrib.auth import authenticate, login, logout
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password
+import json
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def teacher_profile(request):
+    """
+    Vue pour récupérer les informations du profil de l'enseignant.
+    """
+    try:
+        teacher = request.user  # Assuming the user is authenticated
+        if teacher.user_type != 'teacher':
+            return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+
+        profile_data = {
+            'first_name': teacher.first_name,
+            'last_name': teacher.last_name,
+            'email': teacher.email,
+            'phone': teacher.phone,
+        }
+        return JsonResponse({'success': True, 'data': profile_data})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def update_teacher_password(request):
+    """
+    Vue pour mettre à jour le mot de passe de l'enseignant.
+    """
+    try:
+        teacher = request.user  # Assuming the user is authenticated
+        if teacher.user_type != 'teacher':
+            return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+
+        data = json.loads(request.body)
+        new_password = data.get('password')
+
+        if not new_password:
+            return JsonResponse({'success': False, 'error': 'New password is required'}, status=400)
+
+        teacher.set_password(new_password)
+        teacher.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+
+
+
+
+
+
+
+
 
 
 

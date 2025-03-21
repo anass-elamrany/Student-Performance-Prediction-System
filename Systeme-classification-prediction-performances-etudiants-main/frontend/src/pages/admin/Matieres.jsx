@@ -30,6 +30,8 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload"; // Import CloudUploadIcon
+import GetAppIcon from "@mui/icons-material/GetApp"; // Import GetAppIcon
 
 const AdminMatieres = () => {
   const [matieres, setMatieres] = useState([]);
@@ -107,6 +109,57 @@ const AdminMatieres = () => {
     }
   };
 
+  // Handle CSV file upload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch("http://localhost:8000/api/matieres/import/", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (response.ok) {
+            console.log("File uploaded successfully");
+        } else {
+            console.error("Error uploading file:", response.statusText);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+    }
+};
+
+  // Handle downloading the CSV template
+  const downloadTemplate = () => {
+    const headers = ["Nom", "Coefficient", "Semestre", "Classe", "Email"];
+    let csvContent = headers.join(",") + "\n";
+
+    // If there are matieres, add their data to the CSV content
+    if (matieres.length > 0) {
+        matieres.forEach((matiere) => {
+            const row = [
+                matiere.nom,
+                matiere.coefficient,
+                matiere.semestre,
+                matiere.classe?.nom || "Inconnu",
+                matiere.enseignant?.email || "Inconnu",
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+    }
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "template_matieres.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+};
   // Open dialog for adding/editing a matiere
   const handleOpenDialog = (matiere = null) => {
     if (matiere) {
@@ -263,13 +316,37 @@ const AdminMatieres = () => {
         <Typography variant="h4" component="h1">
           Gestion des Matières
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Nouvelle Matière
-        </Button>
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<GetAppIcon />}
+            onClick={downloadTemplate}
+            sx={{ mr: 2 }}
+          >
+            Télécharger le Modèle
+          </Button>
+          <Button
+            variant="contained"
+            component="label"
+            startIcon={<CloudUploadIcon />}
+            sx={{ mr: 2 }}
+          >
+            Importer CSV
+            <input
+              type="file"
+              hidden
+              accept=".csv"
+              onChange={handleFileUpload}
+            />
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Nouvelle Matière
+          </Button>
+        </Box>
       </Box>
 
       {/* Filters */}
