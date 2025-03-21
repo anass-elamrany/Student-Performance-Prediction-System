@@ -82,36 +82,36 @@ const Drawer = styled(MuiDrawer, {
 // Menu items for each role
 const adminMenuItems = {
   main: [
-    { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/admin/dashboard" },
+    { text: "Tableau de bord", icon: <DashboardOutlinedIcon />, path: "/admin/dashboard" },
     { text: "Classes", icon: <SchoolOutlinedIcon />, path: "/admin/Classes" },
     { text: "Enseignants", icon: <PeopleOutlineOutlinedIcon />, path: "/admin/Enseignants" },
     { text: "Étudiants", icon: <SchoolOutlinedIcon />, path: "/admin/Etudiants" },
-    { text: "Matieres", icon: <MenuBookOutlinedIcon />, path: "/admin/Matieres" },
-    { text: "AdminNotes", icon: <MenuBookOutlinedIcon />, path: "/admin/AdminNotes" },
-    { text: "Predict", icon: <TimelineOutlinedIcon />, path: "/admin/Predict" },
-    { text: "Classment", icon: <LeaderboardOutlinedIcon />, path: "/admin/Classment" },
-    { text: "Alerts", icon: <NotificationsActiveOutlinedIcon />, path: "/admin/Alerts" },
-    { text: "Recommendations", icon: <ThumbUpOutlinedIcon />, path: "/admin/Recommendations" },
+    { text: "Matières", icon: <MenuBookOutlinedIcon />, path: "/admin/Matieres" },
+    { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/admin/AdminNotes" },
+    { text: "Prédictions", icon: <TimelineOutlinedIcon />, path: "/admin/Predict" },
+    { text: "Classement", icon: <LeaderboardOutlinedIcon />, path: "/admin/Classment" },
+    { text: "Alertes", icon: <NotificationsActiveOutlinedIcon />, path: "/admin/Alerts" },
+    { text: "Recommandations", icon: <ThumbUpOutlinedIcon />, path: "/admin/Recommendations" },
     { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/admin/Analyse" },
   ],
 };
 
 const teacherMenuItems = {
   main: [
-    { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/teacher/dashboard" },
+    { text: "Tableau de bord", icon: <DashboardOutlinedIcon />, path: "/teacher/dashboard" },
     { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/teacher/Notes" },
     { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/teacher/Analyse" },
-    { text: "Profile", icon: <BarChartOutlinedIcon />, path: "/teacher/Profile" },
+    { text: "Profil", icon: <PeopleOutlineOutlinedIcon />, path: "/teacher/Profile" },
   ],
 };
 
 const studentMenuItems = {
   main: [
-    { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/student/dashboard" },
-    { text: "Guidance", icon: <EmojiObjectsOutlinedIcon />, path: "/student/Guidance" },
-    { text: "Alerts", icon: <NotificationsActiveOutlinedIcon />, path: "/student/Alerts" },
+    { text: "Tableau de bord", icon: <DashboardOutlinedIcon />, path: "/student/dashboard" },
     { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/student/Notes" },
-    { text: "StudentProfile", icon: <AssessmentOutlinedIcon />, path: "/student/StudentProfile" },
+    { text: "Conseils", icon: <EmojiObjectsOutlinedIcon />, path: "/student/Guidance" },
+    { text: "Alertes", icon: <NotificationsActiveOutlinedIcon />, path: "/student/Alerts" },
+    { text: "Profil", icon: <PeopleOutlineOutlinedIcon />, path: "/student/StudentProfile" },
   ],
 };
 
