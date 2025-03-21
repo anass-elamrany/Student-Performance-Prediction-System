@@ -87,11 +87,12 @@ const adminMenuItems = {
     { text: "Enseignants", icon: <PeopleOutlineOutlinedIcon />, path: "/admin/Enseignants" },
     { text: "Étudiants", icon: <SchoolOutlinedIcon />, path: "/admin/Etudiants" },
     { text: "Matieres", icon: <MenuBookOutlinedIcon />, path: "/admin/Matieres" },
-    { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/admin/Analyse" },
+    { text: "AdminNotes", icon: <MenuBookOutlinedIcon />, path: "/admin/AdminNotes" },
     { text: "Predict", icon: <TimelineOutlinedIcon />, path: "/admin/Predict" },
     { text: "Classment", icon: <LeaderboardOutlinedIcon />, path: "/admin/Classment" },
     { text: "Alerts", icon: <NotificationsActiveOutlinedIcon />, path: "/admin/Alerts" },
     { text: "Recommendations", icon: <ThumbUpOutlinedIcon />, path: "/admin/Recommendations" },
+    { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/admin/Analyse" },
   ],
 };
 
@@ -100,7 +101,7 @@ const teacherMenuItems = {
     { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/teacher/dashboard" },
     { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/teacher/Notes" },
     { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/teacher/Analyse" },
-
+    { text: "Profile", icon: <BarChartOutlinedIcon />, path: "/teacher/Profile" },
   ],
 };
 
@@ -110,6 +111,7 @@ const studentMenuItems = {
     { text: "Guidance", icon: <EmojiObjectsOutlinedIcon />, path: "/student/Guidance" },
     { text: "Alerts", icon: <NotificationsActiveOutlinedIcon />, path: "/student/Alerts" },
     { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/student/Notes" },
+    { text: "StudentProfile", icon: <AssessmentOutlinedIcon />, path: "/student/StudentProfile" },
   ],
 };
 

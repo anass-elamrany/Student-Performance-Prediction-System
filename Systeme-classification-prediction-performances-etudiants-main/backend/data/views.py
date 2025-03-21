@@ -439,6 +439,228 @@ def delete_matiere(request, id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+
+
+#notes view
+
+# Get all Matieres (for admin)
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_all_matieres(request):
+    if request.user.user_type != 'admin':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    matieres = Matiere.objects.all()
+    serializer = MatiereSerializer(matieres, many=True)
+    return Response({
+        'success': True,
+        'matieres': serializer.data
+    })
+
+# Get all Notes (for admin)
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_all_notes(request):
+    if request.user.user_type != 'admin':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    matiere_id = request.query_params.get('matiere_id')
+    if matiere_id:
+        notes = Note.objects.filter(matiere_id=matiere_id)
+    else:
+        notes = Note.objects.all()
+
+    serializer = NoteSerializer(notes, many=True)
+    return Response({
+        'success': True,
+        'notes': serializer.data
+    })
+
+# Create or Update a Note (for admin)
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def admin_create_or_update_note(request):
+    if request.user.user_type != 'admin':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    data = request.data
+    matiere_id = data.get('matiere_id')
+    etudiant_id = data.get('etudiant_id')
+
+    matiere = Matiere.objects.filter(id=matiere_id).first()
+    if not matiere:
+        return Response({
+            'success': False,
+            'message': 'Matière non trouvée'
+        }, status=404)
+
+    etudiant = Utilisateur.objects.filter(id=etudiant_id, user_type='student').first()
+    if not etudiant:
+        return Response({
+            'success': False,
+            'message': 'Étudiant non trouvé'
+        }, status=404)
+
+    note, created = Note.objects.update_or_create(
+        matiere=matiere,
+        etudiant=etudiant,
+        defaults={
+            'note_module': data.get('note_module'),
+            'note_devoir_projet': data.get('note_devoir_projet'),
+            'assiduite': data.get('assiduite'),
+            'presence': data.get('presence'),
+        }
+    )
+
+    serializer = NoteSerializer(note)
+    return Response({
+        'success': True,
+        'note': serializer.data,
+        'message': 'Note créée/mise à jour avec succès'
+    })
+
+# Delete a Note (for admin)
+@api_view(['DELETE'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def admin_delete_note(request, id):
+    if request.user.user_type != 'admin':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    note = Note.objects.filter(id=id).first()
+    if not note:
+        return Response({
+            'success': False,
+            'message': 'Note non trouvée'
+        }, status=404)
+
+    note.delete()
+    return Response({
+        'success': True,
+        'message': 'Note supprimée avec succès'
+    })
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_students_by_matiere_admin(request):
+    if request.user.user_type != 'admin':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    matiere_id = request.query_params.get('matiere_id')
+    if not matiere_id:
+        return Response({
+            'success': False,
+            'message': 'matiere_id est requis'
+        }, status=400)
+
+    # Fetch the matiere to get the associated class
+    matiere = Matiere.objects.filter(id=matiere_id).first()
+    if not matiere:
+        return Response({
+            'success': False,
+            'message': 'Matière non trouvée'
+        }, status=404)
+
+    # Fetch students enrolled in the class associated with the matiere
+    students = Utilisateur.objects.filter(classe=matiere.classe, user_type='student')
+    serializer = UtilisateurSerializer(students, many=True)
+    return Response({
+        'success': True,
+        'students': serializer.data
+    })
+
+@csrf_exempt
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def admin_import_notes(request):
+    if request.user.user_type != 'admin':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    if not request.FILES.get('file'):
+        return Response({
+            'success': False,
+            'message': 'Aucun fichier trouvé'
+        }, status=400)
+
+    file = request.FILES['file']
+    if not file.name.endswith('.csv'):
+        return Response({
+            'success': False,
+            'message': 'Le fichier doit être un CSV'
+        }, status=400)
+
+    try:
+        decoded_file = file.read().decode('utf-8').splitlines()
+        reader = csv.DictReader(decoded_file)
+
+        for row in reader:
+            matiere_id = row.get('matiere_id')
+            etudiant_id = row.get('etudiant_id')
+
+            # Check if the matiere exists
+            matiere = Matiere.objects.filter(id=matiere_id).first()
+            if not matiere:
+                continue
+
+            # Check if the student exists
+            etudiant = Utilisateur.objects.filter(id=etudiant_id, user_type='student').first()
+            if not etudiant:
+                continue
+
+            # Create or update the Note
+            Note.objects.update_or_create(
+                matiere=matiere,
+                etudiant=etudiant,
+                defaults={
+                    'note_module': row.get('note_module'),
+                    'note_devoir_projet': row.get('note_devoir_projet'),
+                    'assiduite': row.get('assiduite'),
+                    'presence': row.get('presence'),
+                }
+            )
+
+        return Response({
+            'success': True,
+            'message': 'Notes importées avec succès'
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+
+
+
+
+
+
+
+
+
+
+
 import csv
 import json
 from django.http import JsonResponse
@@ -1758,3 +1980,54 @@ def student_alerts(request):
             'success': False,
             'message': f'Une erreur est survenue: {str(e)}'
         }, status=500)
+    
+
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def student_profile(request):
+    """
+    Vue pour récupérer les informations du profil de l'étudiant.
+    """
+    try:
+        student = request.user  # Assuming the user is authenticated
+        if student.user_type != 'student':
+            return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+
+        profile_data = {
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'email': student.email,
+            'phone': student.phone,
+            'n_appogie': student.n_appogie,  # Student-specific field
+            'classe': student.classe.nom if student.classe else "Non assigné",  # Class name
+        }
+        return JsonResponse({'success': True, 'data': profile_data})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def update_student_password(request):
+    """
+    Vue pour mettre à jour le mot de passe de l'étudiant.
+    """
+    try:
+        student = request.user  # Assuming the user is authenticated
+        if student.user_type != 'student':
+            return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+
+        data = json.loads(request.body)
+        new_password = data.get('password')
+
+        if not new_password:
+            return JsonResponse({'success': False, 'error': 'New password is required'}, status=400)
+
+        student.set_password(new_password)
+        student.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)

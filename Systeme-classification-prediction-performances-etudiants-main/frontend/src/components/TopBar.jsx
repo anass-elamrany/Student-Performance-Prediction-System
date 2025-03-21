@@ -7,7 +7,6 @@ import Person2OutlinedIcon from "@mui/icons-material/Person2Outlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LogoutIcon from '@mui/icons-material/Logout';
-import PersonIcon from '@mui/icons-material/Person'; // Add a profile icon
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../utils/auth'; // Assurez-vous que le chemin est correct
@@ -111,12 +110,6 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
     }
   };
 
-  // Gérer la navigation vers le profil
-  const handleProfileClick = () => {
-    handleMenuClose(); // Fermer le menu
-    navigate('/teacher/Profile'); // Rediriger vers la page de profil
-  };
-
   return (
     <AppBar position="fixed" 
       // @ts-ignore
@@ -136,6 +129,7 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
         >
           <MenuIcon />
         </IconButton>
+
 
         <Box flexGrow={1} />
         <Stack direction={"row"}>
@@ -191,11 +185,6 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
               'aria-labelledby': 'user-button',
             }}
           >
-            {/* Ajouter un élément de menu pour le profil */}
-            <MenuItem onClick={handleProfileClick}>
-              <PersonIcon sx={{ mr: 1 }} /> {/* Icône de profil */}
-              Profil
-            </MenuItem>
             <MenuItem onClick={handleLogout}>
               <LogoutIcon sx={{ mr: 1 }} />
               Déconnexion
@@ -207,4 +196,4 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
   )
 }
 
-export default TopBar;
+export default TopBar

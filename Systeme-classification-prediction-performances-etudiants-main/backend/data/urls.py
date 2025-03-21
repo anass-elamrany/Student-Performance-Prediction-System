@@ -37,6 +37,14 @@ urlpatterns = [
     path('api/matieres/update/<int:id>/', views.update_matiere, name='update-matiere'),
     path('api/matieres/delete/<int:id>/', views.delete_matiere, name='delete-matiere'),
     path('api/matieres/import/', views.import_matieres, name='import-matieres'),
+
+    #notes
+    path('api/admin/matieres/', views.get_all_matieres, name='get_all_matieres'),
+    path('api/admin/notes/', views.get_all_notes, name='get_all_notes'),
+    path('api/admin/students-by-matiere/', views.get_students_by_matiere_admin, name='get_students_by_matiere_admin'),
+    path('api/admin/notes/create-update/', views.admin_create_or_update_note, name='admin_create_or_update_note'),
+    path('api/admin/notes/delete/<int:id>/', views.admin_delete_note, name='admin_delete_note'),
+    path('api/admin/notes/import/', views.admin_import_notes, name='admin_import_notes'),
     # Machine Learning
     path('api/classify-students/', views.classify_students, name='classify-students'),
     path('api/predict-performance/', views.predict_student_performance, name='predict-performance'),
@@ -75,4 +83,6 @@ urlpatterns = [
     path('api/student/dashboard/', views.student_dashboard, name='student_dashboard'),
     path('api/student/recommendations/', views.student_recommendations, name='student_recommendations'),
     path('api/student/alerts/', views.student_alerts, name='student_alerts'),
+    path('api/student/profile/', views.student_profile, name='student-profile'),
+    path('api/student/update-password/', views.update_student_password, name='update-student-password'),
 ]
