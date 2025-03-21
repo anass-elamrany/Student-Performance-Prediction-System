@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -23,13 +23,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
-import { refreshToken, checkAuthStatus, getUserRole } from "../../utils/auth"; // Import the auth functions
+import { refreshToken, checkAuthStatus, getUserRole } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
 
 const TeacherNotes = () => {
@@ -53,16 +53,21 @@ const TeacherNotes = () => {
     message: "",
     severity: "success",
   });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   // Fetch Matieres and Notes
   useEffect(() => {
-    fetchMatieres();
+    setLoading(true);
+    fetchMatieres().finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     if (selectedMatiere) {
-      fetchStudents().then(() => fetchNotes()); // Fetch students first, then notes
+      setLoading(true);
+      fetchStudents()
+        .then(() => fetchNotes())
+        .finally(() => setLoading(false));
     }
   }, [selectedMatiere]);
 
@@ -116,7 +121,6 @@ const TeacherNotes = () => {
         `http://localhost:8000/api/teacher/students-by-matiere/?matiere_id=${selectedMatiere}`
       );
       const data = await response.json();
-      console.log("Fetched Students:", data.students); // Debugging log
       if (data.success) {
         setStudents(data.students);
       }
@@ -136,14 +140,12 @@ const TeacherNotes = () => {
         `http://localhost:8000/api/teacher/notes/?matiere_id=${selectedMatiere}`
       );
       const data = await response.json();
-      console.log("Fetched Notes:", data.notes); // Debugging log
       if (data.success) {
-        // Map the notes to include the full student object
         const notesWithStudents = data.notes.map((note) => {
           const student = students.find((s) => s.id === note.etudiant);
           return {
             ...note,
-            etudiant: student || { id: note.etudiant }, // Fallback to ID if student not found
+            etudiant: student || { id: note.etudiant },
           };
         });
         setNotes(notesWithStudents);
@@ -161,7 +163,14 @@ const TeacherNotes = () => {
   // Handle CSV file upload
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+      setSnackbar({
+        open: true,
+        message: "Veuillez sélectionner un fichier CSV",
+        severity: "error",
+      });
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
@@ -194,26 +203,46 @@ const TeacherNotes = () => {
 
   // Handle downloading the CSV template
   const downloadTemplate = () => {
+    if (!selectedMatiere) {
+      setSnackbar({
+        open: true,
+        message: "Veuillez sélectionner une matière avant de télécharger le modèle",
+        severity: "warning",
+      });
+      return;
+    }
+
     const headers = [
       "matiere_id",
       "etudiant_id",
+      "etudiant_nom",
       "note_module",
       "note_devoir_projet",
       "assiduite",
       "presence",
     ];
-    const csvContent = headers.join(",") + "\n";
+    const csvContent = [
+      headers.join(","),
+      ...students.map((student) => {
+        return [
+          selectedMatiere,
+          student.id,
+          `${student.first_name} ${student.last_name}`,
+          "", "", "", "",
+        ].join(",");
+      }),
+    ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "template_notes.csv";
+    link.download = `template_notes_${selectedMatiere}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  // Open dialog for adding/editing a note
+  // Open dialog for editing a note
   const handleOpenDialog = (note = null) => {
     if (note) {
       setFormData({
@@ -365,13 +394,6 @@ const TeacherNotes = () => {
               onChange={handleFileUpload}
             />
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            Ajouter une Note
-          </Button>
         </Box>
       </Box>
 
@@ -394,6 +416,13 @@ const TeacherNotes = () => {
           </Select>
         </FormControl>
       </Box>
+
+      {/* Loading State */}
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
       {/* Table of Students and Notes */}
       <TableContainer component={Paper}>
@@ -429,6 +458,7 @@ const TeacherNotes = () => {
                   <TableCell align="center">
                     <IconButton
                       color="primary"
+                      aria-label="Edit"
                       onClick={() => handleOpenDialog(note || { etudiant: student, matiere: { id: selectedMatiere } })}
                     >
                       <EditIcon />
@@ -436,6 +466,7 @@ const TeacherNotes = () => {
                     {note && (
                       <IconButton
                         color="error"
+                        aria-label="Delete"
                         onClick={() => handleDelete(note.id)}
                       >
                         <DeleteIcon />
@@ -516,7 +547,7 @@ const TeacherNotes = () => {
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           // @ts-ignore
           severity={snackbar.severity}
-          sx={{ width: "100%" }}  
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>
