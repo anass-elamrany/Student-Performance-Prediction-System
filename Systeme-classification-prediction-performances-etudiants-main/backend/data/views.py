@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import json
 from .models import Utilisateur, Classe, Note, Performance, Alerte, Recommandation, Matiere
 from .serializers import MatiereSerializer, UtilisateurSerializer, ClasseSerializer, NoteSerializer
-from django.db.models import Avg, Count, Sum
+from django.db.models import Avg, Count, Sum, Max
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -1077,6 +1077,7 @@ def get_students_by_matiere(request):
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def get_teacher_classes(request):
+
     if request.user.user_type != 'teacher':
         return Response({
             'success': False,
@@ -1089,4 +1090,142 @@ def get_teacher_classes(request):
     return Response({
         'success': True,
         'classes': serializer.data
+    })
+
+from django.db.models import Avg, Max
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .models import Matiere, Note
+import logging
+
+logger = logging.getLogger(__name__)
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_teacher_statistics(request):
+    try:
+        if request.user.user_type != 'teacher':
+            return Response({
+                'success': False,
+                'message': 'Accès non autorisé'
+            }, status=403)
+
+        matiere_id = request.query_params.get('matiere_id')
+        if not matiere_id:
+            return Response({
+                'success': False,
+                'message': 'matiere_id est requis'
+            }, status=400)
+
+        # Ensure the matiere belongs to the logged-in teacher
+        matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+        if not matiere:
+            return Response({
+                'success': False,
+                'message': 'Matière non trouvée ou accès non autorisé'
+            }, status=404)
+
+        # Fetch notes for the selected matiere
+        notes = Note.objects.filter(matiere=matiere)
+        if notes.exists():
+            average_grade = notes.aggregate(Avg('note_module'))['note_module__avg']
+            highest_grade = notes.aggregate(Max('note_module'))['note_module__max']
+        else:
+            average_grade = 0
+            highest_grade = 0
+
+        return Response({
+            'success': True,
+            'matiere_stats': [{
+                'matiere_id': matiere.id,
+                'matiere_nom': matiere.nom,
+                'average_grade': round(average_grade, 2),
+                'highest_grade': highest_grade,
+            }]
+        })
+
+    except Exception as e:
+        logger.error(f"Error in get_teacher_statistics: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'message': 'Une erreur est survenue lors de la récupération des statistiques'
+        }, status=500)
+    
+    
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_grade_distribution(request):
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    matiere_id = request.query_params.get('matiere_id')
+    if not matiere_id:
+        return Response({
+            'success': False,
+            'message': 'matiere_id est requis'
+        }, status=400)
+
+    matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+    if not matiere:
+        return Response({
+            'success': False,
+            'message': 'Matière non trouvée ou accès non autorisé'
+        }, status=404)
+
+    notes = Note.objects.filter(matiere=matiere)
+    grade_distribution = [
+        {'range': '0-5', 'count': notes.filter(note_module__gte=0, note_module__lte=5).count()},
+        {'range': '6-10', 'count': notes.filter(note_module__gte=6, note_module__lte=10).count()},
+        {'range': '11-15', 'count': notes.filter(note_module__gte=11, note_module__lte=15).count()},
+        {'range': '16-20', 'count': notes.filter(note_module__gte=16, note_module__lte=20).count()},
+    ]
+
+    return Response({
+        'success': True,
+        'grade_distribution': grade_distribution,
+    })
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_weekly_attendance(request):
+    if request.user.user_type != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Accès non autorisé'
+        }, status=403)
+
+    matiere_id = request.query_params.get('matiere_id')
+    if not matiere_id:
+        return Response({
+            'success': False,
+            'message': 'matiere_id est requis'
+        }, status=400)
+
+    matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+    if not matiere:
+        return Response({
+            'success': False,
+            'message': 'Matière non trouvée ou accès non autorisé'
+        }, status=404)
+
+    # Mock attendance data (replace with actual logic)
+    attendance_data = [
+        {'day': 'Lun', 'present': 24, 'absent': 3, 'late': 2},
+        {'day': 'Mar', 'present': 22, 'absent': 5, 'late': 2},
+        {'day': 'Mer', 'present': 25, 'absent': 1, 'late': 3},
+        {'day': 'Jeu', 'present': 24, 'absent': 2, 'late': 3},
+        {'day': 'Ven', 'present': 20, 'absent': 7, 'late': 2},
+    ]
+
+    return Response({
+        'success': True,
+        'attendance_data': attendance_data,
     })

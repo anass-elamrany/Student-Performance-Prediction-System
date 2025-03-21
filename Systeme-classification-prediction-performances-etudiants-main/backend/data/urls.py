@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/enseignants/update/<int:id>/', views.update_enseignant, name='update-enseignant'),
     path('api/enseignants/delete/<int:id>/', views.delete_enseignant, name='delete-enseignant'),
     path('api/enseignants/import/', views.import_enseignants, name='import_enseignants'),
+
     # Subjects
     path('api/matieres/', views.list_matieres, name='list-matieres'),
     path('api/matieres/create/', views.create_matiere, name='create-matiere'),
@@ -56,5 +57,10 @@ urlpatterns = [
     path('api/teacher/notes/delete/<int:id>/', views.delete_note, name='delete_note'),
     path('api/teacher/notes/import/', views.import_notes, name='import_notes'),
     path('api/teacher/classes/', views.get_teacher_classes, name='get_teacher_classes'),
-    path('api/teacher/students-by-matiere/', views.get_students_by_matiere, name='get_students_by_matiere'),  
+    path('api/teacher/students-by-matiere/', views.get_students_by_matiere, name='get_students_by_matiere'),
+
+    # New URLs for Teacher Dashboard
+    path('api/teacher/statistics/', views.get_teacher_statistics, name='get_teacher_statistics'),
+    path('api/teacher/grade-distribution/', views.get_grade_distribution, name='get_grade_distribution'),
+    path('api/teacher/weekly-attendance/', views.get_weekly_attendance, name='get_weekly_attendance'),
 ]
