@@ -289,7 +289,11 @@ def delete_enseignant(request, id):
 def import_enseignants(request):
     if request.method == 'POST' and request.FILES.get('file'):
         file = request.FILES['file']
+        logger.info(f"File received: {file.name}")
+
+        # Check if the file is a CSV
         if not file.name.endswith('.csv'):
+            logger.error("File is not a CSV")
             return JsonResponse({'success': False, 'error': 'Le fichier doit être un CSV.'}, status=400)
 
         try:
@@ -297,12 +301,22 @@ def import_enseignants(request):
             reader = csv.DictReader(decoded_file)
 
             for row in reader:
-                # Use the phone number as the password
-                password = row['Téléphone']
+                # Check for required fields
+                if not all(key in row for key in ['Email', 'Prénom', 'Nom', 'Téléphone']):
+                    logger.error("Missing required fields in CSV")
+                    return JsonResponse({'success': False, 'error': 'Le fichier CSV doit contenir les colonnes: Email, Prénom, Nom, Téléphone.'}, status=400)
+
+                # Check if the email already exists
+                if Utilisateur.objects.filter(email=row['Email']).exists():
+                    logger.warning(f"User with email {row['Email']} already exists")
+                    continue  # Skip this row
+
+                # Create the user
+                password = row['Téléphone']  # Use phone number as the password
                 Utilisateur.objects.create_user(
                     username=row['Email'],
                     email=row['Email'],
-                    password=password,  # Set password to phone number
+                    password=password,
                     first_name=row['Prénom'],
                     last_name=row['Nom'],
                     phone=row['Téléphone'],
@@ -311,10 +325,10 @@ def import_enseignants(request):
 
             return JsonResponse({'success': True})
         except Exception as e:
+            logger.error(f"Error processing file: {e}")
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
     return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
-
 # Class Views
 @csrf_exempt
 def list_classes(request):
@@ -671,30 +685,54 @@ from .models import Matiere, Classe, Utilisateur
 def import_matieres(request):
     if request.method == 'POST' and request.FILES.get('file'):
         file = request.FILES['file']
-        decoded_file = file.read().decode('utf-8').splitlines()
-        reader = csv.DictReader(decoded_file)
+        logger.info(f"File received: {file.name}")
 
-        for row in reader:
-            try:
-                # Find the teacher by email
-                enseignant = Utilisateur.objects.get(email=row['Email'], user_type='teacher')
-                classe = Classe.objects.get(nom=row['Classe'])
-                Matiere.objects.create(
-                    nom=row['Nom'],
-                    coefficient=float(row['Coefficient']),
-                    semestre=int(row['Semestre']),
-                    classe=classe,
-                    enseignant=enseignant
-                )
-            except Utilisateur.DoesNotExist:
-                return JsonResponse({'success': False, 'error': f"Enseignant with email {row['Email']} not found"}, status=400)
-            except Classe.DoesNotExist:
-                return JsonResponse({'success': False, 'error': f"Classe {row['Classe']} not found"}, status=400)
-            except Exception as e:
-                return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        # Check if the file is a CSV
+        if not file.name.endswith('.csv'):
+            logger.error("File is not a CSV")
+            return JsonResponse({'success': False, 'error': 'Le fichier doit être un CSV.'}, status=400)
 
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False, 'error': 'No file provided'}, status=400)
+        try:
+            decoded_file = file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file)
+
+            # Check for required columns
+            required_columns = ['Nom', 'Coefficient', 'Semestre', 'Classe', 'Email']
+            if not all(column in reader.fieldnames for column in required_columns):
+                logger.error("Missing required columns in CSV")
+                return JsonResponse({'success': False, 'error': f'Le fichier CSV doit contenir les colonnes: {", ".join(required_columns)}.'}, status=400)
+
+            for row in reader:
+                try:
+                    # Find the teacher by email
+                    enseignant = Utilisateur.objects.get(email=row['Email'], user_type='teacher')
+                    classe = Classe.objects.get(nom=row['Classe'])
+
+                    # Create the subject
+                    Matiere.objects.create(
+                        nom=row['Nom'],
+                        coefficient=float(row['Coefficient']),
+                        semestre=int(row['Semestre']),
+                        classe=classe,
+                        enseignant=enseignant
+                    )
+                except Utilisateur.DoesNotExist:
+                    logger.error(f"Enseignant with email {row['Email']} not found")
+                    return JsonResponse({'success': False, 'error': f"Enseignant avec l'email {row['Email']} non trouvé."}, status=400)
+                except Classe.DoesNotExist:
+                    logger.error(f"Classe {row['Classe']} not found")
+                    return JsonResponse({'success': False, 'error': f"Classe {row['Classe']} non trouvée."}, status=400)
+                except Exception as e:
+                    logger.error(f"Error processing row: {row}, Error: {e}")
+                    return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            logger.error(f"Error processing file: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+    return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
+
 
 # Machine Learning Views
 from django.http import JsonResponse

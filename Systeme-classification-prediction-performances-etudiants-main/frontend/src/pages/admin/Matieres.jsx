@@ -113,25 +113,37 @@ const AdminMatieres = () => {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
+  
     const formData = new FormData();
-    formData.append("file", file);
-
+    formData.append("file", file); // Ensure the key matches the server's expectation
+  
     try {
-        const response = await fetch("http://localhost:8000/api/matieres/import/", {
-            method: "POST",
-            body: formData,
+      const response = await fetch("http://localhost:8000/api/matieres/import/", {
+        method: "POST",
+        body: formData, // No need to set headers for FormData
+      });
+  
+      if (response.ok) {
+        fetchMatieres(); // Refresh the list of matieres
+        setSnackbar({
+          open: true,
+          message: "Matieres importés avec succès",
+          severity: "success",
         });
-
-        if (response.ok) {
-            console.log("File uploaded successfully");
-        } else {
-            console.error("Error uploading file:", response.statusText);
-        }
+      } else {
+        const errorData = await response.json(); // Parse the server's error response
+        console.error("Server Error:", errorData);
+        throw new Error(errorData.error || "Erreur lors de l'importation du fichier CSV");
+      }
     } catch (error) {
-        console.error("Error:", error);
+      console.error("Error uploading file:", error);
+      setSnackbar({
+        open: true,
+        message: error.message || "Une erreur est survenue",
+        severity: "error",
+      });
     }
-};
+  };
 
   // Handle downloading the CSV template
   const downloadTemplate = () => {

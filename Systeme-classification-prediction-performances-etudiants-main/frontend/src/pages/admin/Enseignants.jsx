@@ -179,27 +179,30 @@ const AdminEnseignants = () => {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
+  
     const formData = new FormData();
-    formData.append("file", file);
-
+    formData.append("file", file); // Ensure the key matches the server's expectation
+  
     try {
       const response = await fetch("http://localhost:8000/api/enseignants/import/", {
         method: "POST",
-        body: formData,
+        body: formData, // No need to set headers for FormData
       });
-
+  
       if (response.ok) {
-        fetchEnseignants();
+        fetchEnseignants(); // Refresh the list of enseignants
         setSnackbar({
           open: true,
           message: "Enseignants importés avec succès",
           severity: "success",
         });
       } else {
-        throw new Error("Erreur lors de l'importation du fichier CSV");
+        const errorData = await response.json(); // Parse the server's error response
+        console.error("Server Error:", errorData);
+        throw new Error(errorData.error || "Erreur lors de l'importation du fichier CSV");
       }
     } catch (error) {
+      console.error("Error uploading file:", error);
       setSnackbar({
         open: true,
         message: error.message || "Une erreur est survenue",
