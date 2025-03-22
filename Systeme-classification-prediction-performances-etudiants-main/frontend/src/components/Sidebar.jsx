@@ -11,12 +11,8 @@ import ListItemText from "@mui/material/ListItemText";
 import { Avatar, styled, useTheme, Typography, Tooltip } from "@mui/material";
 import MuiDrawer from "@mui/material/Drawer";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import ClassOutlinedIcon from "@mui/icons-material/ClassOutlined";
-import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
-import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
-import GradingOutlinedIcon from "@mui/icons-material/GradingOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import LeaderboardOutlinedIcon from "@mui/icons-material/LeaderboardOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
@@ -25,9 +21,10 @@ import EmojiObjectsOutlinedIcon from "@mui/icons-material/EmojiObjectsOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import { useNavigate } from "react-router-dom";
 import { grey, blue } from "@mui/material/colors";
-import { getCurrentUser, getUserRole } from "../utils/auth"; // Importez les fonctions d'authentification
+import { getCurrentUser, getUserRole } from "../utils/auth"; 
 
 const drawerWidth = 240;
 
@@ -115,7 +112,7 @@ const studentMenuItems = {
   ],
 };
 
-// Helper function to generate initials from a name
+// Helper function to generate initials from a name (keeping this for reference)
 const getInitials = (name) => {
   if (!name) return "U";
   const nameParts = name.split(" ");
@@ -167,10 +164,10 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
   const name = currentUser ? currentUser.full_name : roleInfo.name;
   const roleName = currentUser ? currentUser.role : roleInfo.role;
 
-  // Generate initials for the avatar
+  // Generate initials for the avatar (keeping this for reference)
   const initials = getInitials(name);
 
-  // Fixed avatar background color based on role
+  //  avatar background color based on role
   const getAvatarBgColor = () => {
     switch (userRole) {
       case "admin":
@@ -178,7 +175,7 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
       case "teacher":
         return "#4caf50"; // Green
       case "student":
-        return "#2196f3"; // Blue
+        return "#ff9800"; // Orange - change this to match your selection page
       default:
         return blue[600]; // Default blue
     }
@@ -240,10 +237,18 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
           fontSize: open ? 32 : 18,
           fontWeight: "bold",
           color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
         }}
         alt={name}
       >
-        {initials}
+        <PersonOutlineOutlinedIcon 
+          sx={{ 
+            fontSize: open ? 44 : 24,
+            transition: "font-size 0.3s ease-in-out"  // Add smooth transition for icon size
+          }} 
+        />
       </Avatar>
       <Typography align="center" sx={{ fontSize: open ? 17 : 0, transition: "0.25s" }}>
         {name}

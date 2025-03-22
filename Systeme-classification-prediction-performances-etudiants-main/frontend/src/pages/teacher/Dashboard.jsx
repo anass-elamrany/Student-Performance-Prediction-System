@@ -10,6 +10,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Divider,
+  useTheme
 } from '@mui/material';
 import { 
   BarChart,
@@ -24,6 +26,8 @@ import {
 import PeopleIcon from '@mui/icons-material/People';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import { checkAuthStatus, getUserRole, refreshToken } from '../../utils/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,6 +39,7 @@ const TeacherDashboard = () => {
   const [selectedMatiere, setSelectedMatiere] = useState('');
   const [matieres, setMatieres] = useState([]);
   const navigate = useNavigate();
+  const theme = useTheme();
 
   // Check authentication and user role on component mount
   useEffect(() => {
@@ -81,61 +86,61 @@ const TeacherDashboard = () => {
 
   // Fetch statistics, grade distribution, and attendance for the selected matiere
   const fetchMatiereData = async (matiereId) => {
-  setLoading(true);
-  try {
-    // Fetch teacher statistics for the selected matiere
-    const statsResponse = await fetchWithTokenRefresh(
-      `http://localhost:8000/api/teacher/statistics/?matiere_id=${matiereId}`
-    );
-    const statsData = await statsResponse.json();
+    setLoading(true);
+    try {
+      // Fetch teacher statistics for the selected matiere
+      const statsResponse = await fetchWithTokenRefresh(
+        `http://localhost:8000/api/teacher/statistics/?matiere_id=${matiereId}`
+      );
+      const statsData = await statsResponse.json();
 
-    if (!statsResponse.ok) {
-      throw new Error(statsData.message || 'Erreur lors de la récupération des statistiques');
+      if (!statsResponse.ok) {
+        throw new Error(statsData.message || 'Erreur lors de la récupération des statistiques');
+      }
+
+      if (statsData.success) {
+        setMatiereStats(statsData.matiere_stats);
+      }
+
+      // Fetch grade distribution for the selected matiere
+      const gradeResponse = await fetchWithTokenRefresh(
+        `http://localhost:8000/api/teacher/grade-distribution/?matiere_id=${matiereId}`
+      );
+      const gradeData = await gradeResponse.json();
+
+      if (!gradeResponse.ok) {
+        throw new Error(gradeData.message || 'Erreur lors de la récupération de la distribution des notes');
+      }
+
+      if (gradeData.success) {
+        setGradeDistribution(gradeData.grade_distribution);
+      }
+
+      // Fetch weekly attendance for the selected matiere
+      const attendanceResponse = await fetchWithTokenRefresh(
+        `http://localhost:8000/api/teacher/weekly-attendance/?matiere_id=${matiereId}`
+      );
+      const attendanceData = await attendanceResponse.json();
+
+      if (!attendanceResponse.ok) {
+        throw new Error(attendanceData.message || 'Erreur lors de la récupération des données de présence');
+      }
+
+      if (attendanceData.success) {
+        setAttendanceData(attendanceData.attendance_data);
+      }
+    } catch (error) {
+      console.error('Error fetching matiere data:', error);
+      // @ts-ignore
+      setSnackbar({
+        open: true,
+        message: error.message || 'Une erreur est survenue',
+        severity: 'error',
+      });
+    } finally {
+      setLoading(false);
     }
-
-    if (statsData.success) {
-      setMatiereStats(statsData.matiere_stats);
-    }
-
-    // Fetch grade distribution for the selected matiere
-    const gradeResponse = await fetchWithTokenRefresh(
-      `http://localhost:8000/api/teacher/grade-distribution/?matiere_id=${matiereId}`
-    );
-    const gradeData = await gradeResponse.json();
-
-    if (!gradeResponse.ok) {
-      throw new Error(gradeData.message || 'Erreur lors de la récupération de la distribution des notes');
-    }
-
-    if (gradeData.success) {
-      setGradeDistribution(gradeData.grade_distribution);
-    }
-
-    // Fetch weekly attendance for the selected matiere
-    const attendanceResponse = await fetchWithTokenRefresh(
-      `http://localhost:8000/api/teacher/weekly-attendance/?matiere_id=${matiereId}`
-    );
-    const attendanceData = await attendanceResponse.json();
-
-    if (!attendanceResponse.ok) {
-      throw new Error(attendanceData.message || 'Erreur lors de la récupération des données de présence');
-    }
-
-    if (attendanceData.success) {
-      setAttendanceData(attendanceData.attendance_data);
-    }
-  } catch (error) {
-    console.error('Error fetching matiere data:', error);
-    // @ts-ignore
-    setSnackbar({
-      open: true,
-      message: error.message || 'Une erreur est survenue',
-      severity: 'error',
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Function to handle token refresh and API requests
   const fetchWithTokenRefresh = async (url, options = {}) => {
@@ -177,25 +182,44 @@ const TeacherDashboard = () => {
 
   // Summary stats
   const summaryStats = [
-    { title: 'Matières enseignées', value: matieres.length, icon: <PeopleIcon color="primary" fontSize="large" /> },
-    { title: 'Moyenne de la classe', value: matiereStats.length > 0 ? `${matiereStats[0].average_grade}/20` : '0/20', icon: <TrendingUpIcon color="success" fontSize="large" /> },
-    { title: 'Meilleure note', value: matiereStats.length > 0 ? `${matiereStats[0].highest_grade}/20` : '0/20', icon: <WarningIcon color="error" fontSize="large" /> },
+    { 
+      title: 'Matières enseignées', 
+      value: matieres.length, 
+      icon: <PeopleIcon fontSize="large" />, 
+      color: theme.palette.primary.main,
+      description: 'Nombre total de matières'
+    },
+    { 
+      title: 'Moyenne de la classe', 
+      value: matiereStats.length > 0 ? `${matiereStats[0].average_grade}/20` : '0/20', 
+      icon: <TrendingUpIcon fontSize="large" />, 
+      color: theme.palette.success.main || '#4caf50',
+      description: 'Performance moyenne'
+    },
+    { 
+      title: 'Meilleure note', 
+      value: matiereStats.length > 0 ? `${matiereStats[0].highest_grade}/20` : '0/20', 
+      icon: <WarningIcon fontSize="large" />, 
+      color: theme.palette.warning.main || '#ff9800',
+      description: 'Note la plus élevée'
+    },
   ];
 
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
           Tableau de Bord Enseignant
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
           Bienvenue! Voici un aperçu de vos classes et activités récentes.
         </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
 
       {/* Matiere Filter */}
       <Box sx={{ mb: 4 }}>
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl sx={{ minWidth: 250 }}>
           <InputLabel id="matiere-filter-label">Filtrer par Matière</InputLabel>
           <Select
             labelId="matiere-filter-label"
@@ -216,16 +240,27 @@ const TeacherDashboard = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {summaryStats.map((stat, index) => (
           <Grid item xs={12} sm={6} md={4} key={index}>
-            <Card>
+            <Card 
+              elevation={2}
+              sx={{ 
+                height: 140, 
+                borderLeft: `4px solid ${stat.color}`,
+                transition: "transform 0.3s",
+                "&:hover": {
+                  transform: "translateY(-5px)",
+                  boxShadow: theme.shadows[8]
+                }
+              }}
+            >
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  {stat.icon}
-                </Box>
-                <Typography variant="h5" component="div" align="center">
+                <Typography variant="subtitle2" color="text.secondary">
+                  {stat.title}
+                </Typography>
+                <Typography variant="h3" sx={{ mt: 2, fontWeight: "bold", color: stat.color }}>
                   {stat.value}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" align="center">
-                  {stat.title}
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  {stat.description}
                 </Typography>
               </CardContent>
             </Card>
@@ -237,18 +272,28 @@ const TeacherDashboard = () => {
       <Grid container spacing={4}>
         {/* Attendance Chart */}
         <Grid item xs={12} md={8}>
-          <Card>
+          <Card elevation={2} sx={{ p: 1 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Assiduité de la Semaine
-              </Typography>
-              <Box sx={{ height: 300 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <BarChartIcon sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" fontWeight="medium">
+                  Assiduité de la Semaine
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Box sx={{ height: 320 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={attendanceData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
+                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                    <XAxis dataKey="day" tick={{ fill: theme.palette.text.secondary }} />
+                    <YAxis tick={{ fill: theme.palette.text.secondary }} />
+                    <Tooltip
+                      contentStyle={{ 
+                        backgroundColor: theme.palette.background.paper,
+                        borderColor: theme.palette.divider,
+                        color: theme.palette.text.primary
+                      }}
+                    />
                     <Legend />
                     <Bar dataKey="present" fill="#4CAF50" name="Présents" />
                     <Bar dataKey="absent" fill="#F44336" name="Absents" />
@@ -262,19 +307,29 @@ const TeacherDashboard = () => {
 
         {/* Grade Distribution */}
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card elevation={2} sx={{ p: 1 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Distribution des Notes
-              </Typography>
-              <Box sx={{ height: 300 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <AssessmentIcon sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" fontWeight="medium">
+                  Distribution des Notes
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Box sx={{ height: 320 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={gradeDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="range" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#3F51B5" name="Nombre d'élèves" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                    <XAxis dataKey="range" tick={{ fill: theme.palette.text.secondary }} />
+                    <YAxis tick={{ fill: theme.palette.text.secondary }} />
+                    <Tooltip
+                      contentStyle={{ 
+                        backgroundColor: theme.palette.background.paper,
+                        borderColor: theme.palette.divider,
+                        color: theme.palette.text.primary
+                      }}
+                    />
+                    <Bar dataKey="count" fill={theme.palette.primary.main} name="Nombre d'élèves" />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>

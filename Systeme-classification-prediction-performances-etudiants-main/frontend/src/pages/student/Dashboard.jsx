@@ -1,12 +1,40 @@
 import React, { useState, useEffect } from "react";
-import { Box, Typography, Paper, Grid, LinearProgress } from "@mui/material";
-import { School, TrendingUp, Warning } from "@mui/icons-material";
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { 
+  Box, 
+  Typography, 
+  Paper, 
+  Grid, 
+  LinearProgress, 
+  useTheme,
+  Card,
+  CardContent,
+  Divider
+} from "@mui/material";
+import { 
+  School, 
+  TrendingUp, 
+  Warning, 
+  ShowChart, 
+  PieChart as PieChartIcon
+} from "@mui/icons-material";
+import { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ResponsiveContainer, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid 
+} from "recharts";
 import { fetchWithTokenRefresh } from "../../utils/auth";
 
 const StudentDashboard = () => {
   const [studentData, setStudentData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -35,107 +63,208 @@ const StudentDashboard = () => {
   if (loading) {
     return (
       <Box sx={{ width: "100%", mt: 4 }}>
-        <LinearProgress />
+        <LinearProgress color="primary" />
       </Box>
     );
   }
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+  const COLORS = [
+    theme.palette.primary.main,
+    theme.palette.secondary.main || "#00C49F", 
+    theme.palette.warning.main,
+    theme.palette.error.main || "#FF8042", 
+    theme.palette.info.main || "#8884d8"
+  ];
+  
   const alertCount = studentData.notifications.filter(n => n.type === "alert").length;
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Bienvenue, {studentData?.name}
-      </Typography>
-      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-        Tableau de bord | Vue d'ensemble
-      </Typography>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
+          Bienvenue, {studentData?.name}
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Tableau de bord | Vue d'ensemble
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
+      </Box>
 
       {/* Cartes de résumé */}
-      <Grid container spacing={3} sx={{ mb: 4, mt: 1 }}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={3} sx={{ p: 2, display: "flex", flexDirection: "column", height: 120, bgcolor: "primary.light", color: "white" }}>
-            <Typography variant="subtitle2">Moyenne Générale</Typography>
-            <Typography variant="h3" sx={{ mt: 2 }}>
-              {studentData.currentAverage.toFixed(1)}/20
-            </Typography>
-          </Paper>
+          <Card 
+            elevation={2} 
+            sx={{ 
+              height: 140, 
+              borderLeft: `4px solid ${theme.palette.primary.main}`,
+              transition: "transform 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[8]
+              }
+            }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">Moyenne Générale</Typography>
+              <Typography variant="h3" color="primary.main" sx={{ mt: 2, fontWeight: "bold" }}>
+                {studentData.currentAverage.toFixed(1)}/20
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={3} sx={{ p: 2, display: "flex", flexDirection: "column", height: 120, bgcolor: "success.light", color: "white" }}>
-            <Typography variant="subtitle2">Taux de présence</Typography>
-            <Typography variant="h3" sx={{ mt: 2 }}>
-              {studentData.attendanceRate}%
-            </Typography>
-          </Paper>
+          <Card 
+            elevation={2} 
+            sx={{ 
+              height: 140,
+              borderLeft: `4px solid ${theme.palette.success.main}`,
+              transition: "transform 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[8]
+              }
+            }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">Taux de présence</Typography>
+              <Typography variant="h3" color="success.main" sx={{ mt: 2, fontWeight: "bold" }}>
+                {studentData.attendanceRate}%
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={3} sx={{ p: 2, display: "flex", flexDirection: "column", height: 120, bgcolor: "info.light", color: "white" }}>
-            <Typography variant="subtitle2">Notes récentes</Typography>
-            <Typography variant="h3" sx={{ mt: 2 }}>
-              {studentData.recentGrades.length}
-            </Typography>
-          </Paper>
+          <Card 
+            elevation={2} 
+            sx={{ 
+              height: 140,
+              borderLeft: `4px solid ${theme.palette.info.main}`,
+              transition: "transform 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[8]
+              }
+            }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">Notes récentes</Typography>
+              <Typography variant="h3" color="info.main" sx={{ mt: 2, fontWeight: "bold" }}>
+                {studentData.recentGrades.length}
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={3} sx={{ p: 2, display: "flex", flexDirection: "column", height: 120, bgcolor: "warning.light", color: "white" }}>
-            <Typography variant="subtitle2">
-              <Warning sx={{ mr: 1, verticalAlign: "middle", fontSize: "small" }} />
-              Nombre d'alertes
-            </Typography>
-            <Typography variant="h3" sx={{ mt: 2 }}>
-              {alertCount}
-            </Typography>
-          </Paper>
+          <Card 
+            elevation={2} 
+            sx={{ 
+              height: 140,
+              borderLeft: `4px solid ${theme.palette.warning.main}`,
+              transition: "transform 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[8]
+              }
+            }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">
+                
+                Nombre d'alertes
+              </Typography>
+              <Typography variant="h3" color="warning.main" sx={{ mt: 2, fontWeight: "bold" }}>
+                {alertCount}
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
       {/* Graphiques et statistiques */}
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              <TrendingUp sx={{ mr: 1, verticalAlign: "middle" }} />
-              Évolution de vos performances
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={studentData.monthlyPerformance}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis domain={[0, 20]} />
-                <Tooltip />
-                <Line type="monotone" dataKey="average" stroke="#8884d8" activeDot={{ r: 8 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
+          <Card elevation={2} sx={{ p: 1 }}>
+            <CardContent>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <ShowChart sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" fontWeight="medium">
+                  Évolution de vos performances
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={studentData.monthlyPerformance}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fill: theme.palette.text.secondary }}
+                    axisLine={{ stroke: theme.palette.divider }}
+                  />
+                  <YAxis 
+                    domain={[0, 20]} 
+                    tick={{ fill: theme.palette.text.secondary }}
+                    axisLine={{ stroke: theme.palette.divider }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: theme.palette.background.paper,
+                      borderColor: theme.palette.divider,
+                      color: theme.palette.text.primary
+                    }} 
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="average" 
+                    stroke={theme.palette.primary.main}
+                    strokeWidth={2}
+                    activeDot={{ r: 8, fill: theme.palette.primary.main }} 
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              <School sx={{ mr: 1, verticalAlign: "middle" }} />
-              Performance par matière
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={studentData.subjectPerformance}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {studentData.subjectPerformance.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
+          <Card elevation={2} sx={{ p: 1 }}>
+            <CardContent>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <PieChartIcon sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" fontWeight="medium">
+                  Performance par matière
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={studentData.subjectPerformance}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={90}
+                    fill={theme.palette.primary.main}
+                    dataKey="value"
+                  >
+                    {studentData.subjectPerformance.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]} 
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: theme.palette.background.paper,
+                      borderColor: theme.palette.divider,
+                      color: theme.palette.text.primary
+                    }} 
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
     </Box>

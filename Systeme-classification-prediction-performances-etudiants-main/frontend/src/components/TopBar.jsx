@@ -2,39 +2,34 @@ import { Box, IconButton, InputBase, Stack, Toolbar, useTheme, Menu, MenuItem } 
 import MuiAppBar from "@mui/material/AppBar";
 import MenuIcon from "@mui/icons-material/Menu";
 import { styled, alpha } from '@mui/material/styles';
-import SearchIcon from '@mui/icons-material/Search';
 import Person2OutlinedIcon from "@mui/icons-material/Person2Outlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../utils/auth'; // Assurez-vous que le chemin est correct
+import { logout } from '../utils/auth'; 
 
 const drawerWidth = 240;
 
 const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== "open",
-})(({ theme }) => ({
+// @ts-ignore
+})(({ theme, open }) => ({
   zIndex: theme.zIndex.drawer + 1,
+  color: "white", // Force white text color
   transition: theme.transitions.create(["width", "margin"], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  variants: [
-    {
-      // @ts-ignore
-      props: ({ open }) => open,
-      style: {
-        marginLeft: drawerWidth,
-        width: `calc(100% - ${drawerWidth}px)`,
-        transition: theme.transitions.create(["width", "margin"], {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
-      },
-    },
-  ],
+  ...(open && {
+    marginLeft: drawerWidth,
+    width: `calc(100% - ${drawerWidth}px)`,
+    transition: theme.transitions.create(["width", "margin"], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  }),
 }));
 
 const Search = styled('div')(({ theme }) => ({
@@ -112,24 +107,21 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
 
   return (
     <AppBar position="fixed" 
-      // @ts-ignore
-      open={open}>
+// @ts-ignore
+    open={open}>
       <Toolbar>
         <IconButton
           color="inherit"
           aria-label="open drawer"
           onClick={handleDrawerOpen}
           edge="start"
-          sx={[
-            {
-              marginRight: 5,
-            },
-            open && { display: "none" },
-          ]}
+          sx={{
+            marginRight: 5,
+            display: open ? 'none' : 'flex',
+          }}
         >
           <MenuIcon />
         </IconButton>
-
 
         <Box flexGrow={1} />
         <Stack direction={"row"}>
@@ -193,7 +185,7 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
         </Stack>
       </Toolbar>
     </AppBar>
-  )
-}
+  );
+};
 
-export default TopBar
+export default TopBar;

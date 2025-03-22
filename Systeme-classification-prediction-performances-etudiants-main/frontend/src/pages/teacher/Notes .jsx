@@ -24,6 +24,10 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Card,
+  Divider,
+  Chip,
+  useTheme,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -55,6 +59,7 @@ const TeacherNotes = () => {
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
 
   // Fetch Matieres and Notes
   useEffect(() => {
@@ -358,54 +363,48 @@ const TeacherNotes = () => {
     }
   }, [navigate]);
 
+  // Function to determine score color (similar to StudentNotes)
+  const getScoreColor = (score) => {
+    if (!score && score !== 0) return theme.palette.text.secondary;
+    if (score >= 16) return theme.palette.success.main;
+    if (score >= 12) return theme.palette.primary.main;
+    if (score >= 8) return theme.palette.warning.main;
+    return theme.palette.error.main;
+  };
+
   return (
     <Box>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          Gestion des Notes
-        </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            startIcon={<GetAppIcon />}
-            onClick={downloadTemplate}
-            sx={{ mr: 2 }}
-          >
-            Télécharger le Modèle
-          </Button>
-          <Button
-            variant="contained"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-            sx={{ mr: 2 }}
-          >
-            Importer CSV
-            <input
-              type="file"
-              hidden
-              accept=".csv"
-              onChange={handleFileUpload}
-            />
-          </Button>
+      {/* Header Section */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Typography variant="h4" color="primary.main" fontWeight="bold">
+            Gestion des Notes
+          </Typography>
         </Box>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Attribuez et gérez les notes de vos étudiants
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
 
-      {/* Matiere Filter */}
-      <Box sx={{ mb: 3 }}>
-        <FormControl sx={{ minWidth: 200 }}>
+      {/* Actions and Filters Section */}
+      <Box sx={{ 
+        display: "flex", 
+        flexDirection: { xs: "column", md: "row" }, 
+        justifyContent: "space-between", 
+        alignItems: { xs: "flex-start", md: "center" },
+        mb: 3, 
+        gap: 2 
+      }}>
+        {/* Matiere Filter */}
+        <FormControl sx={{ minWidth: 240, bgcolor: "background.paper", borderRadius: 1 }}>
           <InputLabel id="matiere-filter-label">Filtrer par Matière</InputLabel>
           <Select
             labelId="matiere-filter-label"
             value={selectedMatiere}
             onChange={handleMatiereFilterChange}
             label="Filtrer par Matière"
+            sx={{ borderRadius: 1 }}
           >
             <MenuItem value="">Toutes les Matières</MenuItem>
             {matieres.map((matiere) => (
@@ -415,77 +414,271 @@ const TeacherNotes = () => {
             ))}
           </Select>
         </FormControl>
+
+        
+        {/* Action Buttons */}
+<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+  <Button
+    variant="contained" // Changed from "outlined" to "contained"
+    startIcon={<GetAppIcon />}
+    onClick={downloadTemplate}
+    sx={{ 
+      borderRadius: 1,
+      backgroundColor: "primary.main", // Using theme's primary color (green for teacher)
+      color: "white",
+      "&:hover": {
+        backgroundColor: "primary.dark"
+      }
+    }}
+  >
+    Télécharger le Modèle
+  </Button>
+  <Button
+    variant="contained" // Changed from "outlined" to "contained"
+    component="label"
+    startIcon={<CloudUploadIcon />}
+    sx={{ 
+      borderRadius: 1,
+      backgroundColor: "primary.main", // Using theme's primary color (green for teacher)
+      color: "white",
+      "&:hover": {
+        backgroundColor: "primary.dark"
+      }
+    }}
+  >
+    Importer CSV
+    <input
+      type="file"
+      hidden
+      accept=".csv"
+      onChange={handleFileUpload}
+    />
+  </Button>
+</Box>
       </Box>
 
       {/* Loading State */}
       {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4, mb: 4 }}>
+          <CircularProgress color="primary" />
         </Box>
       )}
 
       {/* Table of Students and Notes */}
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Étudiant</TableCell>
-              <TableCell align="center">Note Module</TableCell>
-              <TableCell align="center">Note Devoir/Projet</TableCell>
-              <TableCell align="center">Assiduité</TableCell>
-              <TableCell align="center">Présence</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {students.map((student) => {
-              const note = notes.find((n) => n.etudiant.id === student.id);
-              return (
-                <TableRow key={student.id}>
-                  <TableCell>{`${student.first_name} ${student.last_name}`}</TableCell>
-                  <TableCell align="center">
-                    {note ? note.note_module : "-"}
+      {!loading && (
+        <Card elevation={2} sx={{ overflow: "hidden", borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+          <TableContainer component={Paper} elevation={0} sx={{ bgcolor: theme.palette.background.paper }}>
+            <Table sx={{ minWidth: 650 }}>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: "rgba(0, 0, 0, 0.03)" }}>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: "bold", 
+                      color: "text.primary",
+                      fontSize: "1rem"
+                    }}
+                  >
+                    Étudiant
                   </TableCell>
-                  <TableCell align="center">
-                    {note ? note.note_devoir_projet : "-"}
+                  <TableCell 
+                    align="center" 
+                    sx={{ 
+                      fontWeight: "bold", 
+                      color: "text.primary",
+                      fontSize: "1rem"
+                    }}
+                  >
+                    Note Module
                   </TableCell>
-                  <TableCell align="center">
-                    {note ? note.assiduite : "-"}
+                  <TableCell 
+                    align="center" 
+                    sx={{ 
+                      fontWeight: "bold", 
+                      color: "text.primary",
+                      fontSize: "1rem"
+                    }}
+                  >
+                    Note Devoir/Projet
                   </TableCell>
-                  <TableCell align="center">
-                    {note ? note.presence : "-"}
+                  <TableCell 
+                    align="center" 
+                    sx={{ 
+                      fontWeight: "bold", 
+                      color: "text.primary",
+                      fontSize: "1rem"
+                    }}
+                  >
+                    Assiduité
                   </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      color="primary"
-                      aria-label="Edit"
-                      onClick={() => handleOpenDialog(note || { etudiant: student, matiere: { id: selectedMatiere } })}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    {note && (
-                      <IconButton
-                        color="error"
-                        aria-label="Delete"
-                        onClick={() => handleDelete(note.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    )}
+                  <TableCell 
+                    align="center" 
+                    sx={{ 
+                      fontWeight: "bold", 
+                      color: "text.primary",
+                      fontSize: "1rem"
+                    }}
+                  >
+                    Présence
+                  </TableCell>
+                  <TableCell 
+                    align="center" 
+                    sx={{ 
+                      fontWeight: "bold", 
+                      color: "text.primary",
+                      fontSize: "1rem"
+                    }}
+                  >
+                    Actions
                   </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              </TableHead>
+              <TableBody>
+                {students.length > 0 ? (
+                  students.map((student) => {
+                    const note = notes.find((n) => n.etudiant.id === student.id);
+                    return (
+                      <TableRow 
+                        key={student.id}
+                        sx={{
+                          '&:nth-of-type(odd)': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.01)',
+                          },
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          },
+                          transition: 'background-color 0.2s'
+                        }}
+                      >
+                        <TableCell>
+                          <Typography fontWeight="medium">
+                            {`${student.first_name} ${student.last_name}`}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          {note ? (
+                            <Chip 
+                              label={note.note_module} 
+                              sx={{ 
+                                fontWeight: "bold", 
+                                color: "white", 
+                                backgroundColor: getScoreColor(note.note_module) 
+                              }} 
+                            />
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell align="center">
+                          {note ? (
+                            <Chip 
+                              label={note.note_devoir_projet} 
+                              sx={{ 
+                                fontWeight: "bold", 
+                                color: "white", 
+                                backgroundColor: getScoreColor(note.note_devoir_projet) 
+                              }} 
+                            />
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell align="center">
+                          {note ? (
+                            <Chip 
+                              label={note.assiduite} 
+                              sx={{ 
+                                fontWeight: "bold", 
+                                color: "white", 
+                                backgroundColor: getScoreColor(note.assiduite) 
+                              }} 
+                            />
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell align="center">
+                          {note && note.presence !== undefined && note.presence !== null ? (
+                            <Chip 
+                              label={`${note.presence}%`} 
+                              sx={{ 
+                                fontWeight: "bold", 
+                                color: "white", 
+                                backgroundColor: note.presence >= 90 
+                                  ? theme.palette.success.main 
+                                  : note.presence >= 75 
+                                    ? theme.palette.primary.main 
+                                    : note.presence >= 50 
+                                      ? theme.palette.warning.main 
+                                      : theme.palette.error.main 
+                              }} 
+                            />
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            color="primary"
+                            aria-label="Edit"
+                            onClick={() => handleOpenDialog(note || { etudiant: student, matiere: { id: selectedMatiere } })}
+                            sx={{ 
+                              color: theme.palette.primary.main,
+                              "&:hover": { 
+                                backgroundColor: "rgba(76, 175, 80, 0.04)" 
+                              }
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          {note && (
+                            <IconButton
+                              color="error"
+                              aria-label="Delete"
+                              onClick={() => handleDelete(note.id)}
+                              sx={{ 
+                                "&:hover": { 
+                                  backgroundColor: "rgba(244, 67, 54, 0.04)" 
+                                }
+                              }}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <Typography variant="subtitle1" color="text.secondary">
+                        {selectedMatiere 
+                          ? "Aucun étudiant trouvé pour cette matière."
+                          : "Veuillez sélectionner une matière pour afficher les étudiants."}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      )}
 
       {/* Dialog for adding/editing a note */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            bgcolor: theme.palette.background.paper
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          borderBottom: 1, 
+          borderColor: 'divider',
+          fontWeight: 'bold',
+          color: 'primary.main'
+        }}>
           {editMode ? "Modifier la Note" : "Ajouter une Note"}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ mt: 2 }}>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -495,6 +688,13 @@ const TeacherNotes = () => {
                 value={formData.note_module}
                 onChange={handleInputChange}
                 required
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -505,6 +705,13 @@ const TeacherNotes = () => {
                 value={formData.note_devoir_projet}
                 onChange={handleInputChange}
                 required
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -515,6 +722,13 @@ const TeacherNotes = () => {
                 value={formData.assiduite}
                 onChange={handleInputChange}
                 required
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -525,13 +739,41 @@ const TeacherNotes = () => {
                 value={formData.presence}
                 onChange={handleInputChange}
                 required
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                }}
               />
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Annuler</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Button 
+            onClick={handleCloseDialog}
+            sx={{ 
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              },
+            }}
+          >
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            sx={{ 
+              borderRadius: 1,
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: 'none',
+                backgroundColor: 'primary.dark',
+              },
+            }}
+          >
             {editMode ? "Mettre à jour" : "Ajouter"}
           </Button>
         </DialogActions>
@@ -542,11 +784,13 @@ const TeacherNotes = () => {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           // @ts-ignore
           severity={snackbar.severity}
+          variant="filled"
           sx={{ width: "100%" }}
         >
           {snackbar.message}

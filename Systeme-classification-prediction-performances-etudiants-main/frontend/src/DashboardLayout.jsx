@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { styled, ThemeProvider, createTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -16,7 +16,8 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 }));
 
 const DashboardLayout = ({ role }) => {
-  const [open, setOpen] = React.useState(false);
+  // Set default state to true to open the sidebar by default
+  const [open, setOpen] = useState(true);
   const location = useLocation();
 
   const handleDrawerOpen = () => {
@@ -27,13 +28,16 @@ const DashboardLayout = ({ role }) => {
     setOpen(false);
   };
 
-  const [mode, setMode] = React.useState(
+  const [mode, setMode] = useState(
     Boolean(localStorage.getItem("currentMode"))
       ? localStorage.getItem("currentMode")
       : "light"
   );
 
-  const theme = React.useMemo(() => createTheme(getDesignTokens(mode)), [mode]);
+  const theme = React.useMemo(
+    () => createTheme(getDesignTokens(mode, role)), 
+    [mode, role]
+  );
 
   return (
     <ThemeProvider theme={theme}>
@@ -49,6 +53,7 @@ const DashboardLayout = ({ role }) => {
         <Sidebar 
           open={open} 
           handleDrawerClose={handleDrawerClose} 
+          // @ts-ignore
           role={role}
           pathname={location.pathname}
         />
