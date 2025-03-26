@@ -1,45 +1,273 @@
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LinearRegression
-from .models import Note
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+import pandas as pd
+from django.db.models import Avg, Count
+from .models import Note, Utilisateur, Matiere
+import joblib
+import os
+from django.conf import settings
+import logging
 
-def train_classification_model():
+logger = logging.getLogger(__name__)
+MODELS_DIR = os.path.join(settings.BASE_DIR, 'ml_models')
+os.makedirs(MODELS_DIR, exist_ok=True)
+
+
+
+def prepare_student_data(class_id=None):
     """
-    Entraîne un modèle de classification pour catégoriser les étudiants.
+    Version finale avec diagnostic complet des données
     """
-    # Récupérer les données des notes
-    notes = Note.objects.all()
-    X = []
-    y = []
-    for note in notes:
-        X.append([note.note_module, note.note_devoir_projet, note.assiduite, note.presence])
-        # Catégoriser les étudiants en fonction de leur note moyenne
-        if note.note_module >= 14:
-            y.append('Bon performeur')
-        elif note.note_module >= 10:
-            y.append('Moyenne performance')
+    try:
+        logger.info(f"Préparation des données pour la classe {class_id}")
+        
+        # 1. Vérification initiale de la base de données
+        total_students = Utilisateur.objects.filter(user_type='student').count()
+        total_notes = Note.objects.count()
+        logger.info(f"Étudiants totaux: {total_students}, Notes totales: {total_notes}")
+
+        if total_notes == 0:
+            logger.error("AUCUNE NOTE TROUVÉE dans la base de données!")
+            return pd.DataFrame()
+
+        # 2. Récupération optimisée des données
+        query = Utilisateur.objects.filter(
+            user_type='student',
+            note__isnull=False  # Seulement les étudiants avec des notes
+        ).annotate(
+            note_count=Count('note')
+        ).prefetch_related('note_set', 'classe')
+
+        if class_id:
+            query = query.filter(classe_id=class_id)
+
+        students = list(query)
+        logger.info(f"Étudiants avec notes trouvés: {len(students)}")
+
+        if not students:
+            logger.warning("Aucun étudiant avec notes trouvé")
+            return pd.DataFrame()
+
+        # 3. Préparation des données avec vérification complète
+        data = []
+        for student in students:
+            notes = student.note_set.all()
+            
+            # Debug: Afficher les premières notes pour vérification
+            if len(data) < 2:  # Affiche seulement pour les 2 premiers étudiants
+                logger.debug(f"Notes pour étudiant {student.id}:")
+                for note in notes[:3]:
+                    logger.debug(f"  - Note ID:{note.id} Module:{note.note_module} Projet:{note.note_devoir_projet}")
+
+            averages = notes.aggregate(
+                avg_note=Avg('note_module'),
+                avg_project=Avg('note_devoir_projet'),
+                avg_attendance=Avg('presence'),
+                avg_assiduite=Avg('assiduite')
+            )
+
+            # Conversion des moyennes avec vérification rigoureuse
+            avg_note = float(averages['avg_note']) if averages['avg_note'] is not None else 0.0
+            avg_project = float(averages['avg_project']) if averages['avg_project'] is not None else 0.0
+            avg_attendance = float(averages['avg_attendance']) if averages['avg_attendance'] is not None else 0.0
+            avg_assiduite = float(averages['avg_assiduite']) if averages['avg_assiduite'] is not None else 0.0
+
+            data.append({
+                'student_id': student.id,
+                'features': [avg_note, avg_project, avg_attendance, avg_assiduite],
+                'info': {
+                    'first_name': student.first_name,
+                    'last_name': student.last_name,
+                    'class_id': student.classe.id if student.classe else None,
+                    'class_name': student.classe.nom if student.classe else None
+                }
+            })
+
+        logger.info(f"Données préparées pour {len(data)} étudiants")
+        return pd.DataFrame(data)
+
+    except Exception as e:
+        logger.error(f"ERREUR CRITIQUE dans prepare_student_data: {str(e)}", exc_info=True)
+        return pd.DataFrame()
+    
+def train_global_classification_model(retrain=True):
+    """
+    Entraîne ou charge un modèle de classification avec vérification améliorée
+    """
+    model_path = os.path.join(MODELS_DIR, 'global_classifier.pkl')
+    
+    try:
+        if not retrain and os.path.exists(model_path):
+            logger.info("Chargement du modèle existant")
+            saved_data = joblib.load(model_path)
+            return saved_data['model'], saved_data['scaler']
+        
+        logger.info("Entraînement d'un nouveau modèle")
+        df = prepare_student_data()
+        
+        if df.empty:
+            logger.error("DataFrame vide - aucune donnée disponible pour l'entraînement")
+            raise ValueError("Pas assez de données pour l'entraînement")
+        
+        logger.info(f"Nombre d'étudiants pour l'entraînement: {len(df)}")
+        logger.debug(f"Exemple de données:\n{df.head()}")
+        
+        # Définition des catégories
+        df['category'] = pd.cut(
+            df['features'].apply(lambda x: x[0]),
+            bins=[0, 12, 14, 20],
+            labels=['À risque', 'Moyenne performance', 'Bon performeur'],
+            right=False
+        )
+        
+        X = np.array(df['features'].tolist())
+        y = df['category'].values
+        
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        
+        model = RandomForestClassifier(
+            n_estimators=150,
+            max_depth=5,
+            random_state=42,
+            class_weight='balanced'
+        )
+        model.fit(X_scaled, y)
+        
+        joblib.dump({
+            'model': model,
+            'scaler': scaler,
+            'features': df['features'].tolist(),
+            'categories': df['category'].tolist()
+        }, model_path)
+        
+        logger.info("Modèle entraîné et sauvegardé avec succès")
+        return model, scaler
+        
+    except Exception as e:
+        logger.error(f"Erreur dans train_global_classification_model: {str(e)}", exc_info=True)
+        raise
+def classify_students(class_id):
+    # Retrieve students in the class
+    students = Utilisateur.objects.filter(classe_id=class_id, user_type='student')
+    
+    classification = []
+    for student in students:
+        # Calculate average score
+        notes = Note.objects.filter(etudiant=student)
+        if not notes:
+            continue  # Skip students with no grades
+        
+        average_score = sum(note.note_module * 0.7 + note.note_devoir_projet * 0.3 for note in notes) / len(notes)
+        
+        # Determine performance category
+        if average_score >= 16:
+            performance_category = 'Bon performeur'
+        elif 12 <= average_score < 16:
+            performance_category = 'Moyenne performance'
         else:
-            y.append('À risque')
+            performance_category = 'À risque'
+        
+        classification.append({
+            'student_id': student.id,
+            'student_name': student.username,
+            'average_score': average_score,
+            'performance_category': performance_category,
+            # Add these lines to include class information
+            'class_id': class_id,
+            'class_name': student.classe.nom if student.classe else None
+        })
+    
+    # Sort by average score
+    classification.sort(key=lambda x: x['average_score'], reverse=True)
+    
+    return classification
 
-    # Entraîner le modèle
-    model = DecisionTreeClassifier()
-    model.fit(X, y)
-    return model
+def generate_risk_alerts(class_id=None):
+    try:
+        classified_students = classify_students(class_id)
+        
+        alerts = []
+        for s in classified_students:
+            # Ensure performance_category is set for all students
+            performance_category = s.get('performance_category', 'Moyenne performance')
+            
+            if performance_category == 'À risque':
+                alerts.append({
+                    'student_id': s['student_id'],
+                    'student_name': s['student_name'],
+                    'performance_category': performance_category,  # Explicitly set this
+                    'class_id': s['class_id'],
+                    'class_name': s['class_name'],
+                    'average_score': s['average_score'],
+                    'alert_message': f"Étudiant à risque (moyenne: {s['average_score']:.2f})",
+                    'recommendations': [
+                        "Séances de tutorat obligatoires",
+                        "Rencontre avec le conseiller pédagogique",
+                        "Plan d'étude personnalisé recommandé"
+                    ]
+                })
+        
+        return alerts
+        
+    except Exception as e:
+        logger.error(f"Erreur dans generate_risk_alerts: {str(e)}", exc_info=True)
+        return []
 
-def train_linear_regression_model():
+def generate_recommendations_for_class(class_id):
     """
-    Entraîne un modèle de régression linéaire pour prédire les notes futures.
+    Génère des recommandations avec un meilleur logging
     """
-    # Récupérer les données des notes
-    notes = Note.objects.all()
-    X = []
-    y = []
-    for note in notes:
-        X.append([note.note_module, note.note_devoir_projet, note.assiduite, note.presence])
-        y.append(note.note_module)  # Prédire la note du module
-
-    # Entraîner le modèle
-    model = LinearRegression()
-    model.fit(X, y)
-    return model
-
-
+    try:
+        logger.info(f"Génération de recommandations pour la classe {class_id}")
+        classified_students = classify_students(class_id)
+        recommendations = []
+        
+        for student in classified_students:
+            rec = {
+                'student_id': student['student_id'],
+                'student_name': student['student_name'],
+                'class_id': student['class_id'],
+                'class_name': student['class_name'],
+                'performance_category': student['performance_category'],
+                'recommendations': []
+            }
+            
+            # Recommandations basées sur la performance
+            if student['performance_category'] == 'À risque':
+                rec['recommendations'].extend([
+                    {"message": "Tutorat intensif 3 fois/semaine"},
+                    {"message": "Parcours de remise à niveau"}
+                ])
+            elif student['performance_category'] == 'Moyenne performance':
+                rec['recommendations'].extend([
+                    {"message": "Tutorat optionnel 1 fois/semaine"},
+                    {"message": "Parcours standard"}
+                ])
+            else:
+                rec['recommendations'].extend([
+                    {"message": "Parcours d'excellence"},
+                            {"message": "Projet personnel encadré"},
+       
+                ])
+            
+            # Recommandations par matière faible
+            weak_subjects = Note.objects.filter(
+                etudiant_id=student['student_id'],
+                note_module__lt=10
+            ).values_list('matiere__nom', flat=True).distinct()
+            
+            for subject in weak_subjects:
+                rec['recommendations'].append({
+                    "message": f"Soutien spécifique en {subject}"
+                })
+            
+            recommendations.append(rec)
+        
+        logger.info(f"Recommandations générées pour {len(recommendations)} étudiants")
+        return recommendations
+        
+    except Exception as e:
+        logger.error(f"Erreur dans generate_recommendations_for_class: {str(e)}", exc_info=True)
+        return []

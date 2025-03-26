@@ -12,6 +12,8 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Card,
+  CardContent,
   Table,
   TableBody,
   TableCell,
@@ -19,239 +21,347 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  useTheme
 } from '@mui/material';
-import RecommendIcon from '@mui/icons-material/Recommend';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import {
+  Recommend as RecommendIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  School as SchoolIcon
+} from '@mui/icons-material';
 
-const STATUS_COLORS = {
-  'À risque': '#F44336',
-  'Moyenne performance': '#FFC107',
-  'Bon performeur': '#4CAF50',
+const STATUS_CONFIG = {
+  'À risque': {
+    color: '#F44336',
+    icon: <ErrorIcon />
+  },
+  'Moyenne performance': {
+    color: '#FFC107',
+    icon: <WarningIcon />
+  },
+  'Bon performeur': {
+    color: '#4CAF50',
+    icon: <CheckCircleIcon />
+  }
+};
+
+const PRIORITY_ICONS = {
+  high: <ErrorIcon color="error" />,
+  medium: <WarningIcon color="warning" />,
+  low: <CheckCircleIcon color="success" />
 };
 
 const AdminRecommendations = () => {
+  // États
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSemester, setSelectedSemester] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
   const [classes, setClasses] = useState([]);
-  const [subjects, setSubjects] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [loading, setLoading] = useState({
+    classes: false,
+    recommendations: false
+  });
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+  const [dataStatus, setDataStatus] = useState({
+    hasData: false,
+    isLoading: false,
+    error: null
+  });
 
-  // Fetch classes and subjects from the backend
+  const theme = useTheme();
+
+  // Constantes
+  const API_ENDPOINTS = {
+    CLASSES: '/api/classes/',
+    RECOMMENDATIONS: '/api/ml/class-recommendations/'
+  };
+
+  // Effets
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch classes
-        const classesResponse = await fetch('/api/classes/');
-        const classesData = await classesResponse.json();
-        setClasses(classesData);
-
-        // Fetch subjects
-        const subjectsResponse = await fetch('/api/matieres/');
-        const subjectsData = await subjectsResponse.json();
-        setSubjects(subjectsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setSnackbarMessage("Erreur lors du chargement des données.");
-        setSnackbarOpen(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchClasses();
   }, []);
 
-  // Handle semester change
-  const handleSemesterChange = (event) => {
-    setSelectedSemester(event.target.value);
-    setSelectedSubject(''); // Reset subject when semester changes
-  };
-
-  // Handle subject change
-  const handleSubjectChange = (event) => {
-    setSelectedSubject(event.target.value);
-  };
-
-  // Generate recommendations for students
-  const generateRecommendations = async () => {
-    if (!selectedClass || !selectedSemester || !selectedSubject) {
-      setSnackbarMessage("Veuillez sélectionner une classe, un semestre et une matière.");
-      setSnackbarOpen(true);
-      return;
-    }
-
-    // Restrict to Semester 4
-    if (parseInt(selectedSemester) !== 4) {
-      setSnackbarMessage("Les recommandations ne sont disponibles que pour le semestre 4.");
-      setSnackbarOpen(true);
-      return;
-    }
-
-    setLoading(true);
+  // Méthodes
+  const fetchClasses = async () => {
+    setLoading(prev => ({ ...prev, classes: true }));
     try {
-      const response = await fetch('/api/generate-recommendations/', {
+      const response = await fetch(API_ENDPOINTS.CLASSES);
+      if (!response.ok) throw new Error('Erreur de chargement des classes');
+      setClasses(await response.json());
+    } catch (error) {
+      showNotification(error.message, 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, classes: false }));
+    }
+  };
+
+  const generateRecommendations = async () => {
+    if (!selectedClass) {
+      showNotification('Veuillez sélectionner une classe', 'error');
+      return;
+    }
+
+    setDataStatus({ hasData: false, isLoading: true, error: null });
+    setLoading(prev => ({ ...prev, recommendations: true }));
+    
+    try {
+      const response = await fetch(API_ENDPOINTS.RECOMMENDATIONS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          class_id: selectedClass,
-          semester: selectedSemester,
-          subject_id: selectedSubject,
-        }),
+        body: JSON.stringify({ class_id: selectedClass }),
       });
 
       if (!response.ok) {
-        throw new Error(`Erreur HTTP : ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur de génération des recommandations');
       }
-
+      
       const result = await response.json();
-      setRecommendations(result.recommendations);
-      setSnackbarMessage("Recommandations générées avec succès.");
-      setSnackbarOpen(true);
+      const hasData = result.recommendations && result.recommendations.length > 0;
+      
+      setRecommendations(result.recommendations || []);
+      setDataStatus({
+        hasData,
+        isLoading: false,
+        error: hasData ? null : 'Aucune recommandation générée (pas de notes disponibles?)'
+      });
+      
+      showNotification(hasData 
+        ? `${result.recommendations.length} recommandations générées` 
+        : 'Aucune recommandation générée');
+        
     } catch (error) {
-      console.error('Error generating recommendations:', error);
-      setSnackbarMessage("Erreur lors de la génération des recommandations.");
-      setSnackbarOpen(true);
+      console.error('Generate recommendations error:', error);
+      setDataStatus({
+        hasData: false,
+        isLoading: false,
+        error: error.message
+      });
+      showNotification(error.message, 'error');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, recommendations: false }));
     }
   };
 
-  // Handle snackbar close
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
+  const showNotification = (message, severity = 'success') => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
   };
 
+  const handleNotificationClose = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  const getCurrentClassName = () => {
+    return classes.find(c => c.id === selectedClass)?.nom || 'Classe inconnue';
+  };
+
+  // Rendu
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Recommandations de Cours ou Parcours
-      </Typography>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
+          Recommandations de Parcours
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Générez des recommandations personnalisées pour vos étudiants
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
+      </Box>
 
-      {/* Filters */}
-      <Paper elevation={2} sx={{ p: 2, mb: 4 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card 
+            elevation={2}
+            sx={{ 
+              height: 140, 
+              borderLeft: `4px solid ${theme.palette.primary.main}`,
+              transition: "transform 0.3s, box-shadow 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[4]
+              }
+            }}
+          >
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total des Recommandations
+                </Typography>
+                <SchoolIcon 
+                  fontSize="medium" 
+                  sx={{ color: theme.palette.primary.main }} 
+                />
+              </Box>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+                  {recommendations.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Recommandations générées
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Class Selection and Generate Button */}
+      <Box sx={{ mb: 3 }}>
+        <Grid container spacing={2}>
+          {/* Class Selection */}
+          <Grid item xs={12} sm={8}>
             <FormControl fullWidth>
               <InputLabel>Classe</InputLabel>
               <Select
                 value={selectedClass}
                 label="Classe"
                 onChange={(e) => setSelectedClass(e.target.value)}
+                disabled={loading.classes}
               >
-                <MenuItem value="">Sélectionner une classe</MenuItem>
+                <MenuItem value="">
+                  <em>Sélectionner une classe</em>
+                </MenuItem>
                 {classes.map((cls) => (
-                  <MenuItem key={cls.id} value={cls.id}>{cls.nom}</MenuItem>
+                  <MenuItem key={cls.id} value={cls.id}>
+                    {cls.nom}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Semestre</InputLabel>
-              <Select
-                value={selectedSemester}
-                label="Semestre"
-                onChange={handleSemesterChange}
-              >
-                <MenuItem value="">Sélectionner un semestre</MenuItem>
-                <MenuItem value={4}>Semestre 4</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Matière</InputLabel>
-              <Select
-                value={selectedSubject}
-                label="Matière"
-                onChange={handleSubjectChange}
-                disabled={!selectedSemester}
-              >
-                <MenuItem value="">Sélectionner une matière</MenuItem>
-                {subjects
-                  .filter((subject) => subject.semestre === parseInt(selectedSemester))
-                  .map((subject) => (
-                    <MenuItem key={subject.id} value={subject.id}>{subject.nom}</MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={generateRecommendations}
+              disabled={loading.recommendations || !selectedClass}
+              fullWidth
+              sx={{ height: '56px' }}
+            >
+              {loading.recommendations ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Générer les Recommandations"
+              )}
+            </Button>
           </Grid>
         </Grid>
-      </Paper>
+      </Box>
 
-      {/* Generate Recommendations Button */}
-      <Button
-        variant="contained"
-        color="success"
-        onClick={generateRecommendations}
-        disabled={loading || !selectedClass || !selectedSemester || !selectedSubject}
-      >
-        {loading ? <CircularProgress size={24} color="inherit" /> : "Générer des Recommandations"}
-      </Button>
+      {/* Loading indicator */}
+      {loading.recommendations && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
-      {/* Results */}
-      {recommendations.length > 0 && (
-        <Paper elevation={2} sx={{ p: 2, mt: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Recommandations Générées
-          </Typography>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Étudiant</TableCell>
-                  <TableCell align="center">Statut</TableCell>
-                  <TableCell align="center">Recommandation</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {recommendations.map((recommendation) => (
-                  <TableRow key={recommendation.student_id}>
-                    <TableCell>{recommendation.student_name}</TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={recommendation.performance_category}
-                        sx={{
-                          backgroundColor: STATUS_COLORS[recommendation.performance_category],
-                          color: 'white',
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <RecommendIcon sx={{ color: '#4CAF50', mr: 1 }} />
-                        {recommendation.message}
-                      </Box>
-                    </TableCell>
+      {/* Message d'information */}
+      {!dataStatus.isLoading && !dataStatus.hasData && selectedClass && (
+        <Alert 
+          severity="info"
+          sx={{ mb: 3 }}
+        >
+          {dataStatus.error || 'Aucune recommandation générée. Veuillez vérifier que les notes sont saisies.'}
+        </Alert>
+      )}
+
+      {/* Recommendations Table */}
+      {dataStatus.hasData && recommendations.length > 0 && (
+        <Card elevation={2}>
+          <CardContent sx={{ p: 0 }}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Étudiant</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Performance</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Recommandations</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+                </TableHead>
+                <TableBody>
+                  {recommendations.map((rec, index) => (
+                    <TableRow
+                      key={index}
+                      hover
+                      sx={{
+                        '&:last-child td, &:last-child th': { border: 0 },
+                        transition: "background-color 0.2s",
+                      }}
+                    >
+                      <TableCell>
+                        <Box display="flex" alignItems="center">
+                          <Chip
+                            label={rec.performance_category}
+                            size="small"
+                            sx={{
+                              mr: 1,
+                              backgroundColor: STATUS_CONFIG[rec.performance_category]?.color,
+                              color: 'white'
+                            }}
+                          />
+                          {rec.student_name}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="center">
+                        {STATUS_CONFIG[rec.performance_category]?.icon}
+                      </TableCell>
+                      <TableCell>
+                        <List dense>
+                          {rec.recommendations?.map((item, i) => (
+                            <ListItem key={i} sx={{ py: 0.5 }}>
+                              <ListItemIcon sx={{ minWidth: 32 }}>
+                                {PRIORITY_ICONS[item.priority]}
+                              </ListItemIcon>
+                              <Box>
+                                <Typography variant="body2" fontWeight="medium">
+                                  {item.type}
+                                </Typography>
+                                <Typography variant="body2">
+                                  {item.message}
+                                </Typography>
+                              </Box>
+                            </ListItem>
+                          ))}
+                        </List>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
       )}
 
       {/* Snackbar for notifications */}
       <Snackbar
-        open={snackbarOpen}
+        open={notification.open}
         autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        onClose={handleNotificationClose}
       >
         <Alert
-          onClose={handleSnackbarClose}
-          severity="success"
-          sx={{ width: '100%', display: 'flex', alignItems: 'center' }}
-          icon={<CheckCircleIcon fontSize="inherit" />}
+          onClose={handleNotificationClose}
+          // @ts-ignore
+          severity={notification.severity}
+          sx={{ width: "100%" }}
         >
-          {snackbarMessage}
+          {notification.message}
         </Alert>
       </Snackbar>
     </Box>

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -17,22 +16,25 @@ import {
   TextField,
   IconButton,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
+  Card,
+  CardContent,
   Alert,
   Snackbar,
+  Divider,
+  CircularProgress,
+  useTheme,
+  MenuItem
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
+import PersonIcon from "@mui/icons-material/Person";
 
 const AdminEtudiants = () => {
   const [etudiants, setEtudiants] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filteredEtudiants, setFilteredEtudiants] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -45,40 +47,39 @@ const AdminEtudiants = () => {
     classes: [],
   });
   const [editMode, setEditMode] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [error, setError] = useState(null);
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState("Toutes");
+  const theme = useTheme();
 
   // Fetch students and classes from the backend
+  const fetchStudents = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [studentsResponse, classesResponse] = await Promise.all([
+        fetch("http://localhost:8000/api/students/"),
+        fetch("http://localhost:8000/api/classes/")
+      ]);
+
+      const studentsData = await studentsResponse.json();
+      const classesData = await classesResponse.json();
+      
+      setEtudiants(studentsData);
+      setClasses(classesData);
+      setFilteredEtudiants(studentsData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setError("Erreur lors du chargement des données");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
   useEffect(() => {
     fetchStudents();
-    fetchClasses();
   }, []);
-
-  const fetchStudents = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/students/");
-      const data = await response.json();
-      setEtudiants(data);
-      setFilteredEtudiants(data);
-    } catch (error) {
-      console.error("Error fetching students:", error);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/classes/");
-      const data = await response.json();
-      setClasses(data);
-    } catch (error) {
-      console.error("Error fetching classes:", error);
-    }
-  };
 
   // Handle filtering students by class
   useEffect(() => {
@@ -93,6 +94,7 @@ const AdminEtudiants = () => {
     }
   }, [selectedClass, etudiants]);
 
+  // Open dialog for adding/editing a student
   const handleOpenDialog = (etudiant = null) => {
     if (etudiant) {
       setFormData({
@@ -120,10 +122,12 @@ const AdminEtudiants = () => {
     setOpenDialog(true);
   };
 
+  // Close dialog
   const handleCloseDialog = () => {
     setOpenDialog(false);
   };
 
+  // Handle input changes in the form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -132,6 +136,7 @@ const AdminEtudiants = () => {
     });
   };
 
+  // Submit form (create or update student)
   const handleSubmit = async () => {
     try {
       const url = editMode
@@ -139,126 +144,94 @@ const AdminEtudiants = () => {
         : "http://localhost:8000/api/students/create/";
       const method = editMode ? "PUT" : "POST";
 
-      const body = JSON.stringify({
-        last_name: formData.nom,
-        first_name: formData.prénom,
-        email: formData.email,
-        phone: formData.téléphone,
-        n_appogie: formData.numeroApogee,
-        classes: formData.classes,
-      });
-
       const response = await fetch(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: body,
+        body: JSON.stringify({
+          last_name: formData.nom,
+          first_name: formData.prénom,
+          email: formData.email,
+          phone: formData.téléphone,
+          n_appogie: formData.numeroApogee,
+          classes: formData.classes,
+        }),
       });
 
-      const responseData = await response.json();
       if (response.ok) {
-        fetchStudents();
-        setSnackbar({
-          open: true,
-          message: editMode
-            ? "Étudiant mis à jour avec succès"
-            : "Étudiant ajouté avec succès",
-          severity: "success",
-        });
-        handleCloseDialog();
+        await fetchStudents();
+        setOpenDialog(false);
       } else {
-        throw new Error(responseData.error || "Erreur lors de la requête");
+        throw new Error("Erreur lors de la requête");
       }
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.message || "Une erreur est survenue",
-        severity: "error",
-      });
+      setError("Une erreur est survenue lors de la sauvegarde");
     }
   };
 
+  // Delete a student
   const handleDelete = async (id) => {
     try {
       const response = await fetch(
         `http://localhost:8000/api/students/delete/${id}/`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
 
-      if (response.ok) {
-        fetchStudents();
-        setSnackbar({
-          open: true,
-          message: "Étudiant supprimé avec succès",
-          severity: "info",
-        });
+      const data = await response.json();
+      if (data.success) {
+        await fetchStudents();
       } else {
-        throw new Error("Erreur lors de la suppression");
+        throw new Error(data.error);
       }
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Une erreur est survenue",
-        severity: "error",
-      });
+      setError("Erreur lors de la suppression");
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  const handleClassFilterChange = (e) => {
-    setSelectedClass(e.target.value);
   };
 
   // Handle CSV file upload
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
+  
     const formData = new FormData();
     formData.append("file", file);
-
+  
     try {
       const response = await fetch("http://localhost:8000/api/students/import/", {
         method: "POST",
         body: formData,
       });
-
+  
       if (response.ok) {
-        fetchStudents();
-        setSnackbar({
-          open: true,
-          message: "Étudiants importés avec succès",
-          severity: "success",
-        });
+        await fetchStudents();
       } else {
-        throw new Error("Erreur lors de l'importation du fichier CSV");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur lors de l'importation du fichier CSV");
       }
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.message || "Une erreur est survenue",
-        severity: "error",
-      });
+      setError(error.message || "Une erreur est survenue");
     }
   };
 
   // Handle downloading the CSV template
   const downloadTemplate = () => {
-    const headers = [
-      "Nom",
-      "Prénom",
-      "Email",
-      "Téléphone",
-      "Numéro Apogee",
-      "Classe",
-    ];
-    const csvContent = headers.join(",") + "\n";
+    const headers = ["Nom", "Prénom", "Email", "Téléphone", "Numéro Apogee", "Classe"];
+    let csvContent = headers.join(",") + "\n";
+
+    if (etudiants.length > 0) {
+      etudiants.forEach((etudiant) => {
+        const row = [
+          etudiant.last_name,
+          etudiant.first_name,
+          etudiant.email,
+          etudiant.phone,
+          etudiant.n_appogie,
+          etudiant.classe ? etudiant.classe.nom : ""
+        ];
+        csvContent += row.join(",") + "\n";
+      });
+    }
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -271,114 +244,203 @@ const AdminEtudiants = () => {
 
   return (
     <Box>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4" component="h1">
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
           Gestion des Étudiants
         </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            startIcon={<GetAppIcon />}
-            onClick={downloadTemplate}
-            sx={{ mr: 2 }}
-          >
-            Télécharger le Modèle
-          </Button>
-          <Button
-            variant="contained"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-            sx={{ mr: 2 }}
-          >
-            Importer CSV
-            <input
-              type="file"
-              hidden
-              accept=".csv"
-              onChange={handleFileUpload}
-            />
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            Nouvel Étudiant
-          </Button>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Gérez vos étudiants et leurs informations
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
+      </Box>
+
+      {/* Loading indicator */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
         </Box>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+            {error}
+          </Alert>
+        </Snackbar>
+      )}
+
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card 
+            elevation={2}
+            sx={{ 
+              height: 140, 
+              borderLeft: `4px solid ${theme.palette.primary.main}`,
+              transition: "transform 0.3s, box-shadow 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[4]
+              }
+            }}
+          >
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total des Étudiants
+                </Typography>
+                <PersonIcon 
+                  fontSize="medium" 
+                  sx={{ color: theme.palette.primary.main }} 
+                />
+              </Box>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+                  {etudiants.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Étudiants enregistrés
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Action Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+        <Button
+          variant="contained"
+          startIcon={<GetAppIcon />}
+          onClick={downloadTemplate}
+          sx={{ mr: 2 }}
+        >
+          Télécharger le Modèle
+        </Button>
+        <Button
+          variant="contained"
+          component="label"
+          startIcon={<CloudUploadIcon />}
+          sx={{ mr: 2 }}
+        >
+          Importer CSV
+          <input
+            type="file"
+            hidden
+            accept=".csv"
+            onChange={handleFileUpload}
+          />
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog()}
+        >
+          Nouvel Étudiant
+        </Button>
       </Box>
 
       {/* Sélecteur de classe pour filtrer les étudiants */}
       <Box sx={{ mb: 3 }}>
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel id="filter-class-label">Filtrer par classe</InputLabel>
-          <Select
-            labelId="filter-class-label"
-            value={selectedClass}
-            onChange={handleClassFilterChange}
-            label="Filtrer par classe"
-          >
-            <MenuItem value="Toutes">Toutes les classes</MenuItem>
-            {classes.map((classe) => (
-              <MenuItem key={classe.nom} value={classe.nom}>
-                {classe.nom}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Filtrer par classe
+        </Typography>
+        <Grid container spacing={2}>
+          {["Toutes", ...classes.map(c => c.nom)].map((classe) => (
+            <Grid item key={classe}>
+              <Button
+                variant={selectedClass === classe ? "contained" : "outlined"}
+                color="primary"
+                onClick={() => setSelectedClass(classe)}
+                sx={{ 
+                  textTransform: 'none',
+                  transition: "all 0.3s",
+                  '&:hover': {
+                    transform: selectedClass !== classe ? "scale(1.05)" : "none"
+                  }
+                }}
+              >
+                {classe}
+              </Button>
+            </Grid>
+          ))}
+        </Grid>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Nom et Prénom</TableCell>
-              <TableCell align="center">N° Apogee</TableCell>
-              <TableCell align="center">Email</TableCell>
-              <TableCell align="center">Téléphone</TableCell>
-              <TableCell align="center">Classe</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredEtudiants.map((etudiant) => (
-              <TableRow key={etudiant.id}>
-                <TableCell>{etudiant.first_name} {etudiant.last_name}</TableCell>
-                <TableCell align="center">{etudiant.n_appogie}</TableCell>
-                <TableCell align="center">{etudiant.email}</TableCell>
-                <TableCell align="center">{etudiant.phone}</TableCell>
-                <TableCell align="center">
-                  {etudiant.classe ? (
-                    <Chip label={etudiant.classe.nom} size="small" color="secondary" variant="outlined" />
-                  ) : (
-                    "Aucune classe"
-                  )}
-                </TableCell>
-                <TableCell align="center">
-                  <IconButton color="primary" onClick={() => handleOpenDialog(etudiant)}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton color="error" onClick={() => handleDelete(etudiant.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {/* Table of students */}
+      <Card elevation={2}>
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Nom et Prénom</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>N° Apogee</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Email</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Téléphone</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Classe</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredEtudiants && filteredEtudiants.length > 0 ? (
+                  filteredEtudiants.map((etudiant) => (
+                    <TableRow 
+                      key={etudiant.id}
+                      hover
+                      sx={{ 
+                        '&:last-child td, &:last-child th': { border: 0 },
+                        transition: "background-color 0.2s",
+                      }}
+                    >
+                      <TableCell>{etudiant.first_name} {etudiant.last_name}</TableCell>
+                      <TableCell align="center">{etudiant.n_appogie}</TableCell>
+                      <TableCell align="center">{etudiant.email}</TableCell>
+                      <TableCell align="center">{etudiant.phone}</TableCell>
+                      <TableCell align="center">
+                        {etudiant.classe ? etudiant.classe.nom : "Aucune classe"}
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleOpenDialog(etudiant)}
+                          size="small"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          color="error"
+                          onClick={() => handleDelete(etudiant.id)}
+                          size="small"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      Aucun étudiant disponible
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
 
-      {/* Dialogue pour Ajouter/Modifier un étudiant */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      {/* Dialog for adding/editing student */}
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
-          {editMode ? "Modifier l'Étudiant" : "Ajouter un Étudiant"}
+          {editMode ? "Modifier l'Étudiant" : "Créer un Nouvel Étudiant"}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -434,46 +496,31 @@ const AdminEtudiants = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel id="classes-label">Classe</InputLabel>
-                <Select
-                  labelId="classes-label"
-                  name="classes"
-                  value={formData.classes[0] || ""}
-                  onChange={handleInputChange}
-                >
-                  {classes.map((classe) => (
-                    <MenuItem key={classe.nom} value={classe.nom}>
-                      {classe.nom}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                select
+                name="classes"
+                label="Classe"
+                fullWidth
+                value={formData.classes[0] || ""}
+                onChange={handleInputChange}
+                SelectProps={{ native: false }}
+              >
+                {classes.map((classe) => (
+                  <MenuItem key={classe.nom} value={classe.nom}>
+                    {classe.nom}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Annuler</Button>
           <Button onClick={handleSubmit} variant="contained">
-            {editMode ? "Mettre à jour" : "Ajouter"}
+            {editMode ? "Mettre à jour" : "Créer"}
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          // @ts-ignore
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

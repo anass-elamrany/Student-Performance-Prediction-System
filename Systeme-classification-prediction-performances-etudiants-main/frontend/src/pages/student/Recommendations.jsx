@@ -83,12 +83,34 @@ const StudentRecommendations = () => {
   // Function to format date
   const formatDate = (dateString) => {
     if (!dateString) return "Date inconnue";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    
+    try {
+      // Try multiple parsing strategies
+      let date;
+      
+      // First, try parsing as ISO format
+      date = new Date(dateString);
+      
+      // If that fails, try parsing with French date format (DD/MM/YYYY)
+      if (isNaN(date.getTime())) {
+        const [day, month, year] = dateString.split('/');
+        date = new Date(year, month - 1, day);
+      }
+      
+      // If still invalid, return "Date inconnue"
+      if (isNaN(date.getTime())) {
+        return "Date inconnue";
+      }
+      
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (e) {
+      console.error("Erreur de formatage de date:", e);
+      return "Date inconnue";
+    }
   };
 
   return (

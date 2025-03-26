@@ -1,30 +1,24 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
-  Paper, 
   Grid, 
   Card, 
-  CardContent, 
+  CardContent,
   CardHeader,
   Divider,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  useTheme
 } from '@mui/material';
 import { 
   BarChart, 
   Bar, 
-  LineChart, 
-  Line, 
-  PieChart, 
-  Pie, 
-  Cell,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend, 
   ResponsiveContainer 
 } from 'recharts';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -33,54 +27,25 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
 
 const AdminDashboard = () => {
-  // State for loading and error
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const theme = useTheme();
 
   // State for statistics
   const [numStudents, setNumStudents] = useState(0);
   const [numTeachers, setNumTeachers] = useState(0);
   const [numMatieres, setNumMatieres] = useState(0);
-  const [numClasses, setNumClasses] = useState(0); // Add this line
+  const [numClasses, setNumClasses] = useState(0);
 
   // State for charts
-  const [performanceData, setPerformanceData] = useState([]);
-  const [categoryDistribution, setCategoryDistribution] = useState([]);
   const [subjectsPerformance, setSubjectsPerformance] = useState([]);
-  const [attendanceData, setAttendanceData] = useState([]);
-
-  // Helper function to refresh the JWT token
-  const refreshToken = async () => {
-    try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      const response = await fetch('/api/token/refresh/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh: refreshToken }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('access_token', data.access); // Store the new access token
-        return data.access;
-      } else {
-        throw new Error('Token refresh failed');
-      }
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      throw error;
-    }
-  };
 
   // Fetch data from backend
   const fetchData = async () => {
     setLoading(true);
     setError(null);
   
-    let token = localStorage.getItem('accessToken');
-    console.log('Token:', token); // Log the token
+    const token = localStorage.getItem('accessToken');
   
     try {
       // Fetch number of students
@@ -96,7 +61,6 @@ const AdminDashboard = () => {
       }
   
       const studentsData = await studentsResponse.json();
-      console.log('Students Data:', studentsData); // Log the response data
       setNumStudents(studentsData.length);
   
       // Fetch number of teachers
@@ -112,7 +76,6 @@ const AdminDashboard = () => {
       }
   
       const teachersData = await teachersResponse.json();
-      console.log('Teachers Data:', teachersData); // Log the response data
       setNumTeachers(teachersData.length);
   
       // Fetch number of matières
@@ -128,7 +91,6 @@ const AdminDashboard = () => {
       }
   
       const matieresData = await matieresResponse.json();
-      console.log('Matieres Data:', matieresData); // Log the response data
       setNumMatieres(matieresData.length);
   
       // Fetch number of classes
@@ -144,30 +106,82 @@ const AdminDashboard = () => {
       }
   
       const classesData = await classesResponse.json();
-      console.log('Classes Data:', classesData); // Log the response data
       setNumClasses(classesData.length);
   
     } catch (err) {
-      console.error('Error fetching data:', err); // Log the error
+      console.error('Error fetching data:', err);
       setError(err.message);
+    }
+  };
+
+  // Fetch chart data
+  const fetchChartData = async () => {
+    const token = localStorage.getItem('accessToken');
+    
+    try {
+      // Fetch subject success rate
+      const subjectsResponse = await fetch('/api/charts/subject-success-rate/', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const subjectsData = await subjectsResponse.json();
+      setSubjectsPerformance(subjectsData);
+
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+      setError('Impossible de charger les données des graphiques');
     } finally {
       setLoading(false);
     }
-  };  
+  };
+
   // Fetch data on component mount
   useEffect(() => {
     fetchData();
+    fetchChartData();
   }, []);
+
+  // Summary stats
+  const summaryStats = [
+    { 
+      title: 'Nombre d\'étudiants', 
+      value: numStudents, 
+      icon: <AssessmentIcon fontSize="large" />, 
+      color: theme.palette.primary.main,
+      description: 'Total des étudiants inscrits'
+    },
+    { 
+      title: 'Nombre d\'enseignants', 
+      value: numTeachers, 
+      icon: <SchoolIcon fontSize="large" />, 
+      color: theme.palette.success.main || '#4caf50',
+      description: 'Total des enseignants'
+    },
+    { 
+      title: 'Nombre de matières', 
+      value: numMatieres, 
+      icon: <TrendingUpIcon fontSize="large" />, 
+      color: theme.palette.info.main || '#2196f3',
+      description: 'Matières disponibles'
+    },
+    { 
+      title: 'Nombre de classes', 
+      value: numClasses, 
+      icon: <WarningIcon fontSize="large" />, 
+      color: theme.palette.warning.main || '#ff9800',
+      description: 'Classes existantes'
+    }
+  ];
 
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Tableau de Bord - Statistiques Académiques
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
+          Tableau de Bord Administrateur
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Vue d'ensemble des performances des étudiants
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Vue d'ensemble des statistiques académiques
         </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
 
       {/* Loading indicator */}
@@ -186,189 +200,80 @@ const AdminDashboard = () => {
         </Snackbar>
       )}
 
-      {/* Summary Stats Cards */}
+      {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <AssessmentIcon color="primary" fontSize="large" />
-              </Box>
-              <Typography variant="h5" component="div">
-                {numStudents}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Nombre d'étudiants
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <SchoolIcon color="success" fontSize="large" />
-              </Box>
-              <Typography variant="h5" component="div">
-                {numTeachers}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Nombre d'enseignants
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <TrendingUpIcon color="info" fontSize="large" />
-              </Box>
-              <Typography variant="h5" component="div">
-                {numMatieres}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Nombre de matières
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <WarningIcon color="error" fontSize="large" />
-              </Box>
-              <Typography variant="h5" component="div">
-                {numClasses}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Nombre de classes
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {summaryStats.map((stat, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Card 
+              elevation={2}
+              sx={{ 
+                height: 140, 
+                borderLeft: `4px solid ${stat.color}`,
+                transition: "transform 0.3s",
+                "&:hover": {
+                  transform: "translateY(-5px)",
+                  boxShadow: theme.shadows[8]
+                }
+              }}
+            >
+              <CardContent>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {stat.title}
+                </Typography>
+                <Typography variant="h3" sx={{ mt: 2, fontWeight: "bold", color: stat.color }}>
+                  {stat.value}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  {stat.description}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
-      {/* Main Charts */}
+      {/* Main Content */}
       <Grid container spacing={4}>
-        {/* Performance Trend */}
-        <Grid item xs={12} lg={6}>
-          <Card>
-            <CardHeader title="Évolution des Performances" />
-            <Divider />
-            <CardContent>
-              {performanceData.length > 0 ? (
-                <Box sx={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis domain={[60, 100]} />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="average" stroke="#2196F3" name="Moyenne" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Box>
-              ) : (
-                <Typography variant="body1" color="text.secondary" align="center">
-                  Les données ne sont pas disponibles. Veuillez entrer les notes des étudiants.
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Attendance Rate */}
-        <Grid item xs={12} lg={6}>
-          <Card>
-            <CardHeader title="Taux de Présence" />
-            <Divider />
-            <CardContent>
-              {attendanceData.length > 0 ? (
-                <Box sx={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={attendanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis domain={[80, 100]} />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="rate" stroke="#4CAF50" name="Taux de présence (%)" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Box>
-              ) : (
-                <Typography variant="body1" color="text.secondary" align="center">
-                  Les données ne sont pas disponibles. Veuillez entrer les notes des étudiants.
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Category Distribution */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="Répartition par Catégorie" />
-            <Divider />
-            <CardContent>
-              {categoryDistribution.length > 0 ? (
-                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryDistribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      >
-                        {categoryDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`${value}%`, 'Pourcentage']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Box>
-              ) : (
-                <Typography variant="body1" color="text.secondary" align="center">
-                  Les données ne sont pas disponibles. Veuillez entrer les notes des étudiants.
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
         {/* Subject Success Rate */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="Taux de Réussite par Matière" />
-            <Divider />
+        <Grid item xs={12}>
+          <Card elevation={2} sx={{ p: 1 }}>
             <CardContent>
-              {subjectsPerformance.length > 0 ? (
-                <Box sx={{ height: 300 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <AssessmentIcon sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" fontWeight="medium">
+                  Taux de Réussite par Matière
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Box sx={{ height: 320 }}>
+                {subjectsPerformance.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectsPerformance}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="subject" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="success_rate" fill="#673AB7" name="Taux de réussite (%)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                      <XAxis dataKey="subject" tick={{ fill: theme.palette.text.secondary }} />
+                      <YAxis domain={[0, 20]} tick={{ fill: theme.palette.text.secondary }} />
+                      <Tooltip
+                        contentStyle={{ 
+                          backgroundColor: theme.palette.background.paper,
+                          borderColor: theme.palette.divider,
+                          color: theme.palette.text.primary
+                        }}
+                      />
+                      <Bar dataKey="success_rate" fill={theme.palette.primary.main} name="Moyenne" />
                     </BarChart>
                   </ResponsiveContainer>
-                </Box>
-              ) : (
-                <Typography variant="body1" color="text.secondary" align="center">
-                  Les données ne sont pas disponibles. Veuillez entrer les notes des étudiants.
-                </Typography>
-              )}
+                ) : (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    height: '100%',
+                    color: theme.palette.text.secondary
+                  }}>
+                    Aucune donnée disponible
+                  </Box>
+                )}
+              </Box>
             </CardContent>
           </Card>
         </Grid>

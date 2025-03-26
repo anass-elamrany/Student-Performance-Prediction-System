@@ -18,23 +18,22 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
 import { fetchWithTokenRefresh, checkAuthStatus, getUserRole } from '../../utils/auth';
 import { useNavigate } from 'react-router-dom';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import WarningIcon from '@mui/icons-material/Warning';
 import CategoryIcon from '@mui/icons-material/Category';
-import TimelineIcon from '@mui/icons-material/Timeline';
-import EmojiObjectsIcon from '@mui/icons-material/EmojiObjects';
 
 const TeacherAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [alerts, setAlerts] = useState([]);
   const [classifications, setClassifications] = useState([]);
-  const [predictions, setPredictions] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
   const [matieres, setMatieres] = useState([]);
   const [selectedMatiere, setSelectedMatiere] = useState('');
   const navigate = useNavigate();
@@ -45,7 +44,7 @@ const TeacherAnalysis = () => {
     const checkAuth = async () => {
       const user = await checkAuthStatus();
       if (!user || getUserRole() !== 'teacher') {
-        navigate('/login'); // Redirection vers la page de connexion si non authentifié ou non enseignant
+        navigate('/login');
       }
     };
 
@@ -62,7 +61,7 @@ const TeacherAnalysis = () => {
         if (data.success) {
           setMatieres(data.matieres);
           if (data.matieres.length > 0) {
-            setSelectedMatiere(data.matieres[0].id); // Définit la première matière comme valeur par défaut
+            setSelectedMatiere(data.matieres[0].id);
           }
         }
       } catch (err) {
@@ -78,235 +77,60 @@ const TeacherAnalysis = () => {
   // Récupération des données lorsque selectedMatiere change
   useEffect(() => {
     if (selectedMatiere) {
-      fetchData(selectedMatiere);
+      fetchClassifications(selectedMatiere);
     }
   }, [selectedMatiere]);
 
-  // Récupération des alertes, classifications, prédictions et recommandations
-  const fetchData = async (matiereId) => {
+  // Récupération des classifications uniquement
+  const fetchClassifications = async (matiereId) => {
     setLoading(true);
     setError(null);
   
     try {
-      // Récupération des alertes
-      const alertsResponse = await fetchWithTokenRefresh(`/api/teacher/alerts/?matiere_id=${matiereId}`);
-      const alertsData = await alertsResponse.json();
-      if (alertsData.success) {
-        setAlerts(
-          alertsData.alerts.map((alert) => ({
-            ...alert,
-            id: alert.student_id || alert.id,
-            student_name: alert.student_name || "Étudiant Inconnu",  // Valeur par défaut pour les noms manquants
-          }))
-        );
-      }
-  
-      // Récupération des classifications
-      const classificationsResponse = await fetchWithTokenRefresh(`/api/teacher/classifications/?matiere_id=${matiereId}`);
-      const classificationsData = await classificationsResponse.json();
-      if (classificationsData.success) {
-        setClassifications(
-          classificationsData.classifications.map((classification) => ({
-            ...classification,
-            id: classification.student_id || classification.id,
-            student_name: classification.student_name || "Étudiant Inconnu",  // Valeur par défaut pour les noms manquants
-          }))
-        );
-      }
-  
-      // Récupération des prédictions
-      const predictionsResponse = await fetchWithTokenRefresh(`/api/teacher/predictions/?matiere_id=${matiereId}`);
-      const predictionsData = await predictionsResponse.json();
-      if (predictionsData.success) {
-        setPredictions(
-          predictionsData.predictions.map((prediction) => ({
-            ...prediction,
-            id: prediction.student_id || prediction.id,
-            student_name: prediction.student_name || "Étudiant Inconnu",  // Valeur par défaut pour les noms manquants
-          }))
-        );
-      }
-  
-      // Récupération des recommandations
-      const recommendationsResponse = await fetchWithTokenRefresh(`/api/teacher/recommendations/?matiere_id=${matiereId}`);
-      const recommendationsData = await recommendationsResponse.json();
-      if (recommendationsData.success) {
-        setRecommendations(
-          recommendationsData.recommendations.map((recommendation) => ({
-            ...recommendation,
-            id: recommendation.student_id || recommendation.id,
-            student_name: recommendation.student_name || "Étudiant Inconnu",  // Valeur par défaut pour les noms manquants
-          }))
-        );
+      const response = await fetchWithTokenRefresh(`/api/teacher/classifications/?matiere_id=${matiereId}`);
+      const data = await response.json();
+      if (data.success) {
+        setClassifications(data.classifications);
       }
     } catch (err) {
-      setError(err.message || 'Échec de récupération des données');
+      setError(err.message || 'Échec de récupération des classifications');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fonction pour gérer le rafraîchissement
   const handleRefresh = () => {
     if (selectedMatiere) {
-      fetchData(selectedMatiere);
+      fetchClassifications(selectedMatiere);
     }
   };
 
-  // Fonction utilitaire pour obtenir la couleur de la catégorie de performance
   const getCategoryColor = (category) => {
     if (!category) return theme.palette.grey[500];
     
     const categoryLower = category.toLowerCase();
-    if (categoryLower.includes('excellent') || categoryLower.includes('élevé')) {
+    if (categoryLower.includes('bon performeur') || categoryLower.includes('excellent')) {
       return theme.palette.success.main;
-    } else if (categoryLower.includes('bon') || categoryLower.includes('moyen')) {
-      return theme.palette.primary.main;
-    } else if (categoryLower.includes('passable') || categoryLower.includes('modéré')) {
+    } else if (categoryLower.includes('moyenne performance')) {
       return theme.palette.warning.main;
-    } else {
+    } else if (categoryLower.includes('à risque')) {
       return theme.palette.error.main;
-    }
-  };
-
-  // Fonction utilitaire pour obtenir la couleur du score prédit
-  const getPredictionColor = (score) => {
-    if (score === undefined || score === null) return theme.palette.grey[500];
-    
-    if (score >= 16) return theme.palette.success.main;
-    if (score >= 12) return theme.palette.primary.main;
-    if (score >= 8) return theme.palette.warning.main;
-    return theme.palette.error.main;
-  };
-
-  // Colonnes améliorées pour DataGrid
-  const alertsColumns = [
-    { 
-      field: 'student_name', 
-      headerName: 'Nom de l\'Étudiant', 
-      width: 200,
-      renderCell: (params) => (
-        <Typography fontWeight="medium">{params.value}</Typography>
-      )
-    },
-    { 
-      field: 'message', 
-      headerName: 'Message d\'Alerte', 
-      flex: 1,
-      minWidth: 400,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <WarningIcon sx={{ color: theme.palette.warning.main }} />
-          <Typography>{params.value}</Typography>
-        </Box>
-      )
-    },
-  ];
-
-  const classificationsColumns = [
-    { 
-      field: 'student_name', 
-      headerName: 'Nom de l\'Étudiant', 
-      width: 200,
-      renderCell: (params) => (
-        <Typography fontWeight="medium">{params.value}</Typography>
-      )
-    },
-    { 
-      field: 'performance_category', 
-      headerName: 'Catégorie de Performance', 
-      flex: 1,
-      minWidth: 200,
-      renderCell: (params) => (
-        <Chip 
-          icon={<CategoryIcon />}
-          label={params.value} 
-          sx={{ 
-            bgcolor: getCategoryColor(params.value),
-            color: 'white',
-            fontWeight: 'medium'
-          }} 
-        />
-      )
-    },
-  ];
-
-  const predictionsColumns = [
-    { 
-      field: 'student_name', 
-      headerName: 'Nom de l\'Étudiant', 
-      width: 200,
-      renderCell: (params) => (
-        <Typography fontWeight="medium">{params.value}</Typography>
-      )
-    },
-    { 
-      field: 'predicted_score', 
-      headerName: 'Note Prédite', 
-      flex: 1,
-      minWidth: 200,
-      renderCell: (params) => (
-        <Chip 
-          icon={<TimelineIcon />}
-          label={params.value} 
-          sx={{ 
-            bgcolor: getPredictionColor(params.value),
-            color: 'white',
-            fontWeight: 'medium'
-          }} 
-        />
-      )
-    },
-  ];
-
-  const recommendationsColumns = [
-    { 
-      field: 'student_name', 
-      headerName: 'Nom de l\'Étudiant', 
-      width: 200,
-      renderCell: (params) => (
-        <Typography fontWeight="medium">{params.value}</Typography>
-      )
-    },
-    { 
-      field: 'message', 
-      headerName: 'Recommandation', 
-      flex: 1,
-      minWidth: 400,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <EmojiObjectsIcon sx={{ color: theme.palette.primary.main }} />
-          <Typography>{params.value}</Typography>
-        </Box>
-      )
-    },
-  ];
-
-  // Styles communs pour DataGrid
-  const dataGridSx = {
-    '& .MuiDataGrid-cell': {
-      py: 1.5
-    },
-    '& .MuiDataGrid-columnHeaders': {
-      backgroundColor: 'rgba(0, 0, 0, 0.03)',
-      borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
-    },
-    '& .MuiDataGrid-row:hover': {
-      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+    } else {
+      return theme.palette.grey[500];
     }
   };
 
   return (
-    <Box >
+    <Box>
       {/* Section d'en-tête */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
           <Typography variant="h4" color="primary.main" fontWeight="bold">
-            Tableau de Bord d'Analyse des Étudiants
+            Classifications des Étudiants
           </Typography>
         </Box>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Suivez les métriques de performance des étudiants et recevez des insights basés sur l'IA
+          Niveaux de performance par matière
         </Typography>
         <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
@@ -316,12 +140,12 @@ const TeacherAnalysis = () => {
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
-              <InputLabel id="matiere-select-label">Sélectionner un Cours</InputLabel>
+              <InputLabel id="matiere-select-label">Matière</InputLabel>
               <Select
                 labelId="matiere-select-label"
                 value={selectedMatiere}
                 onChange={(e) => setSelectedMatiere(e.target.value)}
-                label="Sélectionner un Cours"
+                label="Matière"
                 sx={{ borderRadius: 1 }}
               >
                 {matieres.map((matiere) => (
@@ -333,7 +157,7 @@ const TeacherAnalysis = () => {
             </FormControl>
           </Grid>
           <Grid item>
-            <Tooltip title="Rafraîchir les Données">
+            <Tooltip title="Rafraîchir les données">
               <IconButton 
                 onClick={handleRefresh} 
                 color="primary"
@@ -366,187 +190,46 @@ const TeacherAnalysis = () => {
       )}
 
       {!loading && (
-        <Grid container spacing={3}>
-          {/* Carte des Alertes */}
-          <Grid item xs={12}>
-            <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-              <Box sx={{ 
-                py: 1.5, 
-                px: 3, 
-                bgcolor: 'rgba(0, 0, 0, 0.03)', 
-                borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}>
-                <WarningIcon sx={{ color: theme.palette.warning.main }} />
-                <Typography variant="h6" fontWeight="bold">
-                  Alertes Étudiants
-                </Typography>
-              </Box>
-              <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
-                <Box sx={{ height: 'auto', width: '100%' }}>
-                  <DataGrid
-                    rows={alerts}
-                    columns={alertsColumns}
-                    getRowId={(row) => row.id}
-                    paginationModel={{ pageSize: 5, page: 0 }}
-                    pageSizeOptions={[5]}
-                    autoHeight
-                    disableRowSelectionOnClick
-                    sx={dataGridSx}
-                    localeText={{
-                      noRowsLabel: 'Pas d\'alertes disponibles',
-                      footerRowSelected: count => `${count} ligne${count > 1 ? 's' : ''} sélectionnée${count > 1 ? 's' : ''}`,
-                      columnMenuLabel: 'Menu',
-                      columnMenuShowColumns: 'Afficher les colonnes',
-                      columnMenuFilter: 'Filtrer',
-                      columnMenuHideColumn: 'Cacher',
-                      columnMenuUnsort: 'Annuler le tri',
-                      columnMenuSortAsc: 'Tri croissant',
-                      columnMenuSortDesc: 'Tri décroissant',
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          {/* Carte des Classifications */}
-          <Grid item xs={12} md={6}>
-            <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden', height: '100%' }}>
-              <Box sx={{ 
-                py: 1.5, 
-                px: 3, 
-                bgcolor: 'rgba(0, 0, 0, 0.03)', 
-                borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}>
-                <CategoryIcon sx={{ color: theme.palette.primary.main }} />
-                <Typography variant="h6" fontWeight="bold">
-                  Classifications de Performance
-                </Typography>
-              </Box>
-              <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
-                <Box sx={{ height: 'auto', width: '100%' }}>
-                  <DataGrid
-                    rows={classifications}
-                    columns={classificationsColumns}
-                    getRowId={(row) => row.id}
-                    paginationModel={{ pageSize: 5, page: 0 }}
-                    pageSizeOptions={[5]}
-                    autoHeight
-                    disableRowSelectionOnClick
-                    sx={dataGridSx}
-                    localeText={{
-                      noRowsLabel: 'Pas de classifications disponibles',
-                      footerRowSelected: count => `${count} ligne${count > 1 ? 's' : ''} sélectionnée${count > 1 ? 's' : ''}`,
-                      columnMenuLabel: 'Menu',
-                      columnMenuShowColumns: 'Afficher les colonnes',
-                      columnMenuFilter: 'Filtrer',
-                      columnMenuHideColumn: 'Cacher',
-                      columnMenuUnsort: 'Annuler le tri',
-                      columnMenuSortAsc: 'Tri croissant',
-                      columnMenuSortDesc: 'Tri décroissant',
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          {/* Carte des Prédictions */}
-          <Grid item xs={12} md={6}>
-            <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden', height: '100%' }}>
-              <Box sx={{ 
-                py: 1.5, 
-                px: 3, 
-                bgcolor: 'rgba(0, 0, 0, 0.03)', 
-                borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}>
-                <TimelineIcon sx={{ color: theme.palette.primary.main }} />
-                <Typography variant="h6" fontWeight="bold">
-                  Prédictions de Notes
-                </Typography>
-              </Box>
-              <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
-                <Box sx={{ height: 'auto', width: '100%' }}>
-                  <DataGrid
-                    rows={predictions}
-                    columns={predictionsColumns}
-                    getRowId={(row) => row.id}
-                    paginationModel={{ pageSize: 5, page: 0 }}
-                    pageSizeOptions={[5]}
-                    autoHeight
-                    disableRowSelectionOnClick
-                    sx={dataGridSx}
-                    localeText={{
-                      noRowsLabel: 'Pas de prédictions disponibles',
-                      footerRowSelected: count => `${count} ligne${count > 1 ? 's' : ''} sélectionnée${count > 1 ? 's' : ''}`,
-                      columnMenuLabel: 'Menu',
-                      columnMenuShowColumns: 'Afficher les colonnes',
-                      columnMenuFilter: 'Filtrer',
-                      columnMenuHideColumn: 'Cacher',
-                      columnMenuUnsort: 'Annuler le tri',
-                      columnMenuSortAsc: 'Tri croissant',
-                      columnMenuSortDesc: 'Tri décroissant',
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          {/* Carte des Recommandations */}
-          <Grid item xs={12}>
-            <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-              <Box sx={{ 
-                py: 1.5, 
-                px: 3, 
-                bgcolor: 'rgba(0, 0, 0, 0.03)', 
-                borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}>
-                <EmojiObjectsIcon sx={{ color: theme.palette.primary.main }} />
-                <Typography variant="h6" fontWeight="bold">
-                  Recommandations Pédagogiques
-                </Typography>
-              </Box>
-              <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
-                <Box sx={{ height: 'auto', width: '100%' }}>
-                  <DataGrid
-                    rows={recommendations}
-                    columns={recommendationsColumns}
-                    getRowId={(row) => row.id}
-                    paginationModel={{ pageSize: 5, page: 0 }}
-                    pageSizeOptions={[5]}
-                    autoHeight
-                    disableRowSelectionOnClick
-                    sx={dataGridSx}
-                    localeText={{
-                      noRowsLabel: 'Pas de recommandations disponibles',
-                      footerRowSelected: count => `${count} ligne${count > 1 ? 's' : ''} sélectionnée${count > 1 ? 's' : ''}`,
-                      columnMenuLabel: 'Menu',
-                      columnMenuShowColumns: 'Afficher les colonnes',
-                      columnMenuFilter: 'Filtrer',
-                      columnMenuHideColumn: 'Cacher',
-                      columnMenuUnsort: 'Annuler le tri',
-                      columnMenuSortAsc: 'Tri croissant',
-                      columnMenuSortDesc: 'Tri décroissant',
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+        <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Étudiant</TableCell>
+                    <TableCell>Niveau de performance</TableCell>
+                    <TableCell>Note moyenne</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {classifications.map((classification) => (
+                    <TableRow key={classification.student_id}>
+                      <TableCell>{classification.student_name}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          icon={<CategoryIcon />}
+                          label={classification.performance_category} 
+                          sx={{ 
+                            backgroundColor: getCategoryColor(classification.performance_category),
+                            color: 'white'
+                          }} 
+                        />
+                      </TableCell>
+                      <TableCell>{classification.average_score}</TableCell>
+                    </TableRow>
+                  ))}
+                  {classifications.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} align="center">
+                        Aucune donnée de classification disponible
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
       )}
     </Box>
   );

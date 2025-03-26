@@ -19,241 +19,355 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Card,
+  CardContent,
+  List,
+  ListItem,
+  ListItemIcon,
+  Divider,
+  useTheme
 } from '@mui/material';
-import WarningIcon from '@mui/icons-material/Warning';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import {
+  Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  NotificationImportant as AlertIcon,
+  School as SchoolIcon
+} from '@mui/icons-material';
 
-const STATUS_COLORS = {
-  'À risque': '#F44336',
-  'Moyenne performance': '#FFC107',
-  'Bon performeur': '#4CAF50',
+const STATUS_CONFIG = {
+  'À risque': {
+    color: '#F44336',
+    icon: <ErrorIcon />
+  },
+  'Moyenne performance': {
+    color: '#FFC107',
+    icon: <WarningIcon />
+  },
+  'Bon performeur': {
+    color: '#4CAF50',
+    icon: <CheckCircleIcon />
+  }
 };
 
 const AdminAlerts = () => {
+  // États
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSemester, setSelectedSemester] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
   const [classes, setClasses] = useState([]);
-  const [subjects, setSubjects] = useState([]);
   const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [loading, setLoading] = useState({
+    classes: false,
+    alerts: false
+  });
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+  const [dataStatus, setDataStatus] = useState({
+    hasData: false,
+    isLoading: false,
+    error: null
+  });
 
-  // Fetch classes and subjects from the backend
+  const theme = useTheme();
+
+  // Constantes
+  const API_ENDPOINTS = {
+    CLASSES: '/api/classes/',
+    ALERTS: '/api/ml/class-dashboard/'
+  };
+
+  // Effets
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch classes
-        const classesResponse = await fetch('/api/classes/');
-        const classesData = await classesResponse.json();
-        setClasses(classesData);
-
-        // Fetch subjects
-        const subjectsResponse = await fetch('/api/matieres/');
-        const subjectsData = await subjectsResponse.json();
-        setSubjects(subjectsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setSnackbarMessage("Erreur lors du chargement des données.");
-        setSnackbarOpen(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchClasses();
   }, []);
 
-  // Handle semester change
-  const handleSemesterChange = (event) => {
-    setSelectedSemester(event.target.value);
-    setSelectedSubject(''); // Reset subject when semester changes
-  };
-
-  // Handle subject change
-  const handleSubjectChange = (event) => {
-    setSelectedSubject(event.target.value);
-  };
-
-  // Generate alerts for at-risk students
-  const generateAlerts = async () => {
-    if (!selectedClass || !selectedSemester || !selectedSubject) {
-      setSnackbarMessage("Veuillez sélectionner une classe, un semestre et une matière.");
-      setSnackbarOpen(true);
-      return;
-    }
-
-    // Exclude Semester 1
-    if (parseInt(selectedSemester) === 1) {
-      setSnackbarMessage("Les alertes ne sont pas disponibles pour le semestre 1.");
-      setSnackbarOpen(true);
-      return;
-    }
-
-    setLoading(true);
+  // Méthodes
+  const fetchClasses = async () => {
+    setLoading(prev => ({ ...prev, classes: true }));
     try {
-      const response = await fetch('/api/generate-alerts/', {
+      const response = await fetch(API_ENDPOINTS.CLASSES);
+      if (!response.ok) throw new Error('Erreur de chargement des classes');
+      setClasses(await response.json());
+    } catch (error) {
+      showNotification(error.message, 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, classes: false }));
+    }
+  };
+
+  const generateAlerts = async () => {
+    if (!selectedClass) {
+      showNotification('Veuillez sélectionner une classe', 'error');
+      return;
+    }
+
+    setDataStatus({ hasData: false, isLoading: true, error: null });
+    setLoading(prev => ({ ...prev, alerts: true }));
+    
+    try {
+      const response = await fetch(API_ENDPOINTS.ALERTS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          class_id: selectedClass,
-          semester: selectedSemester,
-          subject_id: selectedSubject,
-        }),
+        body: JSON.stringify({ class_id: selectedClass }),
       });
 
       if (!response.ok) {
-        throw new Error(`Erreur HTTP : ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur de génération des alertes');
       }
-
+      
       const result = await response.json();
-      setAlerts(result.alerts);
-      setSnackbarMessage("Alertes générées avec succès.");
-      setSnackbarOpen(true);
+      const alerts = result.alerts || [];
+      const hasData = alerts.length > 0;
+      
+      setAlerts(alerts);
+      setDataStatus({
+        hasData,
+        isLoading: false,
+        error: hasData ? null : 'Aucune alerte générée (pas de notes disponibles?)'
+      });
+      
+      showNotification(hasData 
+        ? `${alerts.length} alertes générées` 
+        : 'Aucune alerte générée');
+        
     } catch (error) {
-      console.error('Error generating alerts:', error);
-      setSnackbarMessage("Erreur lors de la génération des alertes.");
-      setSnackbarOpen(true);
+      console.error('Generate alerts error:', error);
+      setDataStatus({
+        hasData: false,
+        isLoading: false,
+        error: error.message
+      });
+      showNotification(error.message, 'error');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, alerts: false }));
     }
   };
 
-  // Handle snackbar close
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
+  const showNotification = (message, severity = 'success') => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
   };
 
+  const handleNotificationClose = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  const getCurrentClassName = () => {
+    return classes.find(c => c.id === selectedClass)?.nom || 'Classe inconnue';
+  };
+
+  // Rendu
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Système d'Alerte
-      </Typography>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
+          Système d'Alerte
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Surveillez les performances de vos étudiants
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
+      </Box>
 
-      {/* Filters */}
-      <Paper elevation={2} sx={{ p: 2, mb: 4 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card 
+            elevation={2}
+            sx={{ 
+              height: 140, 
+              borderLeft: `4px solid ${theme.palette.primary.main}`,
+              transition: "transform 0.3s, box-shadow 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[4]
+              }
+            }}
+          >
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total des Alertes
+                </Typography>
+                <AlertIcon 
+                  fontSize="medium" 
+                  sx={{ color: theme.palette.primary.main }} 
+                />
+              </Box>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+                  {alerts.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Alertes générées
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Sélection de classe */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Sélectionner une classe pour générer des alertes
+        </Typography>
+        <Grid container spacing={2}>
+          {/* Class Selection */}
+          <Grid item xs={12} sm={6} md={3}>
             <FormControl fullWidth>
               <InputLabel>Classe</InputLabel>
               <Select
                 value={selectedClass}
                 label="Classe"
                 onChange={(e) => setSelectedClass(e.target.value)}
+                disabled={loading.classes}
               >
-                <MenuItem value="">Sélectionner une classe</MenuItem>
+                <MenuItem value="">
+                  <em>Sélectionner une classe</em>
+                </MenuItem>
                 {classes.map((cls) => (
-                  <MenuItem key={cls.id} value={cls.id}>{cls.nom}</MenuItem>
+                  <MenuItem key={cls.id} value={cls.id}>
+                    {cls.nom}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Semestre</InputLabel>
-              <Select
-                value={selectedSemester}
-                label="Semestre"
-                onChange={handleSemesterChange}
-              >
-                <MenuItem value="">Sélectionner un semestre</MenuItem>
-                <MenuItem value={2}>Semestre 2</MenuItem>
-                <MenuItem value={3}>Semestre 3</MenuItem>
-                <MenuItem value={4}>Semestre 4</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Matière</InputLabel>
-              <Select
-                value={selectedSubject}
-                label="Matière"
-                onChange={handleSubjectChange}
-                disabled={!selectedSemester}
-              >
-                <MenuItem value="">Sélectionner une matière</MenuItem>
-                {subjects
-                  .filter((subject) => subject.semestre === parseInt(selectedSemester))
-                  .map((subject) => (
-                    <MenuItem key={subject.id} value={subject.id}>{subject.nom}</MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={generateAlerts}
+              disabled={loading.alerts || !selectedClass}
+              fullWidth
+              sx={{ height: '56px' }}
+            >
+              {loading.alerts ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Générer les Alertes"
+              )}
+            </Button>
           </Grid>
         </Grid>
-      </Paper>
+      </Box>
 
-      {/* Generate Alerts Button */}
-      <Button
-        variant="contained"
-        color="warning"
-        onClick={generateAlerts}
-        disabled={loading || !selectedClass || !selectedSemester || !selectedSubject}
-      >
-        {loading ? <CircularProgress size={24} color="inherit" /> : "Générer des Alertes"}
-      </Button>
-
-      {/* Results */}
-      {alerts.length > 0 && (
-        <Paper elevation={2} sx={{ p: 2, mt: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Alertes Générées
-          </Typography>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Étudiant</TableCell>
-                  <TableCell align="center">Statut</TableCell>
-                  <TableCell align="center">Message</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {alerts.map((alert) => (
-                  <TableRow key={alert.student_id}>
-                    <TableCell>{alert.student_name}</TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={alert.performance_category}
-                        sx={{
-                          backgroundColor: STATUS_COLORS[alert.performance_category],
-                          color: 'white',
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <WarningIcon sx={{ color: '#F44336', mr: 1 }} />
-                        {alert.message}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+      {/* Message d'information */}
+      {!dataStatus.isLoading && !dataStatus.hasData && selectedClass && (
+        <Alert 
+          severity="info"
+          icon={<SchoolIcon />}
+          sx={{ mb: 3 }}
+        >
+          {dataStatus.error || 'Aucune alerte générée. Veuillez vérifier que les notes sont saisies.'}
+        </Alert>
       )}
 
-      {/* Snackbar for notifications */}
+      {/* Contenu principal */}
+      {dataStatus.hasData && (
+        <>
+          {/* Statistiques */}
+          {alerts.length > 0 && (
+            <Card sx={{ mb: 3, bgcolor: 'error.light' }}>
+              <CardContent>
+                <Typography variant="h6" color="error.dark">
+                  {alerts.length} Étudiant(s) à Risque - {getCurrentClassName()}
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Alertes */}
+          {alerts.length > 0 && (
+            <Card elevation={2}>
+              <CardContent sx={{ p: 0 }}>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Étudiant</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Message d'Alerte</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Recommandations</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {alerts.map((alert, index) => (
+                        <TableRow
+                          key={index}
+                          hover
+                          sx={{
+                            '&:last-child td, &:last-child th': { border: 0 },
+                            transition: "background-color 0.2s",
+                          }}
+                        >
+                          <TableCell>
+                            <Typography fontWeight="bold">{alert.student_name}</Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={alert.performance_category}
+                              icon={STATUS_CONFIG[alert.performance_category]?.icon}
+                              sx={{
+                                backgroundColor: STATUS_CONFIG[alert.performance_category]?.color,
+                                color: 'white',
+                                minWidth: 160
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {alert.alert_message}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <List dense>
+                              {alert.recommendations?.map((rec, i) => (
+                                <ListItem key={i} sx={{ py: 0 }}>
+                                  <ListItemIcon sx={{ minWidth: 32 }}>
+                                    <WarningIcon color="error" fontSize="small" />
+                                  </ListItemIcon>
+                                  <Typography variant="body2">
+                                    {rec}
+                                  </Typography>
+                                </ListItem>
+                              ))}
+                            </List>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Notification */}
       <Snackbar
-        open={snackbarOpen}
+        open={notification.open}
         autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        onClose={handleNotificationClose}
       >
         <Alert
-          onClose={handleSnackbarClose}
-          severity="success"
-          sx={{ width: '100%', display: 'flex', alignItems: 'center' }}
-          icon={<CheckCircleIcon fontSize="inherit" />}
+          onClose={handleNotificationClose}
+          // @ts-ignore
+          severity={notification.severity}
+          sx={{ width: "100%" }}
         >
-          {snackbarMessage}
+          {notification.message}
         </Alert>
       </Snackbar>
     </Box>

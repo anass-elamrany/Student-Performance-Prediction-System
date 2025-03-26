@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -17,18 +17,21 @@ import {
   TextField,
   IconButton,
   Grid,
+  Card,
+  CardContent,
   Alert,
   Snackbar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Divider,
   CircularProgress,
+  useTheme,
+  MenuItem
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
+import SchoolIcon from "@mui/icons-material/School";
 import { refreshToken, checkAuthStatus, getUserRole } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
 
@@ -54,23 +57,13 @@ const AdminNotes = () => {
     severity: "success",
   });
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    matiere: "",
+  });
   const navigate = useNavigate();
+  const theme = useTheme();
 
-  // Fetch Matieres and Notes
-  useEffect(() => {
-    setLoading(true);
-    fetchMatieres().finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    if (selectedMatiere) {
-      setLoading(true);
-      fetchStudents()
-        .then(() => fetchNotes())
-        .finally(() => setLoading(false));
-    }
-  }, [selectedMatiere]);
-
+  // Token refresh fetch wrapper
   const fetchWithTokenRefresh = async (url, options = {}) => {
     let response = await fetch(url, {
       ...options,
@@ -79,7 +72,7 @@ const AdminNotes = () => {
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       },
     });
-
+  
     if (response.status === 401) {
       const newAccessToken = await refreshToken();
       if (newAccessToken) {
@@ -94,96 +87,112 @@ const AdminNotes = () => {
         throw new Error("Failed to refresh token");
       }
     }
-
+  
     return response;
   };
 
-  const fetchMatieres = async () => {
-    try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/admin/matieres/");
-      const data = await response.json();
-      if (data.success) {
-        setMatieres(data.matieres);
-      }
-    } catch (error) {
-      console.error("Error fetching matieres:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors de la récupération des matières",
-        severity: "error",
-      });
-    }
-  };
-
-  const fetchStudents = async () => {
-    try {
-      const response = await fetchWithTokenRefresh(
-        `http://localhost:8000/api/admin/students-by-matiere/?matiere_id=${selectedMatiere}`
-      );
-      const data = await response.json();
-      if (data.success) {
-        setStudents(data.students);
-      }
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors de la récupération des étudiants",
-        severity: "error",
-      });
-    }
-  };
-
-  const fetchNotes = async () => {
-    try {
-      const response = await fetchWithTokenRefresh(
-        `http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`
-      );
-      const data = await response.json();
-      if (data.success) {
-        const notesWithStudents = data.notes.map((note) => {
-          const student = students.find((s) => s.id === note.etudiant);
-          return {
-            ...note,
-            etudiant: student || { id: note.etudiant },
-          };
+  // Fetch Matieres and Notes
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setLoading(true);
+      try {
+        const [matieresResponse] = await Promise.all([
+          fetchWithTokenRefresh("http://localhost:8000/api/admin/matieres/")
+        ]);
+        const matieresData = await matieresResponse.json();
+        if (matieresData.success) {
+          setMatieres(matieresData.matieres);
+        }
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+        setSnackbar({
+          open: true,
+          message: "Erreur lors de la récupération des données",
+          severity: "error",
         });
-        setNotes(notesWithStudents);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching notes:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors de la récupération des notes",
-        severity: "error",
-      });
+    };
+
+    fetchInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedMatiere) {
+      setLoading(true);
+      const fetchData = async () => {
+        try {
+          const [studentsResponse, notesResponse] = await Promise.all([
+            fetchWithTokenRefresh(`http://localhost:8000/api/admin/students-by-matiere/?matiere_id=${selectedMatiere}`),
+            fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`)
+          ]);
+
+          const studentsData = await studentsResponse.json();
+          const notesData = await notesResponse.json();
+
+          if (studentsData.success) {
+            setStudents(studentsData.students);
+          }
+
+          if (notesData.success) {
+            const notesWithStudents = notesData.notes.map((note) => {
+              const student = studentsData.students.find((s) => s.id === note.etudiant);
+              return {
+                ...note,
+                etudiant: student || { id: note.etudiant },
+              };
+            });
+            setNotes(notesWithStudents);
+          }
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          setSnackbar({
+            open: true,
+            message: "Erreur lors de la récupération des données",
+            severity: "error",
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchData();
     }
-  };
+  }, [selectedMatiere]);
 
   // Handle CSV file upload
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
-    if (!file) {
-      setSnackbar({
-        open: true,
-        message: "Veuillez sélectionner un fichier CSV",
-        severity: "error",
-      });
-      return;
-    }
-
+    if (!file) return;
+  
     const formData = new FormData();
     formData.append("file", file);
-
+  
     try {
       const response = await fetchWithTokenRefresh("http://localhost:8000/api/admin/notes/import/", {
         method: "POST",
         body: formData,
       });
-
+  
       const data = await response.json();
+  
       if (response.ok) {
-        fetchNotes();
+        // Refresh notes after import
+        const notesResponse = await fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`);
+        const notesData = await notesResponse.json();
+        
+        if (notesData.success) {
+          const notesWithStudents = notesData.notes.map((note) => {
+            const student = students.find((s) => s.id === note.etudiant);
+            return {
+              ...note,
+              etudiant: student || { id: note.etudiant },
+            };
+          });
+          setNotes(notesWithStudents);
+        }
+
         setSnackbar({
           open: true,
           message: data.message || "Notes importées avec succès",
@@ -242,7 +251,12 @@ const AdminNotes = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Open dialog for editing a note
+  // Filtered Notes
+  const filteredNotes = notes.filter((note) => {
+    return filters.matiere === "" || note.matiere?.id === parseInt(filters.matiere);
+  });
+
+  // Open dialog for adding/editing a note
   const handleOpenDialog = (note = null) => {
     if (note) {
       setFormData({
@@ -270,20 +284,6 @@ const AdminNotes = () => {
     setOpenDialog(true);
   };
 
-  // Close dialog
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
-
-  // Handle input changes in the form
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
   // Submit form (create or update note)
   const handleSubmit = async () => {
     try {
@@ -300,7 +300,21 @@ const AdminNotes = () => {
 
       const data = await response.json();
       if (response.ok) {
-        fetchNotes();
+        // Refresh notes after creation/update
+        const notesResponse = await fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`);
+        const notesData = await notesResponse.json();
+        
+        if (notesData.success) {
+          const notesWithStudents = notesData.notes.map((note) => {
+            const student = students.find((s) => s.id === note.etudiant);
+            return {
+              ...note,
+              etudiant: student || { id: note.etudiant },
+            };
+          });
+          setNotes(notesWithStudents);
+        }
+
         setSnackbar({
           open: true,
           message: data.message || "Note créée/mise à jour avec succès",
@@ -327,7 +341,21 @@ const AdminNotes = () => {
       });
 
       if (response.ok) {
-        fetchNotes();
+        // Refresh notes after deletion
+        const notesResponse = await fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`);
+        const notesData = await notesResponse.json();
+        
+        if (notesData.success) {
+          const notesWithStudents = notesData.notes.map((note) => {
+            const student = students.find((s) => s.id === note.etudiant);
+            return {
+              ...note,
+              etudiant: student || { id: note.etudiant },
+            };
+          });
+          setNotes(notesWithStudents);
+        }
+
         setSnackbar({
           open: true,
           message: "Note supprimée avec succès",
@@ -345,9 +373,18 @@ const AdminNotes = () => {
     }
   };
 
-  // Handle Matiere filter change
-  const handleMatiereFilterChange = (e) => {
-    setSelectedMatiere(e.target.value);
+  // Close dialog
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
+
+  // Handle input changes in the form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
   };
 
   // Redirect if user is not an admin
@@ -360,125 +397,192 @@ const AdminNotes = () => {
 
   return (
     <Box>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          Gestion des Notes (Admin)
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
+          Gestion des Notes
         </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            startIcon={<GetAppIcon />}
-            onClick={downloadTemplate}
-            sx={{ mr: 2 }}
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Gérez les notes de vos étudiants par matière
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
+      </Box>
+
+      {/* Statistics Card */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card 
+            elevation={2}
+            sx={{ 
+              height: 140, 
+              borderLeft: `4px solid ${theme.palette.primary.main}`,
+              transition: "transform 0.3s, box-shadow 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[4]
+              }
+            }}
           >
-            Télécharger le Modèle
-          </Button>
-          <Button
-            variant="contained"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-            sx={{ mr: 2 }}
-          >
-            Importer CSV
-            <input
-              type="file"
-              hidden
-              accept=".csv"
-              onChange={handleFileUpload}
-            />
-          </Button>
-        </Box>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total des Notes
+                </Typography>
+                <SchoolIcon 
+                  fontSize="medium" 
+                  sx={{ color: theme.palette.primary.main }} 
+                />
+              </Box>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+                  {notes.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Notes enregistrées
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Action Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+        <Button
+          variant="contained"
+          startIcon={<GetAppIcon />}
+          onClick={downloadTemplate}
+          sx={{ mr: 2 }}
+          disabled={!selectedMatiere}
+        >
+          Télécharger le Modèle
+        </Button>
+        <Button
+          variant="contained"
+          component="label"
+          startIcon={<CloudUploadIcon />}
+          sx={{ mr: 2 }}
+          disabled={!selectedMatiere}
+        >
+          Importer CSV
+          <input
+            type="file"
+            hidden
+            accept=".csv"
+            onChange={handleFileUpload}
+          />
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog()}
+          disabled={!selectedMatiere}
+        >
+          Nouvelle Note
+        </Button>
       </Box>
 
       {/* Matiere Filter */}
       <Box sx={{ mb: 3 }}>
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel id="matiere-filter-label">Filtrer par Matière</InputLabel>
-          <Select
-            labelId="matiere-filter-label"
-            value={selectedMatiere}
-            onChange={handleMatiereFilterChange}
-            label="Filtrer par Matière"
-          >
-            <MenuItem value="">Toutes les Matières</MenuItem>
-            {matieres.map((matiere) => (
-              <MenuItem key={matiere.id} value={matiere.id}>
-                {matiere.nom}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Filtrer par matière
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              select
+              fullWidth
+              label="Matière"
+              name="matiere"
+              value={selectedMatiere}
+              onChange={(e) => setSelectedMatiere(e.target.value)}
+            >
+              <MenuItem value="">Sélectionner une Matière</MenuItem>
+              {matieres.map((matiere) => (
+                <MenuItem key={matiere.id} value={matiere.id}>
+                  {matiere.nom}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+        </Grid>
       </Box>
 
       {/* Loading State */}
       {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
       )}
 
       {/* Table of Students and Notes */}
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Étudiant</TableCell>
-              <TableCell align="center">Note Module</TableCell>
-              <TableCell align="center">Note Devoir/Projet</TableCell>
-              <TableCell align="center">Assiduité</TableCell>
-              <TableCell align="center">Présence</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {students.map((student) => {
-              const note = notes.find((n) => n.etudiant.id === student.id);
-              return (
-                <TableRow key={student.id}>
-                  <TableCell>{`${student.first_name} ${student.last_name}`}</TableCell>
-                  <TableCell align="center">
-                    {note ? note.note_module : "-"}
-                  </TableCell>
-                  <TableCell align="center">
-                    {note ? note.note_devoir_projet : "-"}
-                  </TableCell>
-                  <TableCell align="center">
-                    {note ? note.assiduite : "-"}
-                  </TableCell>
-                  <TableCell align="center">
-                    {note ? note.presence : "-"}
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      color="primary"
-                      aria-label="Edit"
-                      onClick={() => handleOpenDialog(note || { etudiant: student, matiere: { id: selectedMatiere } })}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    {note && (
-                      <IconButton
-                        color="error"
-                        aria-label="Delete"
-                        onClick={() => handleDelete(note.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    )}
-                  </TableCell>
+      <Card elevation={2}>
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Étudiant</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Note Module</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Note Devoir/Projet</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Assiduité</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Présence</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              </TableHead>
+              <TableBody>
+                {selectedMatiere && students.length > 0 ? (
+                  students.map((student) => {
+                    const note = notes.find((n) => n.etudiant.id === student.id);
+                    return (
+                      <TableRow
+                        key={student.id}
+                        hover
+                        sx={{
+                          '&:last-child td, &:last-child th': { border: 0 },
+                          transition: "background-color 0.2s",
+                        }}
+                      >
+                        <TableCell>{`${student.first_name} ${student.last_name}`}</TableCell>
+                        <TableCell align="center">{note ? note.note_module : "-"}</TableCell>
+                        <TableCell align="center">{note ? note.note_devoir_projet : "-"}</TableCell>
+                        <TableCell align="center">{note ? note.assiduite : "-"}</TableCell>
+                        <TableCell align="center">{note ? note.presence : "-"}</TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            color="primary"
+                            onClick={() => handleOpenDialog(note || { etudiant: student, matiere: { id: selectedMatiere } })}
+                            size="small"
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          {note && (
+                            <IconButton
+                              color="error"
+                              onClick={() => handleDelete(note.id)}
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      {selectedMatiere 
+                        ? "Aucun étudiant disponible pour cette matière" 
+                        : "Sélectionnez une matière pour afficher les notes"}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
 
       {/* Dialog for adding/editing a note */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
@@ -492,6 +596,7 @@ const AdminNotes = () => {
                 name="note_module"
                 label="Note Module"
                 fullWidth
+                type="number"
                 value={formData.note_module}
                 onChange={handleInputChange}
                 required
@@ -502,6 +607,7 @@ const AdminNotes = () => {
                 name="note_devoir_projet"
                 label="Note Devoir/Projet"
                 fullWidth
+                type="number"
                 value={formData.note_devoir_projet}
                 onChange={handleInputChange}
                 required
@@ -512,6 +618,7 @@ const AdminNotes = () => {
                 name="assiduite"
                 label="Assiduité"
                 fullWidth
+                type="number"
                 value={formData.assiduite}
                 onChange={handleInputChange}
                 required
@@ -522,6 +629,7 @@ const AdminNotes = () => {
                 name="presence"
                 label="Présence"
                 fullWidth
+                type="number"
                 value={formData.presence}
                 onChange={handleInputChange}
                 required

@@ -25,16 +25,21 @@ import {
   CardContent,
   Alert,
   Snackbar,
+  Divider,
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload"; // Import CloudUploadIcon
-import GetAppIcon from "@mui/icons-material/GetApp"; // Import GetAppIcon
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import GetAppIcon from "@mui/icons-material/GetApp";
+import SchoolIcon from "@mui/icons-material/School";
 
 const AdminMatieres = () => {
   const [matieres, setMatieres] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
@@ -56,14 +61,41 @@ const AdminMatieres = () => {
     message: "",
     severity: "success",
   });
+  const [error, setError] = useState(null);
+  const theme = useTheme();
 
   // Fetch matieres, classes, and enseignants from the backend
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [matieresResponse, classesResponse, enseignantsResponse] = await Promise.all([
+        fetch("http://localhost:8000/api/matieres/"),
+        fetch("http://localhost:8000/api/classes/"),
+        fetch("http://localhost:8000/api/enseignants/")
+      ]);
+
+      const matieresData = await matieresResponse.json();
+      const classesData = await classesResponse.json();
+      const enseignantsData = await enseignantsResponse.json();
+      
+      setMatieres(matieresData);
+      setClasses(classesData);
+      setEnseignants(enseignantsData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setError("Erreur lors du chargement des données");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
   useEffect(() => {
-    fetchMatieres();
-    fetchClasses();
-    fetchEnseignants();
+    fetchData();
   }, []);
 
+  // Fetch matieres, classes, and enseignants from the backend
   const fetchMatieres = async () => {
     try {
       const response = await fetch("http://localhost:8000/api/matieres/");
@@ -115,23 +147,23 @@ const AdminMatieres = () => {
     if (!file) return;
   
     const formData = new FormData();
-    formData.append("file", file); // Ensure the key matches the server's expectation
+    formData.append("file", file);
   
     try {
       const response = await fetch("http://localhost:8000/api/matieres/import/", {
         method: "POST",
-        body: formData, // No need to set headers for FormData
+        body: formData,
       });
   
       if (response.ok) {
-        fetchMatieres(); // Refresh the list of matieres
+        fetchMatieres();
         setSnackbar({
           open: true,
           message: "Matieres importés avec succès",
           severity: "success",
         });
       } else {
-        const errorData = await response.json(); // Parse the server's error response
+        const errorData = await response.json();
         console.error("Server Error:", errorData);
         throw new Error(errorData.error || "Erreur lors de l'importation du fichier CSV");
       }
@@ -150,7 +182,6 @@ const AdminMatieres = () => {
     const headers = ["Nom", "Coefficient", "Semestre", "Classe", "Email"];
     let csvContent = headers.join(",") + "\n";
 
-    // If there are matieres, add their data to the CSV content
     if (matieres.length > 0) {
         matieres.forEach((matiere) => {
             const row = [
@@ -171,7 +202,8 @@ const AdminMatieres = () => {
     link.download = "template_matieres.csv";
     link.click();
     URL.revokeObjectURL(url);
-};
+  };
+
   // Open dialog for adding/editing a matiere
   const handleOpenDialog = (matiere = null) => {
     if (matiere) {
@@ -208,15 +240,6 @@ const AdminMatieres = () => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
-    });
-  };
-
-  // Handle filter changes
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters({
-      ...filters,
       [name]: value,
     });
   };
@@ -317,148 +340,207 @@ const AdminMatieres = () => {
   return (
     <Box>
       {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4" component="h1">
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
           Gestion des Matières
         </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            startIcon={<GetAppIcon />}
-            onClick={downloadTemplate}
-            sx={{ mr: 2 }}
-          >
-            Télécharger le Modèle
-          </Button>
-          <Button
-            variant="contained"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-            sx={{ mr: 2 }}
-          >
-            Importer CSV
-            <input
-              type="file"
-              hidden
-              accept=".csv"
-              onChange={handleFileUpload}
-            />
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            Nouvelle Matière
-          </Button>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Gérez vos matières et leurs informations
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
+      </Box>
+
+      {/* Loading indicator */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
         </Box>
+      )}
+
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card 
+            elevation={2}
+            sx={{ 
+              height: 140, 
+              borderLeft: `4px solid ${theme.palette.primary.main}`,
+              transition: "transform 0.3s, box-shadow 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[4]
+              }
+            }}
+          >
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total des Matières
+                </Typography>
+                <SchoolIcon 
+                  fontSize="medium" 
+                  sx={{ color: theme.palette.primary.main }} 
+                />
+              </Box>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+                  {matieres.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Matières enregistrées
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Action Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+        <Button
+          variant="contained"
+          startIcon={<GetAppIcon />}
+          onClick={downloadTemplate}
+          sx={{ mr: 2 }}
+        >
+          Télécharger le Modèle
+        </Button>
+        <Button
+          variant="contained"
+          component="label"
+          startIcon={<CloudUploadIcon />}
+          sx={{ mr: 2 }}
+        >
+          Importer CSV
+          <input
+            type="file"
+            hidden
+            accept=".csv"
+            onChange={handleFileUpload}
+          />
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog()}
+        >
+          Nouvelle Matière
+        </Button>
       </Box>
 
       {/* Filters */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Filtres
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Filtrer par semestre et classe
         </Typography>
         <Grid container spacing={2}>
+          {/* Semester Filter */}
           <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel id="semestre-label">Semestre</InputLabel>
-              <Select
-                labelId="semestre-label"
-                name="semestre"
-                value={filters.semestre}
-                onChange={handleFilterChange}
-              >
-                <MenuItem value="">Tous</MenuItem>
-                <MenuItem value={1}>Semestre 1</MenuItem>
-                <MenuItem value={2}>Semestre 2</MenuItem>
-                <MenuItem value={3}>Semestre 3</MenuItem>
-                <MenuItem value={4}>Semestre 4</MenuItem>
-              </Select>
-            </FormControl>
+            <TextField
+              select
+              fullWidth
+              label="Semestre"
+              name="semestre"
+              value={filters.semestre}
+              onChange={(e) => setFilters({...filters, semestre: e.target.value})}
+            >
+              <MenuItem value="">Tous</MenuItem>
+              {[1, 2, 3, 4].map((semester) => (
+                <MenuItem key={semester} value={semester}>
+                  Semestre {semester}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
+
+          {/* Class Filter */}
           <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel id="classe-label">Classe</InputLabel>
-              <Select
-                labelId="classe-label"
-                name="classe"
-                value={filters.classe}
-                onChange={handleFilterChange}
-              >
-                <MenuItem value="">Toutes</MenuItem>
-                {classes.map((classe) => (
-                  <MenuItem key={classe.id} value={classe.id}>
-                    {classe.nom}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              select
+              fullWidth
+              label="Classe"
+              name="classe"
+              value={filters.classe}
+              onChange={(e) => setFilters({...filters, classe: e.target.value})}
+            >
+              <MenuItem value="">Toutes</MenuItem>
+              {classes.map((classe) => (
+                <MenuItem key={classe.id} value={classe.id}>
+                  {classe.nom}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
         </Grid>
       </Box>
 
       {/* Table of matieres */}
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Nom de la Matière</TableCell>
-              <TableCell align="center">Coefficient</TableCell>
-              <TableCell align="center">Semestre</TableCell>
-              <TableCell align="center">Classe</TableCell>
-              <TableCell align="center">Enseignant</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredMatieres.length > 0 ? (
-              filteredMatieres.map((matiere) => (
-                <TableRow key={matiere.id}>
-                  <TableCell>{matiere.nom}</TableCell>
-                  <TableCell align="center">{matiere.coefficient}</TableCell>
-                  <TableCell align="center">{matiere.semestre}</TableCell>
-                  <TableCell align="center">
-                    {matiere.classe?.nom || "Inconnu"}
-                  </TableCell>
-                  <TableCell align="center">
-                    {matiere.enseignant
-                      ? `${matiere.enseignant.first_name} ${matiere.enseignant.last_name}`
-                      : "Inconnu"}
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleOpenDialog(matiere)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDelete(matiere.id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
+      <Card elevation={2}>
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Nom de la Matière</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Coefficient</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Semestre</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Classe</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Enseignant</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  Aucune matière disponible
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              </TableHead>
+              <TableBody>
+                {filteredMatieres.length > 0 ? (
+                  filteredMatieres.map((matiere) => (
+                    <TableRow
+                      key={matiere.id}
+                      hover
+                      sx={{
+                        '&:last-child td, &:last-child th': { border: 0 },
+                        transition: "background-color 0.2s",
+                      }}
+                    >
+                      <TableCell>{matiere.nom}</TableCell>
+                      <TableCell align="center">{matiere.coefficient}</TableCell>
+                      <TableCell align="center">{matiere.semestre}</TableCell>
+                      <TableCell align="center">
+                        {matiere.classe?.nom || "Inconnu"}
+                      </TableCell>
+                      <TableCell align="center">
+                        {matiere.enseignant
+                          ? `${matiere.enseignant.first_name} ${matiere.enseignant.last_name}`
+                          : "Inconnu"}
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleOpenDialog(matiere)}
+                          size="small"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          color="error"
+                          onClick={() => handleDelete(matiere.id)}
+                          size="small"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      Aucune matière disponible
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
 
       {/* Dialog for adding/editing a matiere */}
       <Dialog
@@ -494,57 +576,54 @@ const AdminMatieres = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel id="semestre-label">Semestre</InputLabel>
-                <Select
-                  labelId="semestre-label"
-                  name="semestre"
-                  value={formData.semestre}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <MenuItem value={1}>Semestre 1</MenuItem>
-                  <MenuItem value={2}>Semestre 2</MenuItem>
-                  <MenuItem value={3}>Semestre 3</MenuItem>
-                  <MenuItem value={4}>Semestre 4</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField
+                select
+                name="semestre"
+                label="Semestre"
+                fullWidth
+                value={formData.semestre}
+                onChange={handleInputChange}
+                required
+              >
+                <MenuItem value={1}>Semestre 1</MenuItem>
+                <MenuItem value={2}>Semestre 2</MenuItem>
+                <MenuItem value={3}>Semestre 3</MenuItem>
+                <MenuItem value={4}>Semestre 4</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel id="classe-label">Classe</InputLabel>
-                <Select
-                  labelId="classe-label"
-                  name="classe"
-                  value={formData.classe || ""}
-                  onChange={handleInputChange}
-                  required
-                >
-                  {classes.map((classe) => (
-                    <MenuItem key={classe.id} value={classe.id}>
-                      {classe.nom}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                select
+                name="classe"
+                label="Classe"
+                fullWidth
+                value={formData.classe || ""}
+                onChange={handleInputChange}
+                required
+              >
+                {classes.map((classe) => (
+                  <MenuItem key={classe.id} value={classe.id}>
+                    {classe.nom}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel id="enseignant-label">Enseignant</InputLabel>
-                <Select
-                  labelId="enseignant-label"
-                  name="enseignant"
-                  value={formData.enseignant || ""}
-                  onChange={handleInputChange}
-                  required
-                >
-                  {enseignants.map((enseignant) => (
-                    <MenuItem key={enseignant.id} value={enseignant.id}>
-                      {enseignant.first_name} {enseignant.last_name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                select
+                name="enseignant"
+                label="Enseignant"
+                fullWidth
+                value={formData.enseignant || ""}
+                onChange={handleInputChange}
+                required
+              >
+                {enseignants.map((enseignant) => (
+                  <MenuItem key={enseignant.id} value={enseignant.id}>
+                    {enseignant.first_name} {enseignant.last_name}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
           </Grid>
         </DialogContent>

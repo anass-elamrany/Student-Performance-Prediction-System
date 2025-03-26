@@ -14,9 +14,9 @@ import AdminClasses from "./pages/admin/Classes ";
 import AdminEnseignants from "./pages/admin/Enseignants.jsx";
 import Etudiants from "./pages/admin/Etudiants";
 import AdminRecommendations from "./pages/admin/AdminRecommendations";
-import AdminAnalyse from "./pages/admin/Analyse";
+
 import AdminMatieres from "./pages/admin/Matieres";
-import AdminPredict from "./pages/admin/AdminPredict";
+
 import AdminClassment from "./pages/admin/AdminClassment";
 import AdminAlerts from "./pages/admin/AdminAlerts";
 import AdminNotes from "./pages/admin/AdminNotes";
@@ -30,7 +30,7 @@ import Profile from "./pages/teacher/Profile";
 // Dashboard Pages - Student
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentRecommendations from "./pages/student/Recommendations";
-import StudentAlerts from "./pages/student/MesAlerts";
+
 import StudentNotes from "./pages/student/Mes Notes ";
 import StudentProfile from "./pages/student/StudentProfile";
 
@@ -54,10 +54,10 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <AdminDashboard /> },
       { path: "Classes", element: <AdminClasses /> },
       { path: "Enseignants", element: <AdminEnseignants /> },
-      { path: "Analyse", element: <AdminAnalyse  /> },
+
       { path: "Etudiants", element: <Etudiants/> },
       { path: "Matieres", element: <AdminMatieres/> },
-      { path: "Predict", element: <AdminPredict/> },
+
       { path: "Classment", element: <AdminClassment/> },
       { path: "Alerts", element: <AdminAlerts/> },
       { path: "Recommendations", element: <AdminRecommendations/> },
@@ -95,7 +95,7 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <StudentDashboard /> },
       { path: "Guidance", element: <StudentRecommendations/> },
       { path: "Notes", element: <StudentNotes /> },
-      { path: "Alerts", element: <StudentAlerts /> }, 
+
       { path: "StudentProfile", element: <StudentProfile /> }, 
     ],
   },

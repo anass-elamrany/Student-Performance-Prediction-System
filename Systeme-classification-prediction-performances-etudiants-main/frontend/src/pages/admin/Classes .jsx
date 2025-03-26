@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -25,6 +24,9 @@ import {
   CardContent,
   Alert,
   Snackbar,
+  Divider,
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -33,6 +35,7 @@ import SchoolIcon from "@mui/icons-material/School";
 
 const AdminClasses = () => {
   const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
@@ -41,51 +44,38 @@ const AdminClasses = () => {
   });
   const [editMode, setEditMode] = useState(false);
   const [enseignants, setEnseignants] = useState([]);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [error, setError] = useState(null);
+  const theme = useTheme();
 
   // Fetch classes and enseignants from the backend
   useEffect(() => {
-    fetchClasses();
-    fetchEnseignants();
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [classesResponse, enseignantsResponse] = await Promise.all([
+          fetch("http://localhost:8000/api/classes/"),
+          fetch("http://localhost:8000/api/enseignants/")
+        ]);
+
+        const classesData = await classesResponse.json();
+        const enseignantsData = await enseignantsResponse.json();
+
+        setClasses(classesData);
+        setEnseignants(enseignantsData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setError("Erreur lors du chargement des données");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  const fetchClasses = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/classes/");
-      const data = await response.json();
-      console.log("Fetched classes:", data); // Affiche les données dans la console
-      setClasses(data);
-    } catch (error) {
-      console.error("Error fetching classes:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors du chargement des classes",
-        severity: "error",
-      });
-    }
-  };
+  // Rest of the existing methods (handleOpenDialog, handleCloseDialog, etc.) remain the same as in the previous version
 
-  const fetchEnseignants = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/enseignants/");
-      const data = await response.json();
-      console.log("Fetched enseignants:", data); // Log the fetched data
-      setEnseignants(data);
-    } catch (error) {
-      console.error("Error fetching enseignants:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors du chargement des enseignants",
-        severity: "error",
-      });
-    }
-  };
-
-  // Open dialog for adding/editing a class
   const handleOpenDialog = (classe = null) => {
     if (classe) {
       setFormData({
@@ -105,12 +95,10 @@ const AdminClasses = () => {
     setOpenDialog(true);
   };
 
-  // Close dialog
   const handleCloseDialog = () => {
     setOpenDialog(false);
   };
 
-  // Handle input changes in the form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -119,7 +107,6 @@ const AdminClasses = () => {
     });
   };
 
-  // Submit form (create or update a class)
   const handleSubmit = async () => {
     try {
       const url = editMode
@@ -139,82 +126,109 @@ const AdminClasses = () => {
       });
 
       if (response.ok) {
-        fetchClasses();
-        setSnackbar({
-          open: true,
-          message: editMode
-            ? "Classe mise à jour avec succès"
-            : "Classe créée avec succès",
-          severity: "success",
-        });
-        handleCloseDialog();
+        // Refresh data
+        const updatedClassesResponse = await fetch("http://localhost:8000/api/classes/");
+        const updatedClassesData = await updatedClassesResponse.json();
+        setClasses(updatedClassesData);
+
+        setOpenDialog(false);
       } else {
         throw new Error("Erreur lors de la requête");
       }
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Une erreur est survenue",
-        severity: "error",
-      });
+      setError("Une erreur est survenue lors de la sauvegarde");
     }
   };
 
-  // Delete a class
   const handleDelete = async (id) => {
-    if (!id) {
-      console.error("Erreur : ID de classe non défini");
-      return;
-    }
-  
     try {
       const response = await fetch(
         `http://localhost:8000/api/classes/delete/${id}/`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
-  
+
       const data = await response.json();
       if (data.success) {
-        setClasses(classes.filter((classe) => classe.id !== id));
-        setSnackbar({
-          open: true,
-          message: "Classe supprimée avec succès",
-          severity: "success",
-        });
+        // Refresh data
+        const updatedClassesResponse = await fetch("http://localhost:8000/api/classes/");
+        const updatedClassesData = await updatedClassesResponse.json();
+        setClasses(updatedClassesData);
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
-      console.error("Erreur lors de la suppression :", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors de la suppression",
-        severity: "error",
-      });
+      setError("Erreur lors de la suppression");
     }
-  };
-
-  // Close Snackbar
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
     <Box>
-      {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4" component="h1">
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
           Gestion des Classes
         </Typography>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Gérez vos classes et leurs informations
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
+      </Box>
+
+      {/* Loading indicator */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+            {error}
+          </Alert>
+        </Snackbar>
+      )}
+
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card 
+            elevation={2}
+            sx={{ 
+              height: 140, 
+              borderLeft: `4px solid ${theme.palette.primary.main}`,
+              transition: "transform 0.3s, box-shadow 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[4]
+              }
+            }}
+          >
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total des Classes
+                </Typography>
+                <SchoolIcon 
+                  fontSize="medium" 
+                  sx={{ color: theme.palette.primary.main }} 
+                />
+              </Box>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+                  {classes.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Classes existantes
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Action Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -224,79 +238,67 @@ const AdminClasses = () => {
         </Button>
       </Box>
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography variant="h6" color="text.secondary">
-                  Total des Classes
-                </Typography>
-                <SchoolIcon color="primary" />
-              </Box>
-              <Typography variant="h4" component="div" sx={{ mt: 2 }}>
-                {classes.length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
       {/* Table of classes */}
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Nom de la Classe</TableCell>
-              <TableCell align="center">Enseignant Responsable</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-  {classes && classes.length > 0 ? (
-    classes.map((classe) => (
-      <TableRow key={classe.id}> {/* Utilisez classe.id comme clé unique */}
-        <TableCell>{classe.nom}</TableCell>
-        <TableCell align="center">
-          {classe.enseignant_responsable
-            ? `${classe.enseignant_responsable.first_name} ${classe.enseignant_responsable.last_name}`
-            : "Inconnu"}
-        </TableCell>
-        <TableCell align="center">
-          <IconButton
-            color="primary"
-            onClick={() => handleOpenDialog(classe)}
-          >
-            <EditIcon />
-          </IconButton>
-          <IconButton
-            color="error"
-            onClick={() => handleDelete(classe.id)} // Utilisez classe.id pour la suppression
-          >
-            <DeleteIcon />
-          </IconButton>
-        </TableCell>
-      </TableRow>
-    ))
-  ) : (
-    <TableRow>
-      <TableCell colSpan={3} align="center">
-        Aucune classe disponible
-      </TableCell>
-    </TableRow>
-  )}
-</TableBody>
-        </Table>
-      </TableContainer>
+      <Card elevation={2}>
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Nom de la Classe</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Enseignant Responsable</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {classes && classes.length > 0 ? (
+                  classes.map((classe) => (
+                    <TableRow 
+                      key={classe.id}
+                      hover
+                      sx={{ 
+                        '&:last-child td, &:last-child th': { border: 0 },
+                        transition: "background-color 0.2s",
+                      }}
+                    >
+                      <TableCell>{classe.nom}</TableCell>
+                      <TableCell align="center">
+                        {classe.enseignant_responsable
+                          ? `${classe.enseignant_responsable.first_name} ${classe.enseignant_responsable.last_name}`
+                          : "Inconnu"}
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleOpenDialog(classe)}
+                          size="small"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          color="error"
+                          onClick={() => handleDelete(classe.id)}
+                          size="small"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center">
+                      Aucune classe disponible
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
 
-      {/* Dialog for adding/editing a class */}
+      {/* Dialog for adding/editing a class (remains mostly unchanged) */}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
@@ -346,22 +348,6 @@ const AdminClasses = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          // @ts-ignore
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

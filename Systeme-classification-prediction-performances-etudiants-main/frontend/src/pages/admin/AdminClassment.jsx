@@ -11,7 +11,7 @@ import {
   Button,
   CircularProgress,
   Snackbar,
-  Alert,
+  Alert as MuiAlert,
   Table,
   TableBody,
   TableCell,
@@ -19,234 +19,327 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Card,
+  CardContent,
+  Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  useTheme
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import {
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  School as SchoolIcon,
+  Info as InfoIcon
+} from '@mui/icons-material';
 
-const STATUS_COLORS = {
-  'Bon performeur': '#4CAF50',
-  'Moyenne performance': '#FFC107',
-  'À risque': '#F44336',
+const STATUS_CONFIG = {
+  'Bon performeur': {
+    color: '#4CAF50',
+    icon: <CheckCircleIcon />
+  },
+  'Moyenne performance': {
+    color: '#FFC107',
+    icon: <WarningIcon />
+  },
+  'À risque': {
+    color: '#F44336',
+    icon: <ErrorIcon />
+  }
 };
 
 const AdminClassment = () => {
+  // États
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSemester, setSelectedSemester] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
   const [classes, setClasses] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [classificationResults, setClassificationResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [classData, setClassData] = useState({
+    students: [],
+    stats: null,
+    alerts: [],
+    recommendations: []
+  });
+  const [loading, setLoading] = useState({
+    classes: false,
+    data: false
+  });
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+  const [dataStatus, setDataStatus] = useState({
+    hasData: false,
+    isLoading: false,
+    error: null
+  });
 
-  // Fetch classes and subjects from the backend
+  const theme = useTheme();
+
+  // Constantes
+  const API_ENDPOINTS = {
+    CLASSES: '/api/classes/',
+    CLASS_DATA: '/api/ml/class-dashboard/'
+  };
+
+  // Effets
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch classes
-        const classesResponse = await fetch('/api/classes/');
-        const classesData = await classesResponse.json();
-        setClasses(classesData);
-
-        // Fetch subjects
-        const subjectsResponse = await fetch('/api/matieres/');
-        const subjectsData = await subjectsResponse.json();
-        setSubjects(subjectsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setSnackbarMessage("Erreur lors du chargement des données.");
-        setSnackbarOpen(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchClasses();
   }, []);
 
-  // Handle semester change
-  const handleSemesterChange = (event) => {
-    setSelectedSemester(event.target.value);
-    setSelectedSubject(''); // Reset subject when semester changes
-  };
-
-  // Handle subject change
-  const handleSubjectChange = (event) => {
-    setSelectedSubject(event.target.value);
-  };
-
-  // Classify students
-  const classifyStudents = async () => {
-    if (!selectedClass || !selectedSemester || !selectedSubject) {
-      setSnackbarMessage("Veuillez sélectionner une classe, un semestre et une matière.");
-      setSnackbarOpen(true);
-      return;
+  useEffect(() => {
+    if (selectedClass) {
+      fetchClassData();
+    } else {
+      resetClassData();
     }
+  }, [selectedClass]);
 
-    // Exclude Semester 1
-    if (parseInt(selectedSemester) === 1) {
-      setSnackbarMessage("La classification n'est pas disponible pour le semestre 1.");
-      setSnackbarOpen(true);
-      return;
-    }
-
-    setLoading(true);
+  // Méthodes (previous methods remain the same)
+  const fetchClasses = async () => {
+    setLoading(prev => ({ ...prev, classes: true }));
     try {
-      const response = await fetch('/api/classify-students/', {
+      const response = await fetch(API_ENDPOINTS.CLASSES);
+      if (!response.ok) throw new Error('Erreur de chargement des classes');
+      setClasses(await response.json());
+    } catch (error) {
+      showNotification(error.message, 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, classes: false }));
+    }
+  };
+
+  const fetchClassData = async () => {
+    setDataStatus({ hasData: false, isLoading: true, error: null });
+    setLoading(prev => ({ ...prev, data: true }));
+    
+    try {
+      const response = await fetch(API_ENDPOINTS.CLASS_DATA, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          class_id: selectedClass,
-          semester: selectedSemester,
-          subject_id: selectedSubject,
-        }),
+        body: JSON.stringify({ class_id: selectedClass }),
       });
 
       if (!response.ok) {
-        throw new Error(`Erreur HTTP : ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur de chargement des données');
       }
-
-      const result = await response.json();
-      setClassificationResults(result.results);
-      setSnackbarMessage("Classification terminée avec succès.");
-      setSnackbarOpen(true);
+      
+      const data = await response.json();
+      
+      // Vérifier si des données sont disponibles
+      const hasData = data.classification && data.classification.length > 0;
+      
+      setClassData({
+        students: data.classification || [],
+        stats: data.statistics || null,
+        alerts: data.alerts || [],
+        recommendations: data.recommendations || []
+      });
+      
+      setDataStatus({
+        hasData,
+        isLoading: false,
+        error: hasData ? null : 'Aucune donnée de notes disponible'
+      });
+      
     } catch (error) {
-      console.error('Error classifying students:', error);
-      setSnackbarMessage("Erreur lors de la classification.");
-      setSnackbarOpen(true);
+      console.error('Fetch error:', error);
+      setDataStatus({
+        hasData: false,
+        isLoading: false,
+        error: error.message
+      });
+      showNotification(error.message, 'error');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, data: false }));
     }
   };
 
-  // Handle snackbar close
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
+  const resetClassData = () => {
+    setClassData({
+      students: [],
+      stats: null,
+      alerts: [],
+      recommendations: []
+    });
+    setDataStatus({
+      hasData: false,
+      isLoading: false,
+      error: null
+    });
+  };
+
+  const showNotification = (message, severity = 'success') => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleNotificationClose = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  const getCurrentClassName = () => {
+    return classes.find(c => c.id === selectedClass)?.nom || 'Classe inconnue';
   };
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Classification des Étudiants
-      </Typography>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
+          Gestion des Classements
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Visualisez et analysez la performance de vos classes
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
+      </Box>
 
-      {/* Filters */}
-      <Paper elevation={2} sx={{ p: 2, mb: 4 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
+      {/* Statistics Card */}
+      {classData.stats && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card 
+              elevation={2}
+              sx={{ 
+                height: 140, 
+                borderLeft: `4px solid ${theme.palette.primary.main}`,
+                transition: "transform 0.3s, box-shadow 0.3s",
+                "&:hover": {
+                  transform: "translateY(-5px)",
+                  boxShadow: theme.shadows[4]
+                }
+              }}
+            >
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Moyenne de Classe
+                  </Typography>
+                  <SchoolIcon 
+                    fontSize="medium" 
+                    sx={{ color: theme.palette.primary.main }} 
+                  />
+                </Box>
+                <Box>
+                  <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+                    {classData.stats.average_score?.toFixed(2)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Score moyen
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Classe Selector */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Sélectionner une classe
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth>
               <InputLabel>Classe</InputLabel>
               <Select
                 value={selectedClass}
                 label="Classe"
                 onChange={(e) => setSelectedClass(e.target.value)}
+                disabled={loading.classes}
               >
-                <MenuItem value="">Sélectionner une classe</MenuItem>
+                <MenuItem value="">
+                  <em>Sélectionner une classe</em>
+                </MenuItem>
                 {classes.map((cls) => (
-                  <MenuItem key={cls.id} value={cls.id}>{cls.nom}</MenuItem>
+                  <MenuItem key={cls.id} value={cls.id}>
+                    {cls.nom}
+                  </MenuItem>
                 ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Semestre</InputLabel>
-              <Select
-                value={selectedSemester}
-                label="Semestre"
-                onChange={handleSemesterChange}
-              >
-                <MenuItem value="">Sélectionner un semestre</MenuItem>
-                <MenuItem value={2}>Semestre 2</MenuItem>
-                <MenuItem value={3}>Semestre 3</MenuItem>
-                <MenuItem value={4}>Semestre 4</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Matière</InputLabel>
-              <Select
-                value={selectedSubject}
-                label="Matière"
-                onChange={handleSubjectChange}
-                disabled={!selectedSemester}
-              >
-                <MenuItem value="">Sélectionner une matière</MenuItem>
-                {subjects
-                  .filter((subject) => subject.semestre === parseInt(selectedSemester))
-                  .map((subject) => (
-                    <MenuItem key={subject.id} value={subject.id}>{subject.nom}</MenuItem>
-                  ))}
               </Select>
             </FormControl>
           </Grid>
         </Grid>
-      </Paper>
+      </Box>
 
-      {/* Classify Button */}
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={classifyStudents}
-        disabled={loading || !selectedClass || !selectedSemester || !selectedSubject}
-      >
-        {loading ? <CircularProgress size={24} color="inherit" /> : "Classer les Étudiants"}
-      </Button>
-
-      {/* Results */}
-      {classificationResults.length > 0 && (
-        <Paper elevation={2} sx={{ p: 2, mt: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Résultats de la Classification
-          </Typography>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Étudiant</TableCell>
-                  <TableCell align="center">Catégorie</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {classificationResults.map((result) => (
-                  <TableRow key={result.student_id}>
-                    <TableCell>{result.student_name}</TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={result.performance_category}
-                        sx={{
-                          backgroundColor: STATUS_COLORS[result.performance_category],
-                          color: 'white',
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+      {/* Content Rendering */}
+      {loading.data && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
       )}
 
-      {/* Snackbar for notifications */}
+      {/* Classement Table */}
+      {dataStatus.hasData && (
+        <Card elevation={2}>
+          <CardContent sx={{ p: 0 }}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Étudiant</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Moyenne</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {classData.students.map((student) => (
+                    <TableRow
+                      key={student.student_id}
+                      hover
+                      sx={{
+                        '&:last-child td, &:last-child th': { border: 0 },
+                        transition: "background-color 0.2s",
+                      }}
+                    >
+                      <TableCell>{student.student_name}</TableCell>
+                      <TableCell align="center">
+                        {student.average_score?.toFixed(2) || 'N/A'}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={student.performance_category}
+                          icon={STATUS_CONFIG[student.performance_category]?.icon}
+                          sx={{
+                            backgroundColor: STATUS_CONFIG[student.performance_category]?.color,
+                            color: 'white',
+                            minWidth: 160
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Notification */}
       <Snackbar
-        open={snackbarOpen}
+        open={notification.open}
         autoHideDuration={6000}
-        onClose={handleSnackbarClose}
+        onClose={handleNotificationClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity="success"
-          sx={{ width: '100%', display: 'flex', alignItems: 'center' }}
-          icon={<CheckCircleIcon fontSize="inherit" />}
+        <MuiAlert
+          onClose={handleNotificationClose}
+          // @ts-ignore
+          severity={notification.severity}
+          sx={{ width: '100%' }}
         >
-          {snackbarMessage}
-        </Alert>
+          {notification.message}
+        </MuiAlert>
       </Snackbar>
     </Box>
   );

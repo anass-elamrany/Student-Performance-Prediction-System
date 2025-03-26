@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -21,6 +20,9 @@ import {
   CardContent,
   Alert,
   Snackbar,
+  Divider,
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -31,6 +33,7 @@ import PersonIcon from "@mui/icons-material/Person";
 
 const AdminEnseignants = () => {
   const [enseignants, setEnseignants] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
@@ -40,25 +43,22 @@ const AdminEnseignants = () => {
     phone: "",
   });
   const [editMode, setEditMode] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [error, setError] = useState(null);
+  const theme = useTheme();
 
   // Fetch enseignants from the backend
   const fetchEnseignants = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch("http://localhost:8000/api/enseignants/");
       const data = await response.json();
       setEnseignants(data);
     } catch (error) {
       console.error("Error fetching enseignants:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors du chargement des enseignants",
-        severity: "error",
-      });
+      setError("Erreur lors du chargement des enseignants");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -127,24 +127,13 @@ const AdminEnseignants = () => {
       });
 
       if (response.ok) {
-        fetchEnseignants();
-        setSnackbar({
-          open: true,
-          message: editMode
-            ? "Enseignant mis à jour avec succès"
-            : "Enseignant ajouté avec succès",
-          severity: "success",
-        });
-        handleCloseDialog();
+        await fetchEnseignants();
+        setOpenDialog(false);
       } else {
         throw new Error("Erreur lors de la requête");
       }
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Une erreur est survenue",
-        severity: "error",
-      });
+      setError("Une erreur est survenue lors de la sauvegarde");
     }
   };
 
@@ -156,22 +145,14 @@ const AdminEnseignants = () => {
         { method: "DELETE" }
       );
 
-      if (response.ok) {
-        fetchEnseignants();
-        setSnackbar({
-          open: true,
-          message: "Enseignant supprimé avec succès",
-          severity: "info",
-        });
+      const data = await response.json();
+      if (data.success) {
+        await fetchEnseignants();
       } else {
-        throw new Error("Erreur lors de la suppression");
+        throw new Error(data.error);
       }
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Une erreur est survenue",
-        severity: "error",
-      });
+      setError("Erreur lors de la suppression");
     }
   };
 
@@ -181,33 +162,22 @@ const AdminEnseignants = () => {
     if (!file) return;
   
     const formData = new FormData();
-    formData.append("file", file); // Ensure the key matches the server's expectation
+    formData.append("file", file);
   
     try {
       const response = await fetch("http://localhost:8000/api/enseignants/import/", {
         method: "POST",
-        body: formData, // No need to set headers for FormData
+        body: formData,
       });
   
       if (response.ok) {
-        fetchEnseignants(); // Refresh the list of enseignants
-        setSnackbar({
-          open: true,
-          message: "Enseignants importés avec succès",
-          severity: "success",
-        });
+        await fetchEnseignants();
       } else {
-        const errorData = await response.json(); // Parse the server's error response
-        console.error("Server Error:", errorData);
+        const errorData = await response.json();
         throw new Error(errorData.error || "Erreur lors de l'importation du fichier CSV");
       }
     } catch (error) {
-      console.error("Error uploading file:", error);
-      setSnackbar({
-        open: true,
-        message: error.message || "Une erreur est survenue",
-        severity: "error",
-      });
+      setError(error.message || "Une erreur est survenue");
     }
   };
 
@@ -216,7 +186,6 @@ const AdminEnseignants = () => {
     const headers = ["Nom", "Prénom", "Email", "Téléphone"];
     let csvContent = headers.join(",") + "\n";
 
-    // If there are enseignants, add their data to the CSV content
     if (enseignants.length > 0) {
       enseignants.forEach((enseignant) => {
         const row = [
@@ -238,126 +207,174 @@ const AdminEnseignants = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Close Snackbar
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
   return (
     <Box>
-      {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4" component="h1">
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
           Gestion des Enseignants
         </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            startIcon={<GetAppIcon />}
-            onClick={downloadTemplate}
-            sx={{ mr: 2 }}
-          >
-            Télécharger le Modèle
-          </Button>
-          <Button
-            variant="contained"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-            sx={{ mr: 2 }}
-          >
-            Importer CSV
-            <input
-              type="file"
-              hidden
-              accept=".csv"
-              onChange={handleFileUpload}
-            />
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            Nouvel Enseignant
-          </Button>
-        </Box>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Gérez vos enseignants et leurs informations
+        </Typography>
+        <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
+
+      {/* Loading indicator */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+            {error}
+          </Alert>
+        </Snackbar>
+      )}
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography variant="h6" color="text.secondary">
+          <Card 
+            elevation={2}
+            sx={{ 
+              height: 140, 
+              borderLeft: `4px solid ${theme.palette.primary.main}`,
+              transition: "transform 0.3s, box-shadow 0.3s",
+              "&:hover": {
+                transform: "translateY(-5px)",
+                boxShadow: theme.shadows[4]
+              }
+            }}
+          >
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
                   Total des Enseignants
                 </Typography>
-                <PersonIcon color="primary" />
+                <PersonIcon 
+                  fontSize="medium" 
+                  sx={{ color: theme.palette.primary.main }} 
+                />
               </Box>
-              <Typography variant="h4" component="div" sx={{ mt: 2 }}>
-                {enseignants.length}
-              </Typography>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+                  {enseignants.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Enseignants enregistrés
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
+      {/* Action Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+        <Button
+          variant="contained"
+          startIcon={<GetAppIcon />}
+          onClick={downloadTemplate}
+          sx={{ mr: 2 }}
+        >
+          Télécharger le Modèle
+        </Button>
+        <Button
+          variant="contained"
+          component="label"
+          startIcon={<CloudUploadIcon />}
+          sx={{ mr: 2 }}
+        >
+          Importer CSV
+          <input
+            type="file"
+            hidden
+            accept=".csv"
+            onChange={handleFileUpload}
+          />
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog()}
+        >
+          Nouvel Enseignant
+        </Button>
+      </Box>
+
       {/* Table of enseignants */}
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Nom</TableCell>
-              <TableCell align="center">Prénom</TableCell>
-              <TableCell align="center">Email</TableCell>
-              <TableCell align="center">Téléphone</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {enseignants.map((enseignant) => (
-              <TableRow key={enseignant.id}>
-                <TableCell>{enseignant.last_name}</TableCell>
-                <TableCell align="center">{enseignant.first_name}</TableCell>
-                <TableCell align="center">{enseignant.email}</TableCell>
-                <TableCell align="center">{enseignant.phone}</TableCell>
-                <TableCell align="center">
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleOpenDialog(enseignant)}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => handleDelete(enseignant.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <Card elevation={2}>
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Nom</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Prénom</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Email</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Téléphone</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {enseignants && enseignants.length > 0 ? (
+                  enseignants.map((enseignant) => (
+                    <TableRow 
+                      key={enseignant.id}
+                      hover
+                      sx={{ 
+                        '&:last-child td, &:last-child th': { border: 0 },
+                        transition: "background-color 0.2s",
+                      }}
+                    >
+                      <TableCell>{enseignant.last_name}</TableCell>
+                      <TableCell align="center">{enseignant.first_name}</TableCell>
+                      <TableCell align="center">{enseignant.email}</TableCell>
+                      <TableCell align="center">{enseignant.phone}</TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleOpenDialog(enseignant)}
+                          size="small"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          color="error"
+                          onClick={() => handleDelete(enseignant.id)}
+                          size="small"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      Aucun enseignant disponible
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
 
       {/* Dialog for adding/editing enseignant */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
-          {editMode ? "Modifier l'Enseignant" : "Ajouter un Enseignant"}
+          {editMode ? "Modifier l'Enseignant" : "Créer un Nouvel Enseignant"}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -407,26 +424,10 @@ const AdminEnseignants = () => {
         <DialogActions>
           <Button onClick={handleCloseDialog}>Annuler</Button>
           <Button onClick={handleSubmit} variant="contained">
-            {editMode ? "Mettre à jour" : "Ajouter"}
+            {editMode ? "Mettre à jour" : "Créer"}
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          // @ts-ignore
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

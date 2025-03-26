@@ -85,11 +85,10 @@ const adminMenuItems = {
     { text: "Étudiants", icon: <SchoolOutlinedIcon />, path: "/admin/Etudiants" },
     { text: "Matières", icon: <MenuBookOutlinedIcon />, path: "/admin/Matieres" },
     { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/admin/AdminNotes" },
-    { text: "Prédictions", icon: <TimelineOutlinedIcon />, path: "/admin/Predict" },
     { text: "Classement", icon: <LeaderboardOutlinedIcon />, path: "/admin/Classment" },
     { text: "Alertes", icon: <NotificationsActiveOutlinedIcon />, path: "/admin/Alerts" },
     { text: "Recommandations", icon: <ThumbUpOutlinedIcon />, path: "/admin/Recommendations" },
-    { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/admin/Analyse" },
+
   ],
 };
 
@@ -107,7 +106,7 @@ const studentMenuItems = {
     { text: "Tableau de bord", icon: <DashboardOutlinedIcon />, path: "/student/dashboard" },
     { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/student/Notes" },
     { text: "Conseils", icon: <EmojiObjectsOutlinedIcon />, path: "/student/Guidance" },
-    { text: "Alertes", icon: <NotificationsActiveOutlinedIcon />, path: "/student/Alerts" },
+  
     { text: "Profil", icon: <PeopleOutlineOutlinedIcon />, path: "/student/StudentProfile" },
   ],
 };

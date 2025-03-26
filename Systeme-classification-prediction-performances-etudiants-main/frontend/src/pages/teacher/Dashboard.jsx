@@ -20,13 +20,11 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend, 
-  ResponsiveContainer 
+  ResponsiveContainer
 } from 'recharts';
 import PeopleIcon from '@mui/icons-material/People';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
-import BarChartIcon from '@mui/icons-material/BarChart';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import { checkAuthStatus, getUserRole, refreshToken } from '../../utils/auth';
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +33,6 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [matiereStats, setMatiereStats] = useState([]);
   const [gradeDistribution, setGradeDistribution] = useState([]);
-  const [attendanceData, setAttendanceData] = useState([]);
   const [selectedMatiere, setSelectedMatiere] = useState('');
   const [matieres, setMatieres] = useState([]);
   const navigate = useNavigate();
@@ -46,7 +43,7 @@ const TeacherDashboard = () => {
     const checkAuth = async () => {
       const user = await checkAuthStatus();
       if (!user || getUserRole() !== 'teacher') {
-        navigate('/login'); // Redirect to login if not authenticated or not a teacher
+        navigate('/login');
       }
     };
 
@@ -64,7 +61,7 @@ const TeacherDashboard = () => {
         if (matieresData.success) {
           setMatieres(matieresData.matieres);
           if (matieresData.matieres.length > 0) {
-            setSelectedMatiere(matieresData.matieres[0].id); // Set the first matiere as default
+            setSelectedMatiere(matieresData.matieres[0].id);
           }
         }
       } catch (error) {
@@ -84,7 +81,7 @@ const TeacherDashboard = () => {
     }
   }, [selectedMatiere]);
 
-  // Fetch statistics, grade distribution, and attendance for the selected matiere
+  // Fetch statistics and grade distribution for the selected matiere
   const fetchMatiereData = async (matiereId) => {
     setLoading(true);
     try {
@@ -116,27 +113,8 @@ const TeacherDashboard = () => {
         setGradeDistribution(gradeData.grade_distribution);
       }
 
-      // Fetch weekly attendance for the selected matiere
-      const attendanceResponse = await fetchWithTokenRefresh(
-        `http://localhost:8000/api/teacher/weekly-attendance/?matiere_id=${matiereId}`
-      );
-      const attendanceData = await attendanceResponse.json();
-
-      if (!attendanceResponse.ok) {
-        throw new Error(attendanceData.message || 'Erreur lors de la récupération des données de présence');
-      }
-
-      if (attendanceData.success) {
-        setAttendanceData(attendanceData.attendance_data);
-      }
     } catch (error) {
       console.error('Error fetching matiere data:', error);
-      // @ts-ignore
-      setSnackbar({
-        open: true,
-        message: error.message || 'Une erreur est survenue',
-        severity: 'error',
-      });
     } finally {
       setLoading(false);
     }
@@ -220,12 +198,12 @@ const TeacherDashboard = () => {
       {/* Matiere Filter */}
       <Box sx={{ mb: 4 }}>
         <FormControl sx={{ minWidth: 250 }}>
-          <InputLabel id="matiere-filter-label">Filtrer par Matière</InputLabel>
+          <InputLabel id="matiere-filter-label">Sélectionner une Matière</InputLabel>
           <Select
             labelId="matiere-filter-label"
             value={selectedMatiere}
             onChange={handleMatiereChange}
-            label="Filtrer par Matière"
+            label="Sélectionner une Matière"
           >
             {matieres.map((matiere) => (
               <MenuItem key={matiere.id} value={matiere.id}>
@@ -270,68 +248,45 @@ const TeacherDashboard = () => {
 
       {/* Main Content */}
       <Grid container spacing={4}>
-        {/* Attendance Chart */}
-        <Grid item xs={12} md={8}>
-          <Card elevation={2} sx={{ p: 1 }}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <BarChartIcon sx={{ mr: 1, color: "primary.main" }} />
-                <Typography variant="h6" fontWeight="medium">
-                  Assiduité de la Semaine
-                </Typography>
-              </Box>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ height: 320 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={attendanceData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                    <XAxis dataKey="day" tick={{ fill: theme.palette.text.secondary }} />
-                    <YAxis tick={{ fill: theme.palette.text.secondary }} />
-                    <Tooltip
-                      contentStyle={{ 
-                        backgroundColor: theme.palette.background.paper,
-                        borderColor: theme.palette.divider,
-                        color: theme.palette.text.primary
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="present" fill="#4CAF50" name="Présents" />
-                    <Bar dataKey="absent" fill="#F44336" name="Absents" />
-                    <Bar dataKey="late" fill="#FFC107" name="Retards" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
         {/* Grade Distribution */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12}>
           <Card elevation={2} sx={{ p: 1 }}>
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <AssessmentIcon sx={{ mr: 1, color: "primary.main" }} />
                 <Typography variant="h6" fontWeight="medium">
-                  Distribution des Notes
+                  Distribution des Notes - {matieres.find(m => m.id === selectedMatiere)?.nom || ''}
                 </Typography>
               </Box>
               <Divider sx={{ mb: 2 }} />
               <Box sx={{ height: 320 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={gradeDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                    <XAxis dataKey="range" tick={{ fill: theme.palette.text.secondary }} />
-                    <YAxis tick={{ fill: theme.palette.text.secondary }} />
-                    <Tooltip
-                      contentStyle={{ 
-                        backgroundColor: theme.palette.background.paper,
-                        borderColor: theme.palette.divider,
-                        color: theme.palette.text.primary
-                      }}
-                    />
-                    <Bar dataKey="count" fill={theme.palette.primary.main} name="Nombre d'élèves" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {gradeDistribution.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={gradeDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                      <XAxis dataKey="range" tick={{ fill: theme.palette.text.secondary }} />
+                      <YAxis tick={{ fill: theme.palette.text.secondary }} />
+                      <Tooltip
+                        contentStyle={{ 
+                          backgroundColor: theme.palette.background.paper,
+                          borderColor: theme.palette.divider,
+                          color: theme.palette.text.primary
+                        }}
+                      />
+                      <Bar dataKey="count" fill={theme.palette.primary.main} name="Nombre d'élèves" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    height: '100%',
+                    color: theme.palette.text.secondary
+                  }}>
+                    Aucune donnée disponible pour cette matière
+                  </Box>
+                )}
               </Box>
             </CardContent>
           </Card>

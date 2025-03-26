@@ -87,6 +87,7 @@ class AlerteSerializer(serializers.ModelSerializer):
 
 
 class RecommandationSerializer(serializers.ModelSerializer):
+    date_creation = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%SZ")
     class Meta:
         model = Recommandation
         fields = '__all__'

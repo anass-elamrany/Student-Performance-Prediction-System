@@ -46,10 +46,10 @@ const Profile = () => {
   });
   
   const theme = useTheme();
-  // Teacher theme color according to roleColors in your getDesignTokens
-  const teacherColor = "#4caf50"; // Green for teacher
+  // Couleur de thème pour l'enseignant
+  const teacherColor = "#4caf50"; // Vert pour l'enseignant
 
-  // Fetch teacher's data on component mount
+  // Récupérer les données de l'enseignant au montage du composant
   useEffect(() => {
     fetchTeacherData();
   }, []);
@@ -66,15 +66,15 @@ const Profile = () => {
   
       if (response.ok) {
         const data = await response.json();
-        console.log("Backend Response:", data);
+        console.log("Réponse du backend :", data);
         setTeacher(data.data);
       } else {
-        throw new Error("Failed to fetch profile data");
+        throw new Error("Échec de la récupération des données de profil");
       }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error.message || "Failed to fetch profile data",
+        message: error.message || "Échec de la récupération des données de profil",
         severity: "error",
       });
     } finally {
@@ -86,7 +86,7 @@ const Profile = () => {
     if (password !== confirmPassword) {
       setSnackbar({
         open: true,
-        message: "Passwords do not match",
+        message: "Les mots de passe ne correspondent pas",
         severity: "error",
       });
       return;
@@ -95,7 +95,7 @@ const Profile = () => {
     if (password.length < 8) {
       setSnackbar({
         open: true,
-        message: "Password must be at least 8 characters long",
+        message: "Le mot de passe doit comporter au moins 8 caractères",
         severity: "warning",
       });
       return;
@@ -114,13 +114,13 @@ const Profile = () => {
       if (response.ok) {
         setSnackbar({
           open: true,
-          message: "Password updated successfully",
+          message: "Mot de passe mis à jour avec succès",
           severity: "success",
         });
         setPassword("");
         setConfirmPassword("");
       } else {
-        throw new Error("Failed to update password");
+        throw new Error("Échec de la mise à jour du mot de passe");
       }
     } catch (error) {
       setSnackbar({
@@ -169,7 +169,7 @@ const Profile = () => {
               color: teacherColor 
             }}
           >
-            Profile
+            Profil
           </Typography>
         </Box>
         <Typography 
@@ -178,13 +178,13 @@ const Profile = () => {
           gutterBottom
           sx={{ ml: 0.5 }}
         >
-          View and update your personal information
+          Consultez et mettez à jour vos informations personnelles
         </Typography>
         <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
 
       <Grid container spacing={3}>
-        {/* Personal Information Section */}
+        {/* Section Informations Personnelles */}
         <Grid item xs={12} md={6}>
           <Card 
             sx={{ 
@@ -216,13 +216,13 @@ const Profile = () => {
                 }}
               >
                 <Person sx={{ mr: 1, color: teacherColor }} />
-                Personal Information
+                Informations Personnelles
               </Typography>
               
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField
-                    label="First Name"
+                    label="Prénom"
                     value={teacher.first_name}
                     fullWidth
                     disabled
@@ -246,7 +246,7 @@ const Profile = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
-                    label="Last Name"
+                    label="Nom"
                     value={teacher.last_name}
                     fullWidth
                     disabled
@@ -294,7 +294,7 @@ const Profile = () => {
               />
               
               <TextField
-                label="Phone"
+                label="Téléphone"
                 value={teacher.phone}
                 fullWidth
                 disabled
@@ -318,7 +318,7 @@ const Profile = () => {
           </Card>
         </Grid>
 
-        {/* Change Password Section */}
+        {/* Section Changement de Mot de Passe */}
         <Grid item xs={12} md={6}>
           <Card 
             sx={{ 
@@ -354,12 +354,12 @@ const Profile = () => {
                 }}
               >
                 <Lock sx={{ mr: 1, color: teacherColor }} />
-                Change Password
+                Changer de Mot de Passe
               </Typography>
               
               <Box sx={{ p: 1 }}>
                 <TextField
-                  label="New Password"
+                  label="Nouveau Mot de Passe"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -373,7 +373,7 @@ const Profile = () => {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          aria-label="toggle password visibility"
+                          aria-label="Afficher/Masquer le mot de passe"
                           onClick={handleTogglePasswordVisibility}
                           edge="end"
                         >
@@ -396,7 +396,7 @@ const Profile = () => {
                 />
                 
                 <TextField
-                  label="Confirm Password"
+                  label="Confirmer le Mot de Passe"
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -410,7 +410,7 @@ const Profile = () => {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          aria-label="toggle confirm password visibility"
+                          aria-label="Afficher/Masquer le mot de passe de confirmation"
                           onClick={handleToggleConfirmPasswordVisibility}
                           edge="end"
                         >
@@ -432,11 +432,11 @@ const Profile = () => {
                   }}
                 />
                 
-                {/* Display a strength indicator if password is not empty */}
+                {/* Indicateur de force du mot de passe si le mot de passe n'est pas vide */}
                 {password && (
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-                      Password strength:
+                      Force du mot de passe :
                     </Typography>
                     <LinearProgress 
                       variant="determinate" 
@@ -459,9 +459,9 @@ const Profile = () => {
                       }}
                     />
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                      {password.length > 0 && password.length < 6 ? "Weak - Minimum 6 characters" :
-                      password.length >= 6 && password.length < 8 ? "Medium - Minimum 8 characters recommended" :
-                      password.length >= 8 && !/[A-Z]/.test(password) ? "Good - Add an uppercase letter for better security" : 
+                      {password.length > 0 && password.length < 6 ? "Faible - Minimum 6 caractères" :
+                      password.length >= 6 && password.length < 8 ? "Moyen - Minimum 8 caractères recommandés" :
+                      password.length >= 8 && !/[A-Z]/.test(password) ? "Bon - Ajoutez une majuscule pour plus de sécurité" : 
                       "Excellent"}
                     </Typography>
                   </Box>
@@ -488,12 +488,12 @@ const Profile = () => {
                     disabled={!password || !confirmPassword}
                     startIcon={<Save />}
                   >
-                    Update Password
+                    Mettre à Jour le Mot de Passe
                   </Button>
                 </Box>
                 
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: "block", textAlign: "center" }}>
-                  For optimal security, use at least 8 characters with uppercase, lowercase letters and numbers.
+                  Pour une sécurité optimale, utilisez au moins 8 caractères avec des lettres majuscules, minuscules et des chiffres.
                 </Typography>
               </Box>
             </CardContent>
@@ -501,7 +501,7 @@ const Profile = () => {
         </Grid>
       </Grid>
 
-      {/* Snackbar for Notifications */}
+      {/* Snackbar pour les Notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

@@ -4,9 +4,47 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Avg, Count, F
+from django.db.models.functions import TruncMonth
 from django.db import IntegrityError
 from datetime import datetime, timedelta
 import json
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from .models import Utilisateur, Matiere, Note
+from .serializers import MatiereSerializer, NoteSerializer
+import csv
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from django.db.models import Avg, Count, Sum
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .models import Matiere, Note, Alerte, Recommandation
+from .serializers import MatiereSerializer, NoteSerializer, AlerteSerializer, RecommandationSerializer
+import logging
+from django.db.models import Avg, Max
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .models import Matiere, Note
+import logging
+from django.contrib.auth import authenticate, login, logout
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .ml_utils import classify_students, generate_risk_alerts, generate_recommendations_for_class
+from .models import Alerte, Recommandation
 from .models import Utilisateur, Classe, Note, Performance, Alerte, Recommandation, Matiere
 from .serializers import MatiereSerializer, UtilisateurSerializer, ClasseSerializer, NoteSerializer
 from django.db.models import Avg, Count, Sum, Max, Case, When, Value
@@ -17,6 +55,50 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.shortcuts import render
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import Recommandation
+from django.shortcuts import render
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.db.models import Avg
+from datetime import datetime, timedelta
+from .models import (
+    Utilisateur, Classe, Matiere, Note, Performance, 
+    Alerte, Recommandation
+)
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .models import Note
+
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .models import Note
+from .serializers import NoteSerializer
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .ml_utils import classify_students, generate_risk_alerts, generate_recommendations_for_class
+from .models import Alerte, Recommandation
+import csv
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Matiere, Classe, Utilisateur
+from django.db.models import Avg, Count, Q
+from collections import defaultdict
+import datetime
+
+
+
+
 
 # Helper Functions
 def get_user_info_by_role(user):
@@ -110,6 +192,106 @@ def get_user_info(request):
             'message': 'Rôle utilisateur inconnu'
         }, status=403)
 
+
+from django.db.models import Avg, Count
+from django.db.models.functions import TruncMonth
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import Note, Performance, Matiere, Utilisateur
+
+@api_view(['GET'])
+def get_performance_trend(request):
+    """
+    Retrieve overall performance trend
+    """
+    # Calculate average performance by month
+    performance_data = Note.objects.annotate(
+        month=TruncMonth('date_ajout')
+    ).values('month').annotate(
+        average=Avg('note_module')
+    ).order_by('month')
+
+    # Transform data for frontend
+    chart_data = [
+        {
+            'month': entry['month'].strftime('%B %Y'),
+            'average': round(entry['average'], 2)
+        } for entry in performance_data
+    ]
+
+    return Response(chart_data)
+
+@api_view(['GET'])
+def get_attendance_rate(request):
+    """
+    Retrieve attendance rate data
+    """
+    # Calculate average attendance by month
+    attendance_data = Note.objects.annotate(
+        month=TruncMonth('date_ajout')
+    ).values('month').annotate(
+        rate=Avg('presence')
+    ).order_by('month')
+
+    # Transform data for frontend
+    chart_data = [
+        {
+            'month': entry['month'].strftime('%B %Y'),
+            'rate': round(entry['rate'], 2)
+        } for entry in attendance_data
+    ]
+
+    return Response(chart_data)
+
+@api_view(['GET'])
+def get_category_distribution(request):
+    """
+    Retrieve student performance category distribution
+    """
+    # Count students in each risk category
+    category_data = Performance.objects.values('categorie_risque').annotate(
+        count=Count('etudiant')
+    )
+
+    # Color mapping for categories
+    color_map = {
+        'Faible': '#F44336',  # Red
+        'Moyen': '#FFC107',   # Amber
+        'Bon': '#4CAF50',     # Green
+        'Excellent': '#2196F3'  # Blue
+    }
+
+    # Transform data for frontend
+    chart_data = [
+        {
+            'name': entry['categorie_risque'],
+            'value': entry['count'],
+            'color': color_map.get(entry['categorie_risque'], '#9C27B0')
+        } for entry in category_data
+    ]
+
+    return Response(chart_data)
+
+@api_view(['GET'])
+def get_subject_success_rate(request):
+    """
+    Retrieve success rate by subject
+    """
+    # Calculate success rate for each subject
+    subject_data = Matiere.objects.annotate(
+        success_rate=Avg('note__note_module')
+    ).values('nom', 'success_rate')
+
+    # Transform data for frontend
+    chart_data = [
+        {
+            'subject': entry['nom'],
+            'success_rate': round(entry['success_rate'], 2)
+        } for entry in subject_data
+    ]
+
+    return Response(chart_data)
+
 # Student Views
 @csrf_exempt
 def list_students(request):
@@ -182,11 +364,6 @@ def delete_student(request, id):
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
-import csv
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from .models import Utilisateur, Classe
 
 @csrf_exempt
 def import_students(request):
@@ -218,7 +395,6 @@ def import_students(request):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
     return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
-
 
 # Teacher Views
 @csrf_exempt
@@ -283,8 +459,6 @@ def delete_enseignant(request, id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-
-
 @csrf_exempt
 def import_enseignants(request):
     if request.method == 'POST' and request.FILES.get('file'):
@@ -329,6 +503,7 @@ def import_enseignants(request):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
     return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
+
 # Class Views
 @csrf_exempt
 def list_classes(request):
@@ -452,7 +627,6 @@ def delete_matiere(request, id):
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 
 
 #notes view
@@ -630,17 +804,20 @@ def admin_import_notes(request):
         reader = csv.DictReader(decoded_file)
 
         for row in reader:
+            print(f"Processing row: {row}")  # Debugging: Log each row
             matiere_id = row.get('matiere_id')
             etudiant_id = row.get('etudiant_id')
 
             # Check if the matiere exists
             matiere = Matiere.objects.filter(id=matiere_id).first()
             if not matiere:
+                print(f"Matiere not found: {matiere_id}")
                 continue
 
             # Check if the student exists
             etudiant = Utilisateur.objects.filter(id=etudiant_id, user_type='student').first()
             if not etudiant:
+                print(f"Student not found: {etudiant_id}")
                 continue
 
             # Create or update the Note
@@ -660,26 +837,11 @@ def admin_import_notes(request):
             'message': 'Notes importées avec succès'
         })
     except Exception as e:
+        print(f"Error: {e}")  # Debugging: Log the error
         return Response({
             'success': False,
             'message': str(e)
         }, status=400)
-
-
-
-
-
-
-
-
-
-
-
-import csv
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import Matiere, Classe, Utilisateur
 
 @csrf_exempt
 def import_matieres(request):
@@ -735,411 +897,127 @@ def import_matieres(request):
 
 
 # Machine Learning Views
+@csrf_exempt
+def classify_class_students(request):
+    """
+    Classifie tous les étudiants d'une classe spécifique
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            class_id = data.get('class_id')
+            
+            if not class_id:
+                return JsonResponse({'error': 'class_id is required'}, status=400)
+            
+            results = classify_students(class_id)
+            return JsonResponse({'students': results})
+        
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def get_class_alerts(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            class_id = data.get('class_id')
+            
+            if not class_id:
+                return JsonResponse({'error': 'class_id is required'}, status=400)
+            
+            alerts = generate_risk_alerts(class_id)
+            print(f"Generated alerts: {alerts}")  # Add this logging
+            
+            return JsonResponse({'alerts': alerts})
+        
+        except Exception as e:
+            print(f"Error in get_class_alerts: {str(e)}")  # Add this logging
+            return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def get_class_recommendations(request):
+    """
+    Récupère les recommandations pour une classe spécifique
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            class_id = data.get('class_id')
+            
+            if not class_id:
+                return JsonResponse({'error': 'class_id is required'}, status=400)
+            
+            recommendations = generate_recommendations_for_class(class_id)
+            
+            # Sauvegarder les recommandations en base de données
+            for rec in recommendations:
+                for detail in rec['recommendations']:
+                    # Find the corresponding subject if applicable
+                    matiere = None
+                    if detail.get('type') == 'matiere':
+                        try:
+                            matiere_name = detail['message'].split(' ')[-1]
+                            matiere = Matiere.objects.filter(nom__icontains=matiere_name).first()
+                        except:
+                            pass
+                    
+                    Recommandation.objects.create(
+                        etudiant_id=rec['student_id'],
+                        contenu=detail['message'],
+                        matiere=matiere
+                    )
+            
+            return JsonResponse({'recommendations': recommendations})
+        
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
-from .models import Note, Utilisateur, Performance, Alerte, Recommandation, Matiere
-from .ml_utils import train_classification_model, train_linear_regression_model
+from .ml_utils import classify_students, generate_risk_alerts
 
-# Helper function to get notes for a student up to a specific semester
-def get_notes_up_to_semester(student, subject_id, semester):
-    """
-    Récupère les notes d'un étudiant pour une matière jusqu'à un semestre donné.
-    """
-    return Note.objects.filter(
-        etudiant=student,
-        matiere_id=subject_id,
-        matiere__semestre__lte=semester  # Notes jusqu'au semestre spécifié
-    )
-
-# Predict student performance
 @csrf_exempt
-def predict_student_performance(request):
-    """
-    Vue pour prédire la performance des étudiants pour une matière dans un semestre donné.
-    """
+def class_dashboard(request):
+    """Endpoint principal avec les 3 catégories"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            class_id = data['class_id']
-            semester = data['semester']
-            subject_id = data['subject_id']
-
-            # Exclure le semestre 1
-            if semester == 1:
-                return JsonResponse({'error': 'La prédiction n\'est pas disponible pour le semestre 1.'}, status=400)
-
-            # Récupérer les étudiants de la classe
-            students = Utilisateur.objects.filter(classe_id=class_id, user_type='student')
-
-            # Récupérer les notes des étudiants pour la matière et les semestres précédents
-            predictions = []
-            for student in students:
-                notes = get_notes_up_to_semester(student, subject_id, semester)
-                if notes.exists():
-                    # Préparer les données pour la prédiction
-                    X = [[note.note_module, note.note_devoir_projet, note.assiduite, note.presence] for note in notes]
-                    # Entraîner le modèle
-                    model = train_linear_regression_model()
-                    # Faire une prédiction
-                    predicted_score = model.predict([X[-1]])[0]  # Utiliser les dernières données
-                    predictions.append({
-                        'student_id': student.id,
-                        'student_name': f"{student.first_name} {student.last_name}",
-                        'predicted_score': round(predicted_score, 2),
-                    })
-
-            return JsonResponse({'predictions': predictions})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
-
-# Classify student performance
-@csrf_exempt
-def classify_students(request):
-    """
-    Vue pour classifier les étudiants en fonction de leurs performances dans une matière et un semestre donnés.
-    """
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            class_id = data['class_id']
-            semester = data['semester']
-            subject_id = data['subject_id']
-
-            # Exclure le semestre 1
-            if semester == 1:
-                return JsonResponse({'error': 'La classification n\'est pas disponible pour le semestre 1.'}, status=400)
-
-            # Récupérer les étudiants de la classe
-            students = Utilisateur.objects.filter(classe_id=class_id, user_type='student')
-
-            # Récupérer les notes des étudiants pour la matière et les semestres précédents
-            results = []
-            for student in students:
-                notes = get_notes_up_to_semester(student, subject_id, semester)
-                if notes.exists():
-                    # Préparer les données pour la classification
-                    X = [[note.note_module, note.note_devoir_projet, note.assiduite, note.presence] for note in notes]
-                    # Entraîner le modèle
-                    model = train_classification_model()
-                    # Faire une prédiction
-                    prediction = model.predict([X[-1]])[0]  # Utiliser les dernières données
-                    results.append({
-                        'student_id': student.id,
-                        'student_name': f"{student.first_name} {student.last_name}",
-                        'performance_category': prediction,
-                    })
-
-            return JsonResponse({'results': results})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
-
-# Generate alerts for at-risk students
-@csrf_exempt
-def generate_alerts(request):
-    """
-    Vue pour générer des alertes pour les étudiants à risque dans une matière et un semestre donnés.
-    """
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            class_id = data['class_id']
-            semester = data['semester']
-            subject_id = data['subject_id']
-
-            # Exclure le semestre 1
-            if semester == 1:
-                return JsonResponse({'error': 'Les alertes ne sont pas disponibles pour le semestre 1.'}, status=400)
-
-            # Récupérer les étudiants de la classe
-            students = Utilisateur.objects.filter(classe_id=class_id, user_type='student')
-
-            # Récupérer les notes des étudiants pour la matière et les semestres précédents
-            alerts = []
-            for student in students:
-                notes = get_notes_up_to_semester(student, subject_id, semester)
-                if notes.exists():
-                    # Préparer les données pour la classification
-                    X = [[note.note_module, note.note_devoir_projet, note.assiduite, note.presence] for note in notes]
-                    # Entraîner le modèle
-                    model = train_classification_model()
-                    # Faire une prédiction
-                    prediction = model.predict([X[-1]])[0]  # Utiliser les dernières données
-
-                    # Générer une alerte si l'étudiant est à risque
-                    if prediction == 'À risque':
-                        message = f"L'étudiant {student.first_name} {student.last_name} est à risque dans cette matière."
-                        alerts.append({
-                            'student_id': student.id,
-                            'student_name': f"{student.first_name} {student.last_name}",
-                            'performance_category': prediction,
-                            'message': message,
-                        })
-
-                        # Enregistrer l'alerte dans la base de données
-                        Alerte.objects.create(
-                            etudiant=student,
-                            message=message,
-                        )
-
-            return JsonResponse({'alerts': alerts})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
-
-# Generate recommendations for students
-@csrf_exempt
-def generate_recommendations(request):
-    """
-    Vue pour générer des recommandations de cours ou de parcours pour les étudiants.
-    """
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            class_id = data['class_id']
-            semester = data['semester']
-            subject_id = data['subject_id']
-
-            # Restreindre les recommandations au semestre 4
-            if semester != 4:
-                return JsonResponse({'error': 'Les recommandations ne sont disponibles que pour le semestre 4.'}, status=400)
-
-            # Récupérer les étudiants de la classe
-            students = Utilisateur.objects.filter(classe_id=class_id, user_type='student')
-
-            # Récupérer les notes des étudiants pour la matière et les semestres précédents
-            recommendations = []
-            for student in students:
-                notes = get_notes_up_to_semester(student, subject_id, semester)
-                if notes.exists():
-                    # Préparer les données pour la classification
-                    X = [[note.note_module, note.note_devoir_projet, note.assiduite, note.presence] for note in notes]
-                    # Entraîner le modèle
-                    model = train_classification_model()
-                    # Faire une prédiction
-                    prediction = model.predict([X[-1]])[0]  # Utiliser les dernières données
-
-                    # Générer une recommandation si l'étudiant est à risque ou en moyenne performance
-                    if prediction in ['À risque', 'Moyenne performance']:
-                        # Récupérer les matières disponibles pour l'étudiant
-                        matieres = Matiere.objects.filter(classe=student.classe, semestre=semester)
-                        for matiere in matieres:
-                            message = f"Nous vous recommandons de suivre le cours de {matiere.nom} pour améliorer vos performances."
-                            recommendations.append({
-                                'student_id': student.id,
-                                'student_name': f"{student.first_name} {student.last_name}",
-                                'performance_category': prediction,
-                                'message': message,
-                            })
-
-                            # Enregistrer la recommandation dans la base de données
-                            Recommandation.objects.create(
-                                etudiant=student,
-                                matiere=matiere,
-                                contenu=message,
-                            )
-
-            return JsonResponse({'recommendations': recommendations})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
-
-
-
-# Fetch Matières by Class and Semester
-@csrf_exempt
-def get_matieres_by_class_semester(request):
-    """
-    Fetch matières for a specific class and semester.
-    """
-    if request.method == 'GET':
-        classe_id = request.GET.get('classe_id')
-        semestre = request.GET.get('semestre')
-        
-        if not classe_id or not semestre:
-            return JsonResponse({'error': 'classe_id and semestre are required'}, status=400)
-        
-        matieres = Matiere.objects.filter(classe_id=classe_id, semestre=semestre)
-        serializer = MatiereSerializer(matieres, many=True)
-        return JsonResponse(serializer.data, safe=False)
-
-# Fetch Attendance Data
-@csrf_exempt
-def get_attendance_data(request):
-    if request.method == 'GET':
-        classe_id = request.GET.get('classe_id')
-        semestre = request.GET.get('semestre')
-        
-        if not classe_id or not semestre:
-            return JsonResponse({'error': 'classe_id and semestre are required'}, status=400)
-        
-        # Calculate attendance rate for each student
-        students = Utilisateur.objects.filter(classe_id=classe_id, user_type='student')
-        attendance_data = []
-        
-        for student in students:
-            notes = Note.objects.filter(etudiant=student, matiere__semestre=semestre)
-            total_presence = notes.aggregate(total_presence=Sum('presence'))['total_presence'] or 0
-            total_sessions = notes.count() * 100  # Assuming 100 is the max presence per session
+            class_id = data.get('class_id')
             
-            attendance_rate = (total_presence / total_sessions) * 100 if total_sessions > 0 else 0
-            attendance_data.append({
-                'student_id': student.id,
-                'student_name': f"{student.first_name} {student.last_name}",
-                'attendance_rate': round(attendance_rate, 2),
-            })
-        
-        return JsonResponse({'attendance_data': attendance_data})
-# Fetch Summary Stats
-@csrf_exempt
-def get_summary_stats(request):
-    """
-    Fetch summary statistics for a specific class and semester.
-    """
-    if request.method == 'GET':
-        classe_id = request.GET.get('classe_id')
-        semestre = request.GET.get('semestre')
-        
-        if not classe_id or not semestre:
-            return JsonResponse({'error': 'classe_id and semestre are required'}, status=400)
-        
-        # Calculate average performance
-        notes = Note.objects.filter(matiere__classe_id=classe_id, matiere__semestre=semestre)
-        average_performance = notes.aggregate(avg_performance=Avg('note_module'))['avg_performance'] or 0
-        
-        # Calculate success rate
-        success_rate = notes.filter(note_module__gte=10).count() / notes.count() * 100 if notes.count() > 0 else 0
-        
-        # Calculate at-risk students
-        at_risk_students = notes.filter(note_module__lt=10).values('etudiant').distinct().count()
-        
-        # Calculate attendance rate
-        total_presence = notes.aggregate(total_presence=Sum('presence'))['total_presence'] or 0
-        total_sessions = notes.count() * 100  # Assuming 100 is the max presence per session
-        attendance_rate = (total_presence / total_sessions) * 100 if total_sessions > 0 else 0
-        
-        return JsonResponse({
-            'average_performance': round(average_performance, 2),
-            'success_rate': round(success_rate, 2),
-            'at_risk_students': at_risk_students,
-            'attendance_rate': round(attendance_rate, 2),
-        })
-    
-# Fetch Subjects Performance Data
-@csrf_exempt
-def get_subjects_performance(request):
-    """
-    Fetch subjects performance data.
-    """
-    if request.method == 'GET':
-        try:
-            # Calculate success rate for each subject
-            matieres = Matiere.objects.all()
-            subjects_performance = []
+            if not class_id:
+                return JsonResponse({'error': 'class_id is required'}, status=400)
             
-            for matiere in matieres:
-                notes = Note.objects.filter(matiere=matiere)
-                total_students = notes.count()
-                if total_students > 0:
-                    success_rate = notes.filter(note_module__gte=10).count() / total_students * 100
-                    subjects_performance.append({
-                        'subject': matiere.nom,
-                        'success_rate': round(success_rate, 2),
-                    })
+            classification = classify_students(class_id)
             
-            return JsonResponse({'subjects_performance': subjects_performance})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
-
-# Fetch Attendance Data (Global)
-@csrf_exempt
-def get_global_attendance(request):
-    """
-    Fetch global attendance data.
-    """
-    if request.method == 'GET':
-        try:
-            # Calculate attendance rate for all students
-            students = Utilisateur.objects.filter(user_type='student')
-            attendance_data = []
+            stats = {
+                'average_score': sum(s.get('average_score', 0) for s in classification) / len(classification) if classification else 0,
+                'at_risk_count': sum(1 for s in classification if s['performance_category'] == 'À risque'),
+                'good_performers': sum(1 for s in classification if s['performance_category'] == 'Bon performeur'),
+                'total_students': len(classification)
+            }
             
-            for student in students:
-                notes = Note.objects.filter(etudiant=student)
-                total_presence = notes.aggregate(total_presence=Sum('presence'))['total_presence'] or 0
-                total_sessions = notes.count() * 100  # Assuming 100 is the max presence per session
-                
-                attendance_rate = (total_presence / total_sessions) * 100 if total_sessions > 0 else 0
-                attendance_data.append({
-                    'student_id': student.id,
-                    'student_name': f"{student.first_name} {student.last_name}",
-                    'attendance_rate': round(attendance_rate, 2),
-                })
-            
-            return JsonResponse({'attendance_data': attendance_data})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
-
-# Fetch Global Summary Stats
-@csrf_exempt
-def get_global_summary_stats(request):
-    """
-    Fetch global summary statistics.
-    """
-    if request.method == 'GET':
-        try:
-            # Calculate average performance
-            notes = Note.objects.all()
-            average_performance = notes.aggregate(avg_performance=Avg('note_module'))['avg_performance'] or 0
-            
-            # Calculate success rate
-            success_rate = notes.filter(note_module__gte=10).count() / notes.count() * 100 if notes.count() > 0 else 0
-            
-            # Calculate at-risk students
-            at_risk_students = notes.filter(note_module__lt=10).values('etudiant').distinct().count()
-            
-            # Calculate attendance rate
-            total_presence = notes.aggregate(total_presence=Sum('presence'))['total_presence'] or 0
-            total_sessions = notes.count() * 100  # Assuming 100 is the max presence per session
-            attendance_rate = (total_presence / total_sessions) * 100 if total_sessions > 0 else 0
+            alerts = generate_risk_alerts(class_id)
             
             return JsonResponse({
-                'average_performance': round(average_performance, 2),
-                'success_rate': round(success_rate, 2),
-                'at_risk_students': at_risk_students,
-                'attendance_rate': round(attendance_rate, 2),
+                'classification': classification,
+                'statistics': stats,
+                'alerts': alerts
             })
+            
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({'error': str(e)}, status=500)
+    
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
 
 
 
-
-
-
-
-
-
-
-
-
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework.authentication import SessionAuthentication, TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-from .models import Utilisateur, Matiere, Note
-from .serializers import MatiereSerializer, NoteSerializer
-import csv
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-
+#teacher dashboard
 # Get Matieres for the logged-in teacher
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
@@ -1393,13 +1271,7 @@ def get_teacher_classes(request):
         'classes': serializer.data
     })
 
-from django.db.models import Avg, Max
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
-from .models import Matiere, Note
-import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -1455,7 +1327,6 @@ def get_teacher_statistics(request):
             'message': 'Une erreur est survenue lors de la récupération des statistiques'
         }, status=500)
     
-
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -1493,52 +1364,6 @@ def get_grade_distribution(request):
         'grade_distribution': grade_distribution,
     })
 
-@api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def get_weekly_attendance(request):
-    if request.user.user_type != 'teacher':
-        return Response({
-            'success': False,
-            'message': 'Accès non autorisé'
-        }, status=403)
-
-    matiere_id = request.query_params.get('matiere_id')
-    if not matiere_id:
-        return Response({
-            'success': False,
-            'message': 'matiere_id est requis'
-        }, status=400)
-
-    matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
-    if not matiere:
-        return Response({
-            'success': False,
-            'message': 'Matière non trouvée ou accès non autorisé'
-        }, status=404)
-
-    # Mock attendance data (replace with actual logic)
-    attendance_data = [
-        {'day': 'Lun', 'present': 24, 'absent': 3, 'late': 2},
-        {'day': 'Mar', 'present': 22, 'absent': 5, 'late': 2},
-        {'day': 'Mer', 'present': 25, 'absent': 1, 'late': 3},
-        {'day': 'Jeu', 'present': 24, 'absent': 2, 'late': 3},
-        {'day': 'Ven', 'present': 20, 'absent': 7, 'late': 2},
-    ]
-
-    return Response({
-        'success': True,
-        'attendance_data': attendance_data,
-    })
-
-from django.db.models import Avg, Count, Sum
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
-from .models import Matiere, Note, Alerte, Recommandation
-from .serializers import MatiereSerializer, NoteSerializer, AlerteSerializer, RecommandationSerializer
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -1546,41 +1371,68 @@ logger = logging.getLogger(__name__)
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def get_teacher_alerts(request):
+    """
+    Vue pour récupérer les alertes pour une matière spécifique
+    Retourne les étudiants à risque avec leurs informations
+    """
     try:
         matiere_id = request.query_params.get('matiere_id')
         if not matiere_id:
             return Response({
                 'success': False,
-                'message': 'matiere_id is required'
+                'message': 'Le paramètre matiere_id est requis'
             }, status=400)
 
-        # Fetch alerts for the specified matiere
+        # Vérifier que l'enseignant a accès à cette matière
+        matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+        if not matiere:
+            return Response({
+                'success': False,
+                'message': 'Matière non trouvée ou accès non autorisé'
+            }, status=404)
+
+        # Récupérer les alertes pour cette matière
         alerts = Alerte.objects.filter(matiere_id=matiere_id).select_related('etudiant')
+        
         alerts_data = []
         for alert in alerts:
+            # Calculer la moyenne de l'étudiant dans cette matière
+            avg_score = Note.objects.filter(
+                matiere_id=matiere_id,
+                etudiant=alert.etudiant
+            ).aggregate(avg_score=Avg('note_module'))['avg_score'] or 0
+
             alerts_data.append({
-                'id': alert.id,
-                'message': alert.message,
                 'student_id': alert.etudiant.id,
-                'student_name': f"{alert.etudiant.first_name} {alert.etudiant.last_name}",  # Add student name
+                'student_name': f"{alert.etudiant.first_name} {alert.etudiant.last_name}",
+                'message': alert.message,
+                'performance_category': 'À risque',  # Comme c'est une alerte
+                'average_score': round(float(avg_score), 2),
+                'matiere_id': matiere_id,
+                'matiere_name': matiere.nom
             })
 
         return Response({
             'success': True,
             'alerts': alerts_data
         })
+
     except Exception as e:
-        logger.error(f"Error in get_teacher_alerts: {str(e)}", exc_info=True)
+        logger.error(f"Erreur dans get_teacher_alerts: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'message': 'An error occurred while fetching alerts'
+            'message': 'Une erreur est survenue lors de la récupération des alertes'
         }, status=500)
-
 # Fetch Classifications for Teacher's Matières
+
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def get_teacher_classifications(request):
+    """
+    Vue pour récupérer les classifications des étudiants par matière
+    Utilise les mêmes catégories que votre ML (À risque, Moyenne performance, Bon performeur)
+    """
     try:
         if request.user.user_type != 'teacher':
             return Response({
@@ -1588,81 +1440,65 @@ def get_teacher_classifications(request):
                 'message': 'Accès non autorisé'
             }, status=403)
 
-        # Fetch matières taught by the teacher
-        matieres = Matiere.objects.filter(enseignant=request.user)
-        classifications = Note.objects.filter(matiere__in=matieres).select_related('etudiant').values('etudiant').annotate(
-            average_grade=Avg('note_module'),
+        matiere_id = request.query_params.get('matiere_id')
+        if not matiere_id:
+            return Response({
+                'success': False,
+                'message': 'Le paramètre matiere_id est requis'
+            }, status=400)
+
+        # Vérifier que l'enseignant a accès à cette matière
+        matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+        if not matiere:
+            return Response({
+                'success': False,
+                'message': 'Matière non trouvée ou accès non autorisé'
+            }, status=404)
+
+        # Récupérer les étudiants et leurs moyennes pour cette matière
+        classifications = Note.objects.filter(
+            matiere_id=matiere_id
+        ).values('etudiant').annotate(
+            average_score=Avg('note_module'),
             performance_category=Case(
-                When(average_grade__gte=16, then=Value('Excellent')),
-                When(average_grade__gte=12, then=Value('Good')),
-                When(average_grade__gte=10, then=Value('Average')),
-                default=Value('At Risk'),
+                When(average_score__gte=16, then=Value('Bon performeur')),
+                When(average_score__gte=12, then=Value('Moyenne performance')),
+                default=Value('À risque'),
             )
         )
+
+        # Récupérer les informations des étudiants
         classifications_data = []
         for classification in classifications:
             student = Utilisateur.objects.get(id=classification['etudiant'])
             classifications_data.append({
                 'student_id': student.id,
-                'student_name': f"{student.first_name} {student.last_name}",  # Add student name
+                'student_name': f"{student.first_name} {student.last_name}",
                 'performance_category': classification['performance_category'],
+                'average_score': round(classification['average_score'], 2),
+                'matiere_id': matiere_id,
+                'matiere_name': matiere.nom
             })
 
         return Response({
             'success': True,
             'classifications': classifications_data
         })
+
     except Exception as e:
-        logger.error(f"Error in get_teacher_classifications: {str(e)}", exc_info=True)
+        logger.error(f"Erreur dans get_teacher_classifications: {str(e)}", exc_info=True)
         return Response({
             'success': False,
             'message': 'Une erreur est survenue lors de la récupération des classifications'
         }, status=500)
-    
 
-# Fetch Predictions for Teacher's Matières
-@api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def get_teacher_predictions(request):
-    try:
-        if request.user.user_type != 'teacher':
-            return Response({
-                'success': False,
-                'message': 'Accès non autorisé'
-            }, status=403)
-
-        # Fetch matières taught by the teacher
-        matieres = Matiere.objects.filter(enseignant=request.user)
-        predictions = Note.objects.filter(matiere__in=matieres).select_related('etudiant').values('etudiant').annotate(
-            predicted_score=Avg('note_module') + F('note_devoir_projet') * 0.3
-        )
-        predictions_data = []
-        for prediction in predictions:
-            student = Utilisateur.objects.get(id=prediction['etudiant'])
-            predictions_data.append({
-                'student_id': student.id,
-                'student_name': f"{student.first_name} {student.last_name}",  # Add student name
-                'predicted_score': prediction['predicted_score'],
-            })
-
-        return Response({
-            'success': True,
-            'predictions': predictions_data
-        })
-    except Exception as e:
-        logger.error(f"Error in get_teacher_predictions: {str(e)}", exc_info=True)
-        return Response({
-            'success': False,
-            'message': 'Une erreur est survenue lors de la récupération des prédictions'
-        }, status=500)
-    
-
-# Fetch Recommendations for Teacher's Matières
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def get_teacher_recommendations(request):
+    """
+    Vue pour récupérer les recommandations par matière
+    """
     try:
         if request.user.user_type != 'teacher':
             return Response({
@@ -1670,36 +1506,54 @@ def get_teacher_recommendations(request):
                 'message': 'Accès non autorisé'
             }, status=403)
 
-        # Fetch matières taught by the teacher
-        matieres = Matiere.objects.filter(enseignant=request.user)
-        recommendations = Recommandation.objects.filter(matiere__in=matieres).select_related('etudiant')
-        recommendations_data = []
-        for recommendation in recommendations:
-            recommendations_data.append({
-                'id': recommendation.id,
-                'student_id': recommendation.etudiant.id,
-                'student_name': f"{recommendation.etudiant.first_name} {recommendation.etudiant.last_name}",  # Add student name
-                'message': recommendation.contenu,
+        matiere_id = request.query_params.get('matiere_id')
+        if not matiere_id:
+            return Response({
+                'success': False,
+                'message': 'Le paramètre matiere_id est requis'
+            }, status=400)
+
+        # Vérifier que l'enseignant a accès à cette matière
+        matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+        if not matiere:
+            return Response({
+                'success': False,
+                'message': 'Matière non trouvée ou accès non autorisé'
+            }, status=404)
+
+        # Récupérer les recommandations pour cette matière
+        recommendations = Recommandation.objects.filter(
+            matiere_id=matiere_id
+        ).select_related('etudiant')
+
+        # Organiser les recommandations par étudiant
+        recommendations_dict = {}
+        for rec in recommendations:
+            if rec.etudiant.id not in recommendations_dict:
+                recommendations_dict[rec.etudiant.id] = {
+                    'student_id': rec.etudiant.id,
+                    'student_name': f"{rec.etudiant.first_name} {rec.etudiant.last_name}",
+                    'recommendations': []
+                }
+            recommendations_dict[rec.etudiant.id]['recommendations'].append({
+                'message': rec.contenu,
+                'type': 'matiere' if rec.matiere else 'general'
             })
+
+        recommendations_data = list(recommendations_dict.values())
 
         return Response({
             'success': True,
             'recommendations': recommendations_data
         })
+
     except Exception as e:
-        logger.error(f"Error in get_teacher_recommendations: {str(e)}", exc_info=True)
+        logger.error(f"Erreur dans get_teacher_recommendations: {str(e)}", exc_info=True)
         return Response({
             'success': False,
             'message': 'Une erreur est survenue lors de la récupération des recommandations'
         }, status=500)
-    
 
-
-from django.contrib.auth import authenticate, login, logout
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.hashers import make_password
-import json
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
@@ -1760,20 +1614,10 @@ def update_teacher_password(request):
 
 
 
-#students
 
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
-from .models import Note
 
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
-from .models import Note
-from .serializers import NoteSerializer
+#students dahboard views
+
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
@@ -1793,25 +1637,12 @@ def get_student_notes(request):
         'notes': serializer.data
     })
 
-from django.shortcuts import render
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from django.db.models import Avg
-from datetime import datetime, timedelta
-from .models import (
-    Utilisateur, Classe, Matiere, Note, Performance, 
-    Alerte, Recommandation
-)
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def student_dashboard(request):
     """
-    API view for the student dashboard
-    Returns all the data needed for the student dashboard frontend
+    Improved version with better error handling and null checks
     """
-    # Check if the user is a student
     if not request.user.is_etudiant():
         return Response({
             'success': False,
@@ -1821,110 +1652,85 @@ def student_dashboard(request):
     student = request.user
     
     try:
-        # Calculate current average from all notes
-        notes = Note.objects.filter(etudiant=student)
-        current_average = notes.aggregate(Avg('note_module'))['note_module__avg'] or 0
-        
-        # Calculate attendance rate
-        total_presence = notes.aggregate(Avg('presence'))['presence__avg'] or 0
-        # Assuming that presence is stored as a percentage or can be converted to one
-        attendance_rate = total_presence
-        
-        # Get recent grades
-        recent_grades = []
-        recent_notes = notes.order_by('-date_ajout')[:3]  # Get 3 most recent notes
-        for note in recent_notes:
-            recent_grades.append({
-                'course': note.matiere.nom,
-                'grade': note.note_module,
-                'date': note.date_ajout.strftime('%d/%m/%Y')
-            })
-        
-        # Generate monthly performance data
-        monthly_performance = []
-        # Get the last 6 months
-        for i in range(5, -1, -1):
-            month_date = datetime.now() - timedelta(days=30 * i)
-            month_name = month_date.strftime('%b')  # Abbreviated month name
-            
-            # Get notes from this month
-            month_start = month_date.replace(day=1)
-            if i > 0:
-                next_month = month_date.replace(day=1) + timedelta(days=32)
-                month_end = next_month.replace(day=1) - timedelta(days=1)
-            else:
-                month_end = datetime.now()
-            
-            month_notes = notes.filter(
-                date_ajout__gte=month_start,
-                date_ajout__lte=month_end
-            )
-            month_avg = month_notes.aggregate(Avg('note_module'))['note_module__avg'] or 0
-            
-            monthly_performance.append({
-                'month': month_name,
-                'average': round(month_avg, 1)
-            })
-        
-        # Calculate subject performance
-        subject_performance = []
-        subjects = Matiere.objects.filter(note__etudiant=student).distinct()
-        for subject in subjects:
-            subject_notes = notes.filter(matiere=subject)
-            subject_avg = subject_notes.aggregate(Avg('note_module'))['note_module__avg'] or 0
-            
-            subject_performance.append({
-                'name': subject.nom,
-                'value': round(subject_avg, 1)
-            })
-        
-        # Get alerts and recommendations
-        notifications = []
-        alerts = Alerte.objects.filter(etudiant=student).order_by('-date_creation')
-        
-        for alert in alerts:
-            notifications.append({
-                'type': 'alert',
-                'message': alert.message
-            })
-        
-        recommendations = Recommandation.objects.filter(etudiant=student).order_by('-date_creation')
-        for recommendation in recommendations:
-            notifications.append({
-                'type': 'info',
-                'message': recommendation.contenu
-            })
-        
-        # Get upcoming assignments - This is not in your model, but you might want to add this
-        # For now, return empty list
-        upcoming_assignments = []
-        
-        # Response data
+        # Initialize default response structure
         data = {
             'success': True,
-            'name': f"{student.first_name} {student.last_name}",
-            'currentAverage': round(current_average, 1),
-            'attendanceRate': round(attendance_rate),  # Round to nearest integer
-            'upcomingAssignments': upcoming_assignments,
-            'recentGrades': recent_grades,
-            'monthlyPerformance': monthly_performance,
-            'subjectPerformance': subject_performance,
-            'notifications': notifications
+            'name': f"{student.first_name or ''} {student.last_name or ''}".strip(),
+            'currentAverage': 0.0,
+            'attendanceRate': 0,
+            'recentGrades': [],
+            'monthlyPerformance': [],
+            'subjectPerformance': [],
+            'notifications': []
         }
+
+        # Get all notes for the student
+        notes = Note.objects.filter(etudiant=student).select_related('matiere')
         
+        # 1. Calculate current average
+        if notes.exists():
+            avg_result = notes.aggregate(avg=Avg('note_module'))
+            data['currentAverage'] = round(float(avg_result['avg'] or 0), 1)
+            
+            # 2. Calculate attendance rate (assuming presence is percentage)
+            attendance_avg = notes.aggregate(avg=Avg('presence'))['avg']
+            data['attendanceRate'] = round(float(attendance_avg or 0))
+
+        # 3. Recent grades (last 3 notes)
+        recent_notes = notes.order_by('-date_ajout')[:3]
+        data['recentGrades'] = [{
+            'course': note.matiere.nom if note.matiere else 'Unknown',
+            'grade': note.note_module,
+            'date': note.date_ajout.strftime('%d/%m/%Y') if note.date_ajout else ''
+        } for note in recent_notes]
+
+        # 4. Monthly performance (last 6 months)
+        now = timezone.now()
+        monthly_performance = []
+        
+        for i in range(5, -1, -1):
+            month_start = now - timedelta(days=30*i)
+            month_end = month_start + timedelta(days=30)
+            
+            month_avg = notes.filter(
+                date_ajout__gte=month_start,
+                date_ajout__lte=month_end
+            ).aggregate(avg=Avg('note_module'))['avg'] or 0
+            
+            monthly_performance.append({
+                'month': month_start.strftime('%b'),
+                'average': round(float(month_avg), 1)
+            })
+        
+        data['monthlyPerformance'] = monthly_performance
+
+        # 5. Subject performance
+        subjects = Matiere.objects.filter(note__etudiant=student).distinct()
+        data['subjectPerformance'] = [{
+            'name': sub.nom,
+            'value': round(float(
+                notes.filter(matiere=sub).aggregate(avg=Avg('note_module'))['avg'] or 0
+            ), 1)
+        } for sub in subjects]
+
+        # 6. Notifications (alerts + recommendations)
+        alerts = Alerte.objects.filter(etudiant=student)
+        recommendations = Recommandation.objects.filter(etudiant=student)
+        
+        data['notifications'] = [
+            *[{'type': 'alert', 'message': a.message} for a in alerts],
+            *[{'type': 'info', 'message': r.contenu} for r in recommendations]
+        ]
+
         return Response(data)
     
     except Exception as e:
+        logger.error(f"Dashboard error for {student}: {str(e)}", exc_info=True)
         return Response({
             'success': False,
-            'message': f'Une erreur est survenue: {str(e)}'
-        }, status=500)  
-    
-from django.shortcuts import render
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from .models import Recommandation
+            'message': 'Une erreur est survenue lors du chargement du tableau de bord.'
+        }, status=500)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1978,34 +1784,31 @@ def student_alerts(request):
     API view for student's alerts
     Returns all alerts for the logged-in student
     """
-    if not request.user.is_etudiant():
-        return Response({
-            'success': False,
-            'message': 'Seuls les étudiants peuvent accéder à leurs alertes.'
-        }, status=403)
-    
     try:
+        # Check if user is a student using the new method from the model
+        if not request.user.is_etudiant():
+            return Response({
+                'success': False,
+                'message': 'Seuls les étudiants peuvent accéder à leurs alertes.'
+            }, status=403)
+        
         student = request.user
+        
+        # Updated query to match the frontend's expectation
         alerts = Alerte.objects.filter(etudiant=student).order_by('-date_creation')
         
         alerts_data = []
         for alert in alerts:
             matiere_data = None
-            if alert.matiere:
-                matiere_data = {
-                    'id': alert.matiere.id,
-                    'nom': alert.matiere.nom,
-                    'semestre': alert.matiere.get_semestre_display()
-                }
             
+            # Add support for priority (assuming you might want to add this later)
             alerts_data.append({
                 'id': alert.id,
-                'titre': alert.titre,
-                'contenu': alert.contenu,
-                'priorite': alert.get_priorite_display() if hasattr(alert, 'get_priorite_display') else alert.priorite,
-                'matiere': matiere_data,
-                'date_creation': alert.date_creation.strftime('%d/%m/%Y'),
-                'est_lu': alert.est_lu
+                'titre': 'Alerte',  # Default title if not provided in model
+                'contenu': alert.message,
+                'priorite': 'Normale',  # Default priority
+                'date_creation': alert.date_creation.strftime('%Y-%m-%dT%H:%M:%S'),  # ISO format
+                'matiere': matiere_data
             })
         
         return Response({
@@ -2018,8 +1821,12 @@ def student_alerts(request):
             'success': False,
             'message': f'Une erreur est survenue: {str(e)}'
         }, status=500)
-    
-
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Une erreur est survenue: {str(e)}'
+        }, status=500)
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
