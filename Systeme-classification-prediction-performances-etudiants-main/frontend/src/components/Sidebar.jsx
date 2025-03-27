@@ -90,6 +90,7 @@ const adminMenuItems = {
     { text: "Recommandations", icon: <ThumbUpOutlinedIcon />, path: "/admin/Recommendations" },
     { text: "PredictNotes", icon: <ThumbUpOutlinedIcon />, path: "/admin/PredictNotes" },
 
+
   ],
 };
 

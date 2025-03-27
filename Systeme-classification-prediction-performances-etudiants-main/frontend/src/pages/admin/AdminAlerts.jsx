@@ -1,89 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Typography,
-  Paper,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  CircularProgress,
-  Snackbar,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  ListItemIcon,
-  Divider,
-  useTheme
+  Box, Typography, Paper, Grid, FormControl, InputLabel, Select, MenuItem,
+  Button, CircularProgress, Snackbar, Alert, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Chip, Card, CardContent, List,
+  ListItem, ListItemIcon, Divider, useTheme, Link, Collapse, IconButton
 } from '@mui/material';
 import {
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  NotificationImportant as AlertIcon,
-  School as SchoolIcon
+  Warning as WarningIcon, CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon, NotificationImportant as AlertIcon,
+  School as SchoolIcon, ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 
 const STATUS_CONFIG = {
-  'À risque': {
-    color: '#F44336',
-    icon: <ErrorIcon />
-  },
-  'Moyenne performance': {
-    color: '#FFC107',
-    icon: <WarningIcon />
-  },
-  'Bon performeur': {
-    color: '#4CAF50',
-    icon: <CheckCircleIcon />
-  }
+  'À risque': { color: '#F44336', icon: <ErrorIcon /> },
+  'Moyenne performance': { color: '#FFC107', icon: <WarningIcon /> },
+  'Bon performeur': { color: '#4CAF50', icon: <CheckCircleIcon /> }
 };
 
 const AdminAlerts = () => {
-  // États
   const [selectedClass, setSelectedClass] = useState('');
   const [classes, setClasses] = useState([]);
   const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState({
-    classes: false,
-    alerts: false
-  });
-  const [notification, setNotification] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
-  const [dataStatus, setDataStatus] = useState({
-    hasData: false,
-    isLoading: false,
-    error: null
-  });
+  const [expandedStudent, setExpandedStudent] = useState(null);
+  const [loading, setLoading] = useState({ classes: false, alerts: false });
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const [dataStatus, setDataStatus] = useState({ hasData: false, isLoading: false, error: null });
 
   const theme = useTheme();
+  const API_ENDPOINTS = { CLASSES: '/api/classes/', ALERTS: '/api/ml/class-alerts/' };
 
-  // Constantes
-  const API_ENDPOINTS = {
-    CLASSES: '/api/classes/',
-    ALERTS: '/api/ml/class-dashboard/'
-  };
+  useEffect(() => { fetchClasses(); }, []);
 
-  // Effets
-  useEffect(() => {
-    fetchClasses();
-  }, []);
-
-  // Méthodes
   const fetchClasses = async () => {
     setLoading(prev => ({ ...prev, classes: true }));
     try {
@@ -109,9 +56,7 @@ const AdminAlerts = () => {
     try {
       const response = await fetch(API_ENDPOINTS.ALERTS, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ class_id: selectedClass }),
       });
 
@@ -121,27 +66,19 @@ const AdminAlerts = () => {
       }
       
       const result = await response.json();
-      const alerts = result.alerts || [];
-      const hasData = alerts.length > 0;
+      const hasData = result.alerts && result.alerts.length > 0;
       
-      setAlerts(alerts);
+      setAlerts(result.alerts || []);
       setDataStatus({
         hasData,
         isLoading: false,
         error: hasData ? null : 'Aucune alerte générée (pas de notes disponibles?)'
       });
       
-      showNotification(hasData 
-        ? `${alerts.length} alertes générées` 
-        : 'Aucune alerte générée');
-        
+      showNotification(hasData ? `${result.alerts.length} alertes générées` : 'Aucune alerte générée');
     } catch (error) {
       console.error('Generate alerts error:', error);
-      setDataStatus({
-        hasData: false,
-        isLoading: false,
-        error: error.message
-      });
+      setDataStatus({ hasData: false, isLoading: false, error: error.message });
       showNotification(error.message, 'error');
     } finally {
       setLoading(prev => ({ ...prev, alerts: false }));
@@ -149,11 +86,7 @@ const AdminAlerts = () => {
   };
 
   const showNotification = (message, severity = 'success') => {
-    setNotification({
-      open: true,
-      message,
-      severity
-    });
+    setNotification({ open: true, message, severity });
   };
 
   const handleNotificationClose = () => {
@@ -164,10 +97,12 @@ const AdminAlerts = () => {
     return classes.find(c => c.id === selectedClass)?.nom || 'Classe inconnue';
   };
 
-  // Rendu
+  const toggleExpandStudent = (studentId) => {
+    setExpandedStudent(expandedStudent === studentId ? null : studentId);
+  };
+
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
           Système d'Alerte
@@ -178,51 +113,35 @@ const AdminAlerts = () => {
         <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
 
-      {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            elevation={2}
-            sx={{ 
-              height: 140, 
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.3s, box-shadow 0.3s",
-              "&:hover": {
-                transform: "translateY(-5px)",
-                boxShadow: theme.shadows[4]
-              }
-            }}
-          >
+          <Card elevation={2} sx={{ 
+            height: 140, 
+            borderLeft: `4px solid ${theme.palette.primary.main}`,
+            transition: "transform 0.3s, box-shadow 0.3s",
+            "&:hover": { transform: "translateY(-5px)", boxShadow: theme.shadows[4] }
+          }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total des Alertes
-                </Typography>
-                <AlertIcon 
-                  fontSize="medium" 
-                  sx={{ color: theme.palette.primary.main }} 
-                />
+                <Typography variant="subtitle2" color="text.secondary">Total des Alertes</Typography>
+                <AlertIcon fontSize="medium" sx={{ color: theme.palette.primary.main }} />
               </Box>
               <Box>
                 <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
                   {alerts.length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Alertes générées
-                </Typography>
+                <Typography variant="body2" color="text.secondary">Alertes générées</Typography>
               </Box>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Sélection de classe */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
           Sélectionner une classe pour générer des alertes
         </Typography>
         <Grid container spacing={2}>
-          {/* Class Selection */}
           <Grid item xs={12} sm={6} md={3}>
             <FormControl fullWidth>
               <InputLabel>Classe</InputLabel>
@@ -232,13 +151,9 @@ const AdminAlerts = () => {
                 onChange={(e) => setSelectedClass(e.target.value)}
                 disabled={loading.classes}
               >
-                <MenuItem value="">
-                  <em>Sélectionner une classe</em>
-                </MenuItem>
+                <MenuItem value=""><em>Sélectionner une classe</em></MenuItem>
                 {classes.map((cls) => (
-                  <MenuItem key={cls.id} value={cls.id}>
-                    {cls.nom}
-                  </MenuItem>
+                  <MenuItem key={cls.id} value={cls.id}>{cls.nom}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -252,31 +167,20 @@ const AdminAlerts = () => {
               fullWidth
               sx={{ height: '56px' }}
             >
-              {loading.alerts ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "Générer les Alertes"
-              )}
+              {loading.alerts ? <CircularProgress size={24} color="inherit" /> : "Générer les Alertes"}
             </Button>
           </Grid>
         </Grid>
       </Box>
 
-      {/* Message d'information */}
       {!dataStatus.isLoading && !dataStatus.hasData && selectedClass && (
-        <Alert 
-          severity="info"
-          icon={<SchoolIcon />}
-          sx={{ mb: 3 }}
-        >
+        <Alert severity="info" icon={<SchoolIcon />} sx={{ mb: 3 }}>
           {dataStatus.error || 'Aucune alerte générée. Veuillez vérifier que les notes sont saisies.'}
         </Alert>
       )}
 
-      {/* Contenu principal */}
       {dataStatus.hasData && (
         <>
-          {/* Statistiques */}
           {alerts.length > 0 && (
             <Card sx={{ mb: 3, bgcolor: 'error.light' }}>
               <CardContent>
@@ -287,7 +191,6 @@ const AdminAlerts = () => {
             </Card>
           )}
 
-          {/* Alertes */}
           {alerts.length > 0 && (
             <Card elevation={2}>
               <CardContent sx={{ p: 0 }}>
@@ -298,53 +201,70 @@ const AdminAlerts = () => {
                         <TableCell sx={{ fontWeight: 'bold' }}>Étudiant</TableCell>
                         <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
                         <TableCell sx={{ fontWeight: 'bold' }}>Message d'Alerte</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Recommandations</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {alerts.map((alert, index) => (
-                        <TableRow
-                          key={index}
-                          hover
-                          sx={{
-                            '&:last-child td, &:last-child th': { border: 0 },
-                            transition: "background-color 0.2s",
-                          }}
-                        >
-                          <TableCell>
-                            <Typography fontWeight="bold">{alert.student_name}</Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={alert.performance_category}
-                              icon={STATUS_CONFIG[alert.performance_category]?.icon}
-                              sx={{
-                                backgroundColor: STATUS_CONFIG[alert.performance_category]?.color,
-                                color: 'white',
-                                minWidth: 160
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {alert.alert_message}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <List dense>
-                              {alert.recommendations?.map((rec, i) => (
-                                <ListItem key={i} sx={{ py: 0 }}>
-                                  <ListItemIcon sx={{ minWidth: 32 }}>
-                                    <WarningIcon color="error" fontSize="small" />
-                                  </ListItemIcon>
-                                  <Typography variant="body2">
-                                    {rec}
+                      {alerts.map((alert) => (
+                        <React.Fragment key={alert.student_id}>
+                          <TableRow hover>
+                            <TableCell>
+                              <Typography fontWeight="bold">{alert.student_name}</Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={alert.performance_category}
+                                icon={STATUS_CONFIG[alert.performance_category]?.icon}
+                                sx={{
+                                  backgroundColor: STATUS_CONFIG[alert.performance_category]?.color,
+                                  color: 'white',
+                                  minWidth: 160
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">{alert.alert_message}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <IconButton onClick={() => toggleExpandStudent(alert.student_id)}>
+                                {expandedStudent === alert.student_id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell colSpan={4} sx={{ py: 0 }}>
+                              <Collapse in={expandedStudent === alert.student_id}>
+                                <Box sx={{ p: 2, bgcolor: 'background.default' }}>
+                                  <Typography variant="subtitle1" gutterBottom>
+                                    Recommandations de cours:
                                   </Typography>
-                                </ListItem>
-                              ))}
-                            </List>
-                          </TableCell>
-                        </TableRow>
+                                  <List dense>
+                                    {alert.course_recommendations?.map((course, i) => (
+                                      <React.Fragment key={i}>
+                                        <ListItem sx={{ py: 1 }}>
+                                          <Box sx={{ width: '100%' }}>
+                                            <Typography fontWeight="medium">
+                                              {course.subject}
+                                            </Typography>
+                                            {course.resources.map((resource, j) => (
+                                              <Box key={j} sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                                                <WarningIcon color="error" fontSize="small" sx={{ mr: 1 }} />
+                                                <Link href={resource.link} target="_blank" rel="noopener">
+                                                  {resource.name}
+                                                </Link>
+                                              </Box>
+                                            ))}
+                                          </Box>
+                                        </ListItem>
+                                        {i < alert.course_recommendations.length - 1 && <Divider />}
+                                      </React.Fragment>
+                                    ))}
+                                  </List>
+                                </Box>
+                              </Collapse>
+                            </TableCell>
+                          </TableRow>
+                        </React.Fragment>
                       ))}
                     </TableBody>
                   </Table>
@@ -355,18 +275,10 @@ const AdminAlerts = () => {
         </>
       )}
 
-      {/* Notification */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleNotificationClose}
-      >
-        <Alert
-          onClose={handleNotificationClose}
-          // @ts-ignore
-          severity={notification.severity}
-          sx={{ width: "100%" }}
-        >
+      <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleNotificationClose}>
+        <Alert onClose={handleNotificationClose} 
+// @ts-ignore
+        severity={notification.severity} sx={{ width: "100%" }}>
           {notification.message}
         </Alert>
       </Snackbar>

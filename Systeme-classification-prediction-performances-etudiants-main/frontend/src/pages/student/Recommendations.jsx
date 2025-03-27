@@ -8,52 +8,114 @@ import {
   LinearProgress,
   Grid,
   Divider,
+  // @ts-ignore
   Chip,
-  Badge,
-  alpha,
-  useTheme
+  useTheme,
+  Tabs,
+  Tab,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  IconButton,
+  Link,
+  Alert as MuiAlert,
+  alpha
 } from "@mui/material";
 import { 
   Lightbulb, 
   School, 
+  // @ts-ignore
   CalendarToday,
-  Assignment,
-  PriorityHigh
+  Warning,
+  ExpandMore,
+  ExpandLess,
+  Notifications,
+  Link as LinkIcon
 } from "@mui/icons-material";
 import { fetchWithTokenRefresh } from "../../utils/auth";
 
 const StudentRecommendations = () => {
-  const [recommendations, setRecommendations] = useState([]);
+  const [recommendations, setRecommendations] = useState({
+    academic_orientation: null,
+    performance_recommendations: [],
+    subject_recommendations: []
+  });
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tabValue, setTabValue] = useState(0);
+  const [expandedItems, setExpandedItems] = useState({
+    alerts: {},
+    subjectRecs: {}
+  });
   const theme = useTheme();
   
-  // Student theme color matching the StudentAlerts component
-  const studentColor = "#ff9800";
+  const primaryColor = theme.palette.primary.main;
+  const warningColor = theme.palette.warning.main;
+  const errorColor = theme.palette.error.main;
 
-  const fetchData = async () => {
+  const fetchRecommendations = async () => {
     try {
       const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/recommendations/");
       const data = await response.json();
-
-      console.log("API Response:", data); // Debugging: Log the API response
-
-      if (data.success && Array.isArray(data.recommendations)) {
+      if (data.success) {
         setRecommendations(data.recommendations);
-      } else {
-        console.error("Invalid API response format:", data);
-        setRecommendations([]);
       }
-
-      setLoading(false);
     } catch (error) {
-      console.error("Erreur lors de la récupération des recommandations:", error);
+      console.error("Error fetching recommendations:", error);
+    }
+  };
+
+  const fetchAlerts = async () => {
+    try {
+      const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/alerts/");
+      const data = await response.json();
+      if (data.success) {
+        setAlerts(data.alerts);
+      }
+    } catch (error) {
+      console.error("Error fetching alerts:", error);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    const fetchData = async () => {
+      await Promise.all([fetchRecommendations(), fetchAlerts()]);
+    };
     fetchData();
   }, []);
+
+  // @ts-ignore
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
+  const toggleExpand = (type, id) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [id]: !prev[type][id]
+      }
+    }));
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "Date inconnue";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return "Date inconnue";
+    }
+  };
 
   if (loading) {
     return (
@@ -61,319 +123,296 @@ const StudentRecommendations = () => {
         <LinearProgress sx={{ 
           height: 6, 
           borderRadius: 3,
-          backgroundColor: alpha(studentColor, 0.15),
+          backgroundColor: alpha(primaryColor, 0.15),
           '& .MuiLinearProgress-bar': {
-            backgroundColor: studentColor
+            backgroundColor: primaryColor
           }
         }} />
       </Box>
     );
   }
 
-  // Group recommendations by subject
-  const groupedRecommendations = recommendations.reduce((groups, recommendation) => {
-    const subject = recommendation.matiere ? recommendation.matiere.nom : "Général";
-    if (!groups[subject]) {
-      groups[subject] = [];
-    }
-    groups[subject].push(recommendation);
-    return groups;
-  }, {});
-
-  // Function to format date
-  const formatDate = (dateString) => {
-    if (!dateString) return "Date inconnue";
-    
-    try {
-      // Try multiple parsing strategies
-      let date;
-      
-      // First, try parsing as ISO format
-      date = new Date(dateString);
-      
-      // If that fails, try parsing with French date format (DD/MM/YYYY)
-      if (isNaN(date.getTime())) {
-        const [day, month, year] = dateString.split('/');
-        date = new Date(year, month - 1, day);
-      }
-      
-      // If still invalid, return "Date inconnue"
-      if (isNaN(date.getTime())) {
-        return "Date inconnue";
-      }
-      
-      return date.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      });
-    } catch (e) {
-      console.error("Erreur de formatage de date:", e);
-      return "Date inconnue";
-    }
-  };
-
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: "bold", 
-              color: studentColor 
-            }}
-          >
-            Mes Recommandations
-          </Typography>
-        </Box>
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: "bold", 
+            color: primaryColor 
+          }}
+        >
+          Mes Recommandations et Alertes
+        </Typography>
         <Typography 
           variant="subtitle1" 
           color="text.secondary" 
           gutterBottom
-          sx={{ ml: 0.5 }}
         >
-          Consultez les recommandations personnalisées pour améliorer vos performances
+          Consultez vos recommandations personnalisées et alertes importantes
         </Typography>
         <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
 
-      {recommendations.length === 0 ? (
-        <Paper 
-          elevation={3} 
+      <Tabs 
+        value={tabValue} 
+        onChange={handleTabChange}
+        sx={{ 
+          mb: 3,
+          '& .MuiTabs-indicator': {
+            backgroundColor: primaryColor
+          }
+        }}
+      >
+        <Tab 
+          label={
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Lightbulb sx={{ mr: 1 }} />
+              Recommandations
+            </Box>
+          } 
           sx={{ 
-            p: 4, 
-            textAlign: "center", 
-            mt: 3, 
-            borderRadius: 2,
-            border: `1px solid ${alpha(studentColor, 0.2)}`
+            color: tabValue === 0 ? primaryColor : 'text.secondary',
+            fontWeight: tabValue === 0 ? 'bold' : 'normal'
           }}
-        >
-          <Lightbulb 
-            sx={{ 
-              fontSize: 60, 
-              color: alpha(studentColor, 0.7), 
-              mb: 2 
-            }} 
-          />
-          <Typography variant="h6">
-            Aucune recommandation disponible pour le moment.
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Les recommandations apparaîtront ici lorsque vos enseignants ou le système en génèreront.
-          </Typography>
-        </Paper>
-      ) : (
-        <>
-          {/* Recent recommendations */}
-          <Box sx={{ mb: 4 }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                mb: 2,
-                display: "flex",
-                alignItems: "center",
-                color: theme.palette.mode === "light" ? "#333333" : "#ffffff",
-                fontWeight: 600
-              }}
-            >
-              <Lightbulb 
-                sx={{ 
-                  mr: 1, 
-                  verticalAlign: "middle",
-                  color: studentColor
-                }} 
-              />
-              Recommandations récentes
-            </Typography>
-            <Grid container spacing={3}>
-              {recommendations.slice(0, 3).map((recommendation) => (
-                <Grid item xs={12} md={4} key={recommendation.id}>
-                  <Card 
-                    sx={{ 
-                      height: "100%", 
-                      borderRadius: 2,
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: 4
-                      },
-                      overflow: "hidden",
-                      border: `1px solid ${alpha(studentColor, 0.1)}`
-                    }}
-                  >
-                    <Box 
-                      sx={{ 
-                        height: 8, 
-                        backgroundColor: studentColor
-                      }} 
-                    />
-                    <CardContent>
-                      {recommendation.matiere && (
-                        <Chip 
-                          icon={<School />} 
-                          label={recommendation.matiere.nom} 
-                          sx={{
-                            backgroundColor: alpha(studentColor, 0.1),
-                            color: studentColor,
-                            fontWeight: 500,
-                            mb: 2,
-                            "& .MuiChip-icon": {
-                              color: studentColor
-                            }
-                          }}
-                          size="small"
-                        />
-                      )}
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          mb: 1,
-                          height: 80,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 4,
-                          WebkitBoxOrient: "vertical",
-                          color: theme.palette.text.secondary
-                        }}
-                      >
-                        {recommendation.contenu}
-                      </Typography>
-                      <Divider sx={{ my: 1.5 }} />
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <CalendarToday 
-                          fontSize="small" 
-                          sx={{ 
-                            color: alpha(studentColor, 0.8), 
-                            mr: 1 
-                          }} 
-                        />
-                        <Typography 
-                          variant="caption" 
-                          sx={{
-                            color: theme.palette.text.secondary,
-                            fontWeight: 500
-                          }}
-                        >
-                          {formatDate(recommendation.date_creation)}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-
-          {/* All recommendations by subject */}
-          <Box>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                mb: 2,
-                display: "flex",
-                alignItems: "center",
-                color: theme.palette.mode === "light" ? "#333333" : "#ffffff",
-                fontWeight: 600
-              }}
-            >
-              <School 
-                sx={{ 
-                  mr: 1, 
-                  verticalAlign: "middle",
-                  color: studentColor
-                }} 
-              />
-              Recommandations par matière
-            </Typography>
-            
-            {Object.entries(groupedRecommendations).map(([subject, subjectRecommendations]) => (
-              <Paper 
-                key={subject} 
-                sx={{ 
-                  mb: 3, 
-                  p: 3,
-                  borderRadius: 2,
-                  borderLeft: `6px solid ${alpha(studentColor, 0.7)}`,
-                }}
-                elevation={2}
-              >
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Badge 
-                    badgeContent={subjectRecommendations.length} 
-                    color="primary"
-                    sx={{ mr: 2 }}
-                  >
-                    <School 
-                      sx={{ 
-                        color: studentColor
-                      }} 
-                    />
-                  </Badge>
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      fontWeight: "bold",
-                      color: theme.palette.mode === "light" ? "#333333" : "#ffffff"
-                    }}
-                  >
-                    Matière: {subject}
-                  </Typography>
+        />
+        <Tab 
+          label={
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Warning sx={{ mr: 1 }} />
+              Alertes
+              {alerts.length > 0 && (
+                <Box 
+                  sx={{
+                    ml: 1,
+                    backgroundColor: errorColor,
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: 20,
+                    height: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  {alerts.length}
                 </Box>
-                <Divider sx={{ mb: 2 }} />
-                
-                {subjectRecommendations.map((recommendation, index) => (
-                  <Box 
-                    key={recommendation.id} 
-                    sx={{ 
-                      mb: index < subjectRecommendations.length - 1 ? 2 : 0, 
-                      pb: index < subjectRecommendations.length - 1 ? 2 : 0, 
-                      borderBottom: index < subjectRecommendations.length - 1 ? 1 : 0, 
-                      borderColor: "divider",
-                      "&:hover": {
-                        backgroundColor: alpha(studentColor, 0.03)
-                      },
-                      borderRadius: 1,
-                      p: 1.5
-                    }}
-                  >
-                    <Typography 
-                      variant="body2" 
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        py: 1
+              )}
+            </Box>
+          } 
+          sx={{ 
+            color: tabValue === 1 ? errorColor : 'text.secondary',
+            fontWeight: tabValue === 1 ? 'bold' : 'normal'
+          }}
+        />
+      </Tabs>
+
+      {tabValue === 0 ? (
+        <Box>
+          {/* Academic Orientation */}
+          {recommendations.academic_orientation && (
+            <Card sx={{ mb: 3, borderLeft: `4px solid ${primaryColor}` }}>
+              <CardContent>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  Orientation académique recommandée:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  <strong>{recommendations.academic_orientation.orientation}</strong>
+                </Typography>
+                <Typography variant="body2">
+                  {recommendations.academic_orientation.description}
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Performance Recommendations */}
+          {recommendations.performance_recommendations.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Recommandations générales
+              </Typography>
+              <Grid container spacing={2}>
+                {recommendations.performance_recommendations.map((rec, index) => (
+                  <Grid item xs={12} sm={6} key={`perf-${index}`}>
+                    <Card sx={{ height: "100%", borderLeft: `4px solid ${warningColor}` }}>
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={1}>
+                          <Lightbulb color="warning" sx={{ mr: 1 }} />
+                          <Typography variant="subtitle1">Recommandation</Typography>
+                        </Box>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                          {rec.message}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatDate(rec.date)}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+
+          {/* Subject Recommendations */}
+          {recommendations.subject_recommendations.length > 0 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Recommandations par matière
+              </Typography>
+              <List sx={{ width: '100%' }}>
+                {recommendations.subject_recommendations.map((rec, index) => (
+                  <React.Fragment key={`subj-${index}`}>
+                    <
+// @ts-ignore
+                    ListItem 
+                      component="div"
+                      button 
+                      onClick={() => toggleExpand('subjectRecs', index)}
+                      sx={{ 
+                        mb: 1,
+                        borderRadius: 1,
+                        borderLeft: `4px solid ${primaryColor}`,
+                        backgroundColor: alpha(primaryColor, 0.05)
                       }}
                     >
-                      {recommendation.contenu}
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                      <CalendarToday 
-                        fontSize="small" 
-                        sx={{ 
-                          color: alpha(studentColor, 0.7), 
-                          mr: 1 
-                        }} 
+                      <ListItemIcon>
+                        <School color="primary" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={rec.subject}
+                        secondary={`Recommandation générée le ${formatDate(rec.date)}`}
                       />
-                      <Typography 
-                        variant="caption" 
-                        sx={{
-                          color: theme.palette.text.secondary,
-                          fontWeight: 500
-                        }}
-                      >
-                        {formatDate(recommendation.date_creation)}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      <IconButton>
+                        {expandedItems.subjectRecs[index] ? <ExpandLess /> : <ExpandMore />}
+                      </IconButton>
+                    </ListItem>
+                    <Collapse in={expandedItems.subjectRecs[index]} timeout="auto" unmountOnExit>
+                      <Box sx={{ pl: 6, pr: 2, pb: 2 }}>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                          {rec.message}
+                        </Typography>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Ressources recommandées:
+                        </Typography>
+                        <List dense>
+                          {rec.resources.map((resource, i) => (
+                            <ListItem key={i}>
+                              <ListItemIcon>
+                                <LinkIcon color="primary" />
+                              </ListItemIcon>
+                              <Link href={resource.link} target="_blank" rel="noopener">
+                                {resource.name}
+                              </Link>
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Box>
+                    </Collapse>
+                  </React.Fragment>
                 ))}
-              </Paper>
-            ))}
-          </Box>
-        </>
+              </List>
+            </Box>
+          )}
+
+          {!recommendations.academic_orientation && 
+           recommendations.performance_recommendations.length === 0 && 
+           recommendations.subject_recommendations.length === 0 && (
+            <Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 2 }}>
+              <Lightbulb sx={{ fontSize: 60, color: alpha(primaryColor, 0.7), mb: 2 }} />
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Aucune recommandation disponible
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Vos recommandations apparaîtront ici dès qu'elles seront générées.
+              </Typography>
+            </Paper>
+          )}
+        </Box>
+      ) : (
+        <Box>
+          {alerts.length === 0 ? (
+            <Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 2 }}>
+              <Notifications sx={{ fontSize: 60, color: alpha(errorColor, 0.7), mb: 2 }} />
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Aucune alerte active
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Vous n'avez aucune alerte en ce moment.
+              </Typography>
+            </Paper>
+          ) : (
+            <List sx={{ width: '100%' }}>
+              {alerts.map((alert, index) => (
+                <React.Fragment key={`alert-${index}`}>
+                  <
+// @ts-ignore
+                  ListItem 
+                    button 
+                    onClick={() => toggleExpand('alerts', index)}
+                    sx={{ 
+                      mb: 1,
+                      borderRadius: 1,
+                      borderLeft: `4px solid ${errorColor}`,
+                      backgroundColor: alpha(errorColor, 0.05)
+                    }}
+                  >
+                    <ListItemIcon>
+                      <Warning color="error" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={alert.message}
+                      secondary={`Générée le ${formatDate(alert.date_creation)}`}
+                    />
+                    <IconButton>
+                      {expandedItems.alerts[index] ? <ExpandLess /> : <ExpandMore />}
+                    </IconButton>
+                  </ListItem>
+                  <Collapse in={expandedItems.alerts[index]} timeout="auto" unmountOnExit>
+                    <Box sx={{ pl: 6, pr: 2, pb: 2 }}>
+                      <MuiAlert severity="warning" sx={{ mb: 2 }}>
+                        Cette alerte indique que vous pourriez avoir besoin d'un soutien supplémentaire.
+                      </MuiAlert>
+                      
+                      {alert.course_recommendations?.length > 0 && (
+                        <>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Matières concernées:
+                          </Typography>
+                          {alert.course_recommendations.map((course, i) => (
+                            <Box key={i} sx={{ mb: 2 }}>
+                              <Typography fontWeight="medium" sx={{ mb: 1 }}>
+                                {course.subject}
+                              </Typography>
+                              <List dense>
+                                {course.resources.map((resource, j) => (
+                                  <ListItem key={j}>
+                                    <ListItemIcon>
+                                      <LinkIcon color="primary" />
+                                    </ListItemIcon>
+                                    <Link href={resource.link} target="_blank" rel="noopener">
+                                      {resource.name}
+                                    </Link>
+                                  </ListItem>
+                                ))}
+                              </List>
+                              {i < alert.course_recommendations.length - 1 && <Divider sx={{ my: 1 }} />}
+                            </Box>
+                          ))}
+                        </>
+                      )}
+                    </Box>
+                  </Collapse>
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </Box>
       )}
     </Box>
   );
 };
 
-export default StudentRecommendations;
+export default StudentRecommendations;  

@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import student_dashboard
+
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
@@ -59,9 +59,8 @@ urlpatterns = [
     path('api/ml/class-alerts/', views.get_class_alerts, name='get-class-alerts'),
     path('api/ml/class-recommendations/', views.get_class_recommendations, name='get-class-recommendations'),
     path('api/ml/class-dashboard/', views.class_dashboard, name='class-dashboard'),
-    path('api/predict-grades/', views.predict_grades, name='predict_grades'),
-    
-
+    path('api/predict-grades/', views.predict_grades, name='predict-grades'),
+   
     # Teacher Dashboard (inchangé)
     path('api/teacher/matieres/', views.get_teacher_matieres, name='get_teacher_matieres'),
     path('api/teacher/notes/', views.get_teacher_notes, name='get_teacher_notes'),

@@ -32,7 +32,7 @@ from .serializers import (
 )
 from .ml_utils import (
     classify_students, generate_risk_alerts, 
-    generate_recommendations_for_class, predict_s3_s4_grades
+    generate_recommendations_for_class, get_academic_orientation, get_subject_recommendations, predict_s3_s4_grades, 
 )
 
 
@@ -1568,28 +1568,46 @@ def student_recommendations(request):
     
     try:
         student = request.user
-        recommendations = Recommandation.objects.filter(etudiant=student).order_by('-date_creation')
+        # Récupérer les données générées par generate_recommendations_for_class
+        notes = Note.objects.filter(etudiant=student).select_related('matiere')
+        orientation = get_academic_orientation(notes)
         
-        recommendations_data = []
-        for recommendation in recommendations:
-            matiere_data = None
-            if recommendation.matiere:
-                matiere_data = {
-                    'id': recommendation.matiere.id,
-                    'nom': recommendation.matiere.nom,
-                    'semestre': recommendation.matiere.get_semestre_display()
-                }
-            
-            recommendations_data.append({
-                'id': recommendation.id,
-                'matiere': matiere_data,
-                'contenu': recommendation.contenu,
-                'date_creation': recommendation.date_creation.strftime('%d/%m/%Y')
-            })
+        # Créer la structure similaire à l'admin
+        recommendations = {
+            'academic_orientation': {
+                'orientation': orientation['orientation'] if orientation else None,
+                'description': orientation['description'] if orientation else None
+            },
+            'performance_recommendations': [],
+            'subject_recommendations': []
+        }
+
+        # Récupérer les recommandations en base
+        db_recommendations = Recommandation.objects.filter(etudiant=student).order_by('-date_creation')
         
+        for rec in db_recommendations:
+            if rec.matiere:
+                # Recommandation par matière
+                rec_data = get_subject_recommendations(rec.matiere.nom)
+                recommendations['subject_recommendations'].append({
+                    'subject': rec.matiere.nom,
+                    'message': rec.contenu,
+                    'resources': [
+                        {'name': name, 'link': link} 
+                        for name, link in zip(rec_data['noms'], rec_data['liens'])
+                    ],
+                    'date': rec.date_creation
+                })
+            else:
+                # Recommandation générale
+                recommendations['performance_recommendations'].append({
+                    'message': rec.contenu,
+                    'date': rec.date_creation
+                })
+
         return Response({
             'success': True,
-            'recommendations': recommendations_data
+            'recommendations': recommendations
         })
         
     except Exception as e:
@@ -1597,16 +1615,10 @@ def student_recommendations(request):
             'success': False,
             'message': f'Une erreur est survenue: {str(e)}'
         }, status=500)
-    
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def student_alerts(request):
-    """
-    API view for student's alerts
-    Returns all alerts for the logged-in student
-    """
     try:
-        # Check if user is a student using the new method from the model
         if not request.user.is_etudiant():
             return Response({
                 'success': False,
@@ -1614,22 +1626,33 @@ def student_alerts(request):
             }, status=403)
         
         student = request.user
-        
-        # Updated query to match the frontend's expectation
         alerts = Alerte.objects.filter(etudiant=student).order_by('-date_creation')
         
         alerts_data = []
         for alert in alerts:
-            matiere_data = None
+            # Trouver les matières faibles pour cet étudiant
+            weak_notes = Note.objects.filter(
+                etudiant=student,
+                note_module__lt=10
+            ).select_related('matiere')
             
-            # Add support for priority (assuming you might want to add this later)
+            course_recommendations = []
+            for note in weak_notes:
+                rec = get_subject_recommendations(note.matiere.nom)
+                course_recommendations.append({
+                    'subject': note.matiere.nom,
+                    'resources': [
+                        {'name': name, 'link': link} 
+                        for name, link in zip(rec['noms'], rec['liens'])
+                    ]
+                })
+            
             alerts_data.append({
                 'id': alert.id,
-                'titre': 'Alerte',  # Default title if not provided in model
-                'contenu': alert.message,
-                'priorite': 'Normale',  # Default priority
-                'date_creation': alert.date_creation.strftime('%Y-%m-%dT%H:%M:%S'),  # ISO format
-                'matiere': matiere_data
+                'message': alert.message,
+                'date_creation': alert.date_creation,
+                'course_recommendations': course_recommendations,
+                'is_expanded': False
             })
         
         return Response({
@@ -1642,13 +1665,6 @@ def student_alerts(request):
             'success': False,
             'message': f'Une erreur est survenue: {str(e)}'
         }, status=500)
-        
-    except Exception as e:
-        return Response({
-            'success': False,
-            'message': f'Une erreur est survenue: {str(e)}'
-        }, status=500)
-
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -1703,25 +1719,30 @@ def update_student_password(request):
 
 
 # Machine Learning Views
+from .ml_utils import (
+    classify_students,
+    generate_risk_alerts,
+    generate_recommendations_for_class,
+    predict_s3_s4_grades
+)
+import logging
+
+logger = logging.getLogger(__name__)
+
 @csrf_exempt
 def classify_class_students(request):
-    """
-    Classifie tous les étudiants d'une classe spécifique
-    """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             class_id = data.get('class_id')
-            
             if not class_id:
                 return JsonResponse({'error': 'class_id is required'}, status=400)
             
             results = classify_students(class_id)
             return JsonResponse({'students': results})
-        
         except Exception as e:
+            logger.error(f"Error in classify_class_students: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
-    
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 @csrf_exempt
@@ -1730,45 +1751,36 @@ def get_class_alerts(request):
         try:
             data = json.loads(request.body)
             class_id = data.get('class_id')
-            
             if not class_id:
                 return JsonResponse({'error': 'class_id is required'}, status=400)
             
             alerts = generate_risk_alerts(class_id)
-            print(f"Generated alerts: {alerts}")  # Add this logging
-            
             return JsonResponse({'alerts': alerts})
-        
         except Exception as e:
-            print(f"Error in get_class_alerts: {str(e)}")  # Add this logging
+            logger.error(f"Error in get_class_alerts: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 @csrf_exempt
 def get_class_recommendations(request):
-    """
-    Récupère les recommandations pour une classe spécifique
-    """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             class_id = data.get('class_id')
-            
             if not class_id:
                 return JsonResponse({'error': 'class_id is required'}, status=400)
             
             recommendations = generate_recommendations_for_class(class_id)
             
-            # Sauvegarder les recommandations en base de données
+            # Sauvegarde en base de données
             for rec in recommendations:
                 for detail in rec['recommendations']:
-                    # Find the corresponding subject if applicable
                     matiere = None
-                    if detail.get('type') == 'matiere':
+                    if detail.get('type') == 'subject':
                         try:
-                            matiere_name = detail['message'].split(' ')[-1]
-                            matiere = Matiere.objects.filter(nom__icontains=matiere_name).first()
-                        except:
-                            pass
+                            matiere = Matiere.objects.filter(nom__iexact=detail['subject']).first()
+                        except Exception as e:
+                            logger.error(f"Error finding subject {detail['subject']}: {str(e)}")
                     
                     Recommandation.objects.create(
                         etudiant_id=rec['student_id'],
@@ -1777,29 +1789,21 @@ def get_class_recommendations(request):
                     )
             
             return JsonResponse({'recommendations': recommendations})
-        
         except Exception as e:
+            logger.error(f"Error in get_class_recommendations: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
-    
     return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .ml_utils import classify_students, generate_risk_alerts
 
 @csrf_exempt
 def class_dashboard(request):
-    """Endpoint principal avec les 3 catégories"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             class_id = data.get('class_id')
-            
             if not class_id:
                 return JsonResponse({'error': 'class_id is required'}, status=400)
             
             classification = classify_students(class_id)
-            
             stats = {
                 'average_score': sum(s.get('average_score', 0) for s in classification) / len(classification) if classification else 0,
                 'at_risk_count': sum(1 for s in classification if s['performance_category'] == 'À risque'),
@@ -1814,35 +1818,25 @@ def class_dashboard(request):
                 'statistics': stats,
                 'alerts': alerts
             })
-            
         except Exception as e:
+            logger.error(f"Error in class_dashboard: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
-    
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
-
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 @csrf_exempt
 def predict_grades(request):
-    """
-    Endpoint pour prédictions sans doublons
-    """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             class_id = data.get('class_id')
-            
             if not class_id:
                 return JsonResponse({'error': 'class_id required'}, status=400)
             
             predictions = predict_s3_s4_grades(class_id)
-            
             if 'error' in predictions:
                 return JsonResponse({'error': predictions['error']}, status=400)
-                
             return JsonResponse(predictions)
-        
         except Exception as e:
             logger.error(f"Error in predict_grades: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
-    
     return JsonResponse({'error': 'Method not allowed'}, status=405)

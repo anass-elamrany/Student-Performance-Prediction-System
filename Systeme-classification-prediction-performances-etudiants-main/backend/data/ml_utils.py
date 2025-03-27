@@ -3,38 +3,223 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 import pandas as pd
 from django.db.models import Avg, Count
-from .models import Matiere, Note, Utilisateur
+from .models import Matiere, Note, Utilisateur, Recommandation, Alerte
 import joblib
 import os
 from django.conf import settings
 import logging
+from sklearn.metrics.pairwise import cosine_similarity
 
 logger = logging.getLogger(__name__)
 MODELS_DIR = os.path.join(settings.BASE_DIR, 'ml_models')
 os.makedirs(MODELS_DIR, exist_ok=True)
 
+# Dictionnaire complet des recommandations par matière
+MATIERE_RECOMMENDATIONS = {
+    "java": {
+        "noms": ["Java complet pour débutants", "Java Masterclass Udemy"],
+        "liens": [
+            "https://www.youtube.com/watch?v=LnX3B9oaKzw",
+            "https://www.udemy.com/course/java-the-complete-java-developer-course/"
+        ]
+    },
+    "python": {
+        "noms": ["Python en une vidéo", "Complete Python Bootcamp"],
+        "liens": [
+            "https://www.youtube.com/watch?v=HGOBQPFzWKo",
+            "https://www.udemy.com/course/complete-python-bootcamp/"
+        ]
+    },
+    "prosto": {
+        "noms": ["Introduction aux probabilités", "Probability & Statistics Udemy"],
+        "liens": [
+            "https://www.youtube.com/watch?v=KDfWgyRnSmA",
+            "https://www.udemy.com/course/probability-and-statistics-for-business-and-data-science/"
+        ]
+    },
+    "filatt": {
+        "noms": ["Files d'attente", "Operations Research Udemy"],
+        "liens": [
+            "https://www.youtube.com/watch?v=8W6aFqkiJvE",
+            "https://www.udemy.com/course/operations-research/"
+        ]
+    },
+    "calcoumar": {
+        "noms": ["Calcul différentiel", "Mastering Calculus"],
+        "liens": [
+            "https://www.youtube.com/watch?v=3Xl5jVsZ9Wk",
+            "https://www.udemy.com/course/mastering-calculus/"
+        ]
+    },
+    "gessto": {
+        "noms": ["Gestion des stocks", "Inventory Management"],
+        "liens": [
+            "https://www.youtube.com/watch?v=J4Wv9F9E3gY",
+            "https://www.udemy.com/course/inventory-management/"
+        ]
+    },
+    "gespro": {
+        "noms": ["Gestion de projet", "PMP Exam Prep"],
+        "liens": [
+            "https://www.youtube.com/watch?v=4ePjDwMFZRI",
+            "https://www.udemy.com/course/pmp-exam-prep-course/"
+        ]
+    },
+    "infges": {
+        "noms": ["Systèmes d'information", "Management Information Systems"],
+        "liens": [
+            "https://www.youtube.com/watch?v=2n5g4jXg4T4",
+            "https://www.udemy.com/course/management-information-systems/"
+        ]
+    },
+    "ent": {
+        "noms": ["Entrepreneuriat", "Complete Entrepreneurship Course"],
+        "liens": [
+            "https://www.youtube.com/watch?v=F4ZGfUAP4XU",
+            "https://www.udemy.com/course/entrepreneurship-course/"
+        ]
+    },
+    "devweb": {
+        "noms": ["Développement web débutants", "Web Developer Bootcamp"],
+        "liens": [
+            "https://www.youtube.com/watch?v=nu_pCVPKzTk",
+            "https://www.udemy.com/course/the-web-developer-bootcamp/"
+        ]
+    },
+    "bd": {
+        "noms": ["Bases de données", "SQL & MySQL for BI"],
+        "liens": [
+            "https://www.youtube.com/watch?v=HXV3zeQKqGY",
+            "https://www.udemy.com/course/sql-mysql-for-data-analytics-and-business-intelligence/"
+        ]
+    },
+    "gesfin": {
+        "noms": ["Gestion financière", "Financial Analyst Course"],
+        "liens": [
+            "https://www.youtube.com/watch?v=7dJkI6vRz6k",
+            "https://www.udemy.com/course/the-complete-financial-analyst-course/"
+        ]
+    },
+    "eman": {
+        "noms": ["e-Management", "Digital Leadership"],
+        "liens": [
+            "https://www.youtube.com/watch?v=5AqgMo1P4zI",
+            "https://www.udemy.com/course/digital-leadership/"
+        ]
+    },
+    "gestbudg": {
+        "noms": ["Gestion budgétaire", "Budgeting in Excel"],
+        "liens": [
+            "https://www.youtube.com/watch?v=3m6dV7Xo3Vc",
+            "https://www.udemy.com/course/budgeting-and-forecasting-in-excel/"
+        ]
+    },
+    "default": {
+        "noms": ["Ressource générale d'apprentissage"],
+        "liens": ["https://www.coursera.org"]
+    }
+}
 
+# Orientations académiques basées sur le fichier CSV
+ORIENTATIONS = [
+    {
+        "orientation": "Développement Web",
+        "mots_cles": ["java", "python", "devweb", "bd"],
+        "description": "Orientation vers les technologies web et le développement d'applications"
+    },
+    {
+        "orientation": "Data Science",
+        "mots_cles": ["python", "prosto", "bd", "calcoumar"],
+        "description": "Orientation vers l'analyse de données et l'intelligence artificielle"
+    },
+    {
+        "orientation": "Cybersécurité",
+        "mots_cles": ["infges", "bd", "python"],
+        "description": "Orientation vers la sécurité informatique et la protection des données"
+    },
+    {
+        "orientation": "Gestion de Projets IT",
+        "mots_cles": ["gespro", "infges", "ent"],
+        "description": "Orientation vers la gestion de projets technologiques"
+    },
+    {
+        "orientation": "Systèmes d'Information",
+        "mots_cles": ["infges", "gesfin", "gestbudg"],
+        "description": "Orientation vers la gestion des systèmes d'information d'entreprise"
+    },
+    {
+        "orientation": "Intelligence Artificielle",
+        "mots_cles": ["python", "prosto", "calcoumar"],
+        "description": "Orientation vers le machine learning et l'IA"
+    },
+    {
+        "orientation": "Cloud Computing",
+        "mots_cles": ["devweb", "bd", "python"],
+        "description": "Orientation vers les technologies cloud et DevOps"
+    }
+]
+
+def get_subject_recommendations(matiere_nom):
+    """Retourne les recommandations pour une matière spécifique"""
+    try:
+        if not matiere_nom or not isinstance(matiere_nom, str):
+            return MATIERE_RECOMMENDATIONS["default"]
+        
+        matiere_key = matiere_nom.lower().replace(" ", "")
+        
+        # Recherche exacte
+        if matiere_key in MATIERE_RECOMMENDATIONS:
+            return MATIERE_RECOMMENDATIONS[matiere_key]
+        
+        # Recherche partielle
+        for key in MATIERE_RECOMMENDATIONS:
+            if key in matiere_key or matiere_key in key:
+                return MATIERE_RECOMMENDATIONS[key]
+        
+        return MATIERE_RECOMMENDATIONS["default"]
+    except Exception as e:
+        logger.error(f"Error in get_subject_recommendations: {str(e)}")
+        return MATIERE_RECOMMENDATIONS["default"]
+
+def get_academic_orientation(student_notes):
+    """Détermine l'orientation académique basée sur les notes"""
+    try:
+        if not student_notes:
+            return None
+        
+        student_profile = {}
+        for note in student_notes:
+            matiere_name = note.matiere.nom.lower().replace(" ", "")
+            student_profile[matiere_name] = note.note_module
+        
+        orientation_scores = []
+        for orientation in ORIENTATIONS:
+            score = 0
+            matched = 0
+            for subject in orientation["mots_cles"]:
+                if subject in student_profile:
+                    score += student_profile[subject]
+                    matched += 1
+            if matched > 0:
+                orientation_scores.append({
+                    "orientation": orientation["orientation"],
+                    "score": score / matched,
+                    "description": orientation["description"]
+                })
+        
+        if orientation_scores:
+            return max(orientation_scores, key=lambda x: x["score"])
+        return None
+    except Exception as e:
+        logger.error(f"Error in get_academic_orientation: {str(e)}")
+        return None
 
 def prepare_student_data(class_id=None):
-    """
-    Version finale avec diagnostic complet des données
-    """
+    """Prépare les données des étudiants"""
     try:
-        logger.info(f"Préparation des données pour la classe {class_id}")
-        
-        # 1. Vérification initiale de la base de données
-        total_students = Utilisateur.objects.filter(user_type='student').count()
-        total_notes = Note.objects.count()
-        logger.info(f"Étudiants totaux: {total_students}, Notes totales: {total_notes}")
-
-        if total_notes == 0:
-            logger.error("AUCUNE NOTE TROUVÉE dans la base de données!")
-            return pd.DataFrame()
-
-        # 2. Récupération optimisée des données
         query = Utilisateur.objects.filter(
             user_type='student',
-            note__isnull=False  # Seulement les étudiants avec des notes
+            note__isnull=False
         ).annotate(
             note_count=Count('note')
         ).prefetch_related('note_set', 'classe')
@@ -43,23 +228,12 @@ def prepare_student_data(class_id=None):
             query = query.filter(classe_id=class_id)
 
         students = list(query)
-        logger.info(f"Étudiants avec notes trouvés: {len(students)}")
-
         if not students:
-            logger.warning("Aucun étudiant avec notes trouvé")
             return pd.DataFrame()
 
-        # 3. Préparation des données avec vérification complète
         data = []
         for student in students:
             notes = student.note_set.all()
-            
-            # Debug: Afficher les premières notes pour vérification
-            if len(data) < 2:  # Affiche seulement pour les 2 premiers étudiants
-                logger.debug(f"Notes pour étudiant {student.id}:")
-                for note in notes[:3]:
-                    logger.debug(f"  - Note ID:{note.id} Module:{note.note_module} Projet:{note.note_devoir_projet}")
-
             averages = notes.aggregate(
                 avg_note=Avg('note_module'),
                 avg_project=Avg('note_devoir_projet'),
@@ -67,15 +241,14 @@ def prepare_student_data(class_id=None):
                 avg_assiduite=Avg('assiduite')
             )
 
-            # Conversion des moyennes avec vérification rigoureuse
-            avg_note = float(averages['avg_note']) if averages['avg_note'] is not None else 0.0
-            avg_project = float(averages['avg_project']) if averages['avg_project'] is not None else 0.0
-            avg_attendance = float(averages['avg_attendance']) if averages['avg_attendance'] is not None else 0.0
-            avg_assiduite = float(averages['avg_assiduite']) if averages['avg_assiduite'] is not None else 0.0
-
             data.append({
                 'student_id': student.id,
-                'features': [avg_note, avg_project, avg_attendance, avg_assiduite],
+                'features': [
+                    float(averages['avg_note']) if averages['avg_note'] else 0.0,
+                    float(averages['avg_project']) if averages['avg_project'] else 0.0,
+                    float(averages['avg_attendance']) if averages['avg_attendance'] else 0.0,
+                    float(averages['avg_assiduite']) if averages['avg_assiduite'] else 0.0
+                ],
                 'info': {
                     'first_name': student.first_name,
                     'last_name': student.last_name,
@@ -84,36 +257,181 @@ def prepare_student_data(class_id=None):
                 }
             })
 
-        logger.info(f"Données préparées pour {len(data)} étudiants")
         return pd.DataFrame(data)
-
     except Exception as e:
-        logger.error(f"ERREUR CRITIQUE dans prepare_student_data: {str(e)}", exc_info=True)
+        logger.error(f"Error in prepare_student_data: {str(e)}", exc_info=True)
         return pd.DataFrame()
+
+def classify_students(class_id):
+    """Classifie les étudiants par performance"""
+    students = Utilisateur.objects.filter(classe_id=class_id, user_type='student')
+    classification = []
     
+    for student in students:
+        notes = Note.objects.filter(etudiant=student)
+        if not notes:
+            continue
+        
+        avg_score = sum(n.note_module * 0.7 + n.note_devoir_projet * 0.3 for n in notes) / len(notes)
+        
+        if avg_score >= 16:
+            category = 'Bon performeur'
+        elif 12 <= avg_score < 16:
+            category = 'Moyenne performance'
+        else:
+            category = 'À risque'
+        
+        classification.append({
+            'student_id': student.id,
+            'student_name': student.username,
+            'average_score': avg_score,
+            'performance_category': category,
+            'class_id': class_id,
+            'class_name': student.classe.nom if student.classe else None
+        })
+    
+    classification.sort(key=lambda x: x['average_score'], reverse=True)
+    return classification
+
+def generate_risk_alerts(class_id=None):
+    """Génère des alertes pour les étudiants à risque"""
+    try:
+        classified = classify_students(class_id)
+        alerts = []
+        
+        for student in classified:
+            if student['performance_category'] == 'À risque':
+                weak_subjects = Note.objects.filter(
+                    etudiant_id=student['student_id'],
+                    note_module__lt=10
+                ).select_related('matiere')
+                
+                courses = []
+                for note in weak_subjects:
+                    matiere = note.matiere
+                    rec = get_subject_recommendations(matiere.nom)
+                    courses.append({
+                        'subject': matiere.nom,
+                        'resources': [
+                            {'name': name, 'link': link} 
+                            for name, link in zip(rec['noms'], rec['liens'])
+                        ]
+                    })
+                
+                alert = Alerte.objects.create(
+                    etudiant_id=student['student_id'],
+                    message=f"Étudiant à risque (moyenne: {student['average_score']:.2f})"
+                )
+                
+                alerts.append({
+                    'student_id': student['student_id'],
+                    'student_name': student['student_name'],
+                    'performance_category': student['performance_category'],
+                    'class_id': student['class_id'],
+                    'class_name': student['class_name'],
+                    'average_score': student['average_score'],
+                    'alert_message': alert.message,
+                    'course_recommendations': courses
+                })
+        
+        return alerts
+    except Exception as e:
+        logger.error(f"Error in generate_risk_alerts: {str(e)}", exc_info=True)
+        return []
+
+def generate_recommendations_for_class(class_id):
+    """Génère des recommandations complètes pour une classe"""
+    try:
+        classified = classify_students(class_id)
+        recommendations = []
+        
+        for student in classified:
+            notes = Note.objects.filter(etudiant_id=student['student_id'])
+            orientation = get_academic_orientation(notes)
+            
+            rec = {
+                'student_id': student['student_id'],
+                'student_name': student['student_name'],
+                'class_id': student['class_id'],
+                'class_name': student['class_name'],
+                'performance_category': student['performance_category'],
+                'recommendations': [],
+                'academic_orientation': orientation
+            }
+            
+            # Performance recommendations
+            if student['performance_category'] == 'À risque':
+                rec['recommendations'].extend([
+                    {"type": "performance", "message": "Tutorat intensif", "priority": "high"},
+                    {"type": "performance", "message": "Parcours de remise à niveau", "priority": "high"}
+                ])
+            elif student['performance_category'] == 'Moyenne performance':
+                rec['recommendations'].extend([
+                    {"type": "performance", "message": "Tutorat optionnel", "priority": "medium"},
+                    {"type": "performance", "message": "Parcours standard", "priority": "medium"}
+                ])
+            else:
+                rec['recommendations'].extend([
+                    {"type": "performance", "message": "Parcours d'excellence", "priority": "low"},
+                    {"type": "performance", "message": "Projet personnel", "priority": "low"}
+                ])
+            
+            # Academic orientation
+            if orientation:
+                rec['recommendations'].append({
+                    "type": "orientation",
+                    "message": f"Orientation: {orientation['orientation']}",
+                    "details": orientation['description'],
+                    "priority": "medium"
+                })
+            
+            # Subject-specific recommendations
+            weak_subjects = Note.objects.filter(
+                etudiant_id=student['student_id'],
+                note_module__lt=10
+            ).select_related('matiere')
+            
+            for note in weak_subjects:
+                matiere = note.matiere
+                recs = get_subject_recommendations(matiere.nom)
+                
+                rec['recommendations'].append({
+                    "type": "subject",
+                    "message": f"Soutien en {matiere.nom}",
+                    "subject": matiere.nom,
+                    "priority": "high",
+                    "resources": [
+                        {"name": name, "link": link} 
+                        for name, link in zip(recs['noms'], recs['liens'])
+                    ]
+                })
+                
+                Recommandation.objects.create(
+                    etudiant_id=student['student_id'],
+                    matiere=matiere,
+                    contenu=f"Soutien recommandé en {matiere.nom}"
+                )
+            
+            recommendations.append(rec)
+        
+        return recommendations
+    except Exception as e:
+        logger.error(f"Error in generate_recommendations_for_class: {str(e)}", exc_info=True)
+        return []
+
 def train_global_classification_model(retrain=True):
-    """
-    Entraîne ou charge un modèle de classification avec vérification améliorée
-    """
+    """Entraîne ou charge le modèle de classification"""
     model_path = os.path.join(MODELS_DIR, 'global_classifier.pkl')
     
     try:
         if not retrain and os.path.exists(model_path):
-            logger.info("Chargement du modèle existant")
             saved_data = joblib.load(model_path)
             return saved_data['model'], saved_data['scaler']
         
-        logger.info("Entraînement d'un nouveau modèle")
         df = prepare_student_data()
-        
         if df.empty:
-            logger.error("DataFrame vide - aucune donnée disponible pour l'entraînement")
             raise ValueError("Pas assez de données pour l'entraînement")
         
-        logger.info(f"Nombre d'étudiants pour l'entraînement: {len(df)}")
-        logger.debug(f"Exemple de données:\n{df.head()}")
-        
-        # Définition des catégories
         df['category'] = pd.cut(
             df['features'].apply(lambda x: x[0]),
             bins=[0, 12, 14, 20],
@@ -142,194 +460,50 @@ def train_global_classification_model(retrain=True):
             'categories': df['category'].tolist()
         }, model_path)
         
-        logger.info("Modèle entraîné et sauvegardé avec succès")
         return model, scaler
-        
     except Exception as e:
-        logger.error(f"Erreur dans train_global_classification_model: {str(e)}", exc_info=True)
+        logger.error(f"Error in train_global_classification_model: {str(e)}", exc_info=True)
         raise
-def classify_students(class_id):
-    # Retrieve students in the class
-    students = Utilisateur.objects.filter(classe_id=class_id, user_type='student')
-    
-    classification = []
-    for student in students:
-        # Calculate average score
-        notes = Note.objects.filter(etudiant=student)
-        if not notes:
-            continue  
-        
-        average_score = sum(note.note_module * 0.7 + note.note_devoir_projet * 0.3 for note in notes) / len(notes)
-        
-        # Determine performance category
-        if average_score >= 16:
-            performance_category = 'Bon performeur'
-        elif 12 <= average_score < 16:
-            performance_category = 'Moyenne performance'
-        else:
-            performance_category = 'À risque'
-        
-        classification.append({
-            'student_id': student.id,
-            'student_name': student.username,
-            'average_score': average_score,
-            'performance_category': performance_category,
-           
-            'class_id': class_id,
-            'class_name': student.classe.nom if student.classe else None
-        })
-    
-    # Sort by average score
-    classification.sort(key=lambda x: x['average_score'], reverse=True)
-    
-    return classification
 
-def generate_risk_alerts(class_id=None):
-    try:
-        classified_students = classify_students(class_id)
-        
-        alerts = []
-        for s in classified_students:
-            # Ensure performance_category is set for all students
-            performance_category = s.get('performance_category', 'Moyenne performance')
-            
-            if performance_category == 'À risque':
-                alerts.append({
-                    'student_id': s['student_id'],
-                    'student_name': s['student_name'],
-                    'performance_category': performance_category,  # Explicitly set this
-                    'class_id': s['class_id'],
-                    'class_name': s['class_name'],
-                    'average_score': s['average_score'],
-                    'alert_message': f"Étudiant à risque (moyenne: {s['average_score']:.2f})",
-                    'recommendations': [
-                        "Séances de tutorat obligatoires",
-                        "Rencontre avec le conseiller pédagogique",
-                        "Plan d'étude personnalisé recommandé"
-                    ]
-                })
-        
-        return alerts
-        
-    except Exception as e:
-        logger.error(f"Erreur dans generate_risk_alerts: {str(e)}", exc_info=True)
-        return []
-
-def generate_recommendations_for_class(class_id):
-    """
-    Génère des recommandations avec un meilleur logging
-    """
-    try:
-        logger.info(f"Génération de recommandations pour la classe {class_id}")
-        classified_students = classify_students(class_id)
-        recommendations = []
-        
-        for student in classified_students:
-            rec = {
-                'student_id': student['student_id'],
-                'student_name': student['student_name'],
-                'class_id': student['class_id'],
-                'class_name': student['class_name'],
-                'performance_category': student['performance_category'],
-                'recommendations': []
-            }
-            
-            # Recommandations basées sur la performance
-            if student['performance_category'] == 'À risque':
-                rec['recommendations'].extend([
-                    {"message": "Tutorat intensif 3 fois/semaine"},
-                    {"message": "Parcours de remise à niveau"}
-                ])
-            elif student['performance_category'] == 'Moyenne performance':
-                rec['recommendations'].extend([
-                    {"message": "Tutorat optionnel 1 fois/semaine"},
-                    {"message": "Parcours standard"}
-                ])
-            else:
-                rec['recommendations'].extend([
-                    {"message": "Parcours d'excellence"},
-                    {"message": "Projet personnel encadré"},
-       
-                ])
-            
-            # Recommandations par matière faible
-            weak_subjects = Note.objects.filter(
-                etudiant_id=student['student_id'],
-                note_module__lt=10
-            ).values_list('matiere__nom', flat=True).distinct()
-            
-            for subject in weak_subjects:
-                rec['recommendations'].append({
-                    "message": f"Soutien spécifique en {subject}"
-                })
-            
-            recommendations.append(rec)
-        
-        logger.info(f"Recommandations générées pour {len(recommendations)} étudiants")
-        return recommendations
-        
-    except Exception as e:
-        logger.error(f"Erreur dans generate_recommendations_for_class: {str(e)}", exc_info=True)
-        return []
-    
 def predict_s3_s4_grades(class_id=None):
-    """
-    Calcule les moyennes S1/S2 existantes et prédit seulement S3/S4
-    """
+    """Prédit les notes des semestres 3 et 4"""
     try:
-        # 1. Récupération des étudiants (distincts)
-        students_query = Utilisateur.objects.filter(
+        students = Utilisateur.objects.filter(
             user_type='student',
-            note__isnull=False
-        ).distinct()
+            note__isnull=False,
+            classe_id=class_id
+        ).distinct().prefetch_related('note_set', 'classe')
 
-        if class_id:
-            students_query = students_query.filter(classe_id=class_id)
-
-        students = list(students_query.prefetch_related('note_set', 'classe'))
-
-        # 2. Récupération des matières S3/S4
-        class_id = students[0].classe.id if students and students[0].classe else None
         matieres_s3_s4 = Matiere.objects.filter(
             semestre__in=[3, 4],
             classe_id=class_id
         ).distinct()
 
-        # 3. Calculs et prédictions
         results = []
         for student in students:
             notes = student.note_set.all()
             
-            # CALCUL DES MOYENNES RÉELLES S1/S2 (pas de prédiction ici)
             def calculate_semester_avg(notes_list):
                 if not notes_list: return 0
                 total = sum(
-                    n.note_module * 0.5 +  # Poids module
-                    n.note_devoir_projet * 0.3 +  # Poids projet
-                    (n.presence / 20) * 2 +  # Poids présence
-                    n.assiduite * 0.1  # Poids assiduité
+                    n.note_module * 0.5 +
+                    n.note_devoir_projet * 0.3 +
+                    (n.presence / 20) * 2 +
+                    n.assiduite * 0.1
                     for n in notes_list
                 )
                 return total / len(notes_list)
 
-            # Notes S1 existantes (calcul)
-            s1_notes = [n for n in notes if n.matiere.semestre == 1]
-            s1_avg = calculate_semester_avg(s1_notes) if s1_notes else 0
-            
-            # Notes S2 existantes (calcul)
-            s2_notes = [n for n in notes if n.matiere.semestre == 2]
-            s2_avg = calculate_semester_avg(s2_notes) if s2_notes else 0
+            s1_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 1])
+            s2_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 2])
 
-            # PRÉDICTION S3/S4 seulement
             matieres_pred = {}
             for matiere in matieres_s3_s4:
-                # Formule de prédiction basée sur S1/S2
-                if matiere.semestre == 3:  # S3
+                if matiere.semestre == 3:
                     base_pred = s2_avg * 0.7 + s1_avg * 0.3
-                else:  # S4
+                else:
                     base_pred = s2_avg * 0.6 + s1_avg * 0.2 + (s2_avg - s1_avg) * 0.2
                 
-                # Ajustement aléatoire léger
                 adjustment = np.random.uniform(-0.5, 0.5)
                 predicted_note = max(0, min(20, base_pred + adjustment))
 
@@ -343,9 +517,9 @@ def predict_s3_s4_grades(class_id=None):
             results.append({
                 'student_id': student.id,
                 'student_name': f"{student.first_name} {student.last_name}",
-                's1_avg': round(s1_avg, 2) if s1_notes else 'N/A',  # Moyenne CALCULÉE
-                's2_avg': round(s2_avg, 2) if s2_notes else 'N/A',  # Moyenne CALCULÉE
-                **matieres_pred  # Notes PRÉDITES seulement pour S3/S4
+                's1_avg': round(s1_avg, 2) if s1_avg else 'N/A',
+                's2_avg': round(s2_avg, 2) if s2_avg else 'N/A',
+                **matieres_pred
             })
 
         return {
@@ -357,9 +531,8 @@ def predict_s3_s4_grades(class_id=None):
                 'coef': m.coefficient,
                 'field_name': f'mat_{m.id}'
             } for m in matieres_s3_s4],
-            'class_name': students[0].classe.nom if students and students[0].classe else ''
+            'class_name': students[0].classe.nom if students else ''
         }
-
     except Exception as e:
-        logger.error(f"Erreur dans predict_s3_s4_grades: {str(e)}", exc_info=True)
+        logger.error(f"Error in predict_s3_s4_grades: {str(e)}", exc_info=True)
         return {'error': str(e)}
