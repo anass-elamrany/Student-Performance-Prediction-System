@@ -1,100 +1,39 @@
+import json
+import csv
+import logging
+import datetime
+from datetime import datetime, timedelta
+from collections import defaultdict
+
 from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import get_object_or_404
+from django.contrib.auth.hashers import make_password
+from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from django.db.models import Avg, Count, F
-from django.db.models.functions import TruncMonth
 from django.db import IntegrityError
-from datetime import datetime, timedelta
-import json
+from django.db.models import Avg, Count, Sum, Max, Case, When, Value, F, Q
+from django.db.models.functions import TruncMonth
+
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-from .models import Utilisateur, Matiere, Note
-from .serializers import MatiereSerializer, NoteSerializer
-import csv
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 
-from django.db.models import Avg, Count, Sum
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
-from .models import Matiere, Note, Alerte, Recommandation
-from .serializers import MatiereSerializer, NoteSerializer, AlerteSerializer, RecommandationSerializer
-import logging
-from django.db.models import Avg, Max
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
-from .models import Matiere, Note
-import logging
-from django.contrib.auth import authenticate, login, logout
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.hashers import make_password
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-from .ml_utils import classify_students, generate_risk_alerts, generate_recommendations_for_class
-from .models import Alerte, Recommandation
-from .models import Utilisateur, Classe, Note, Performance, Alerte, Recommandation, Matiere
-from .serializers import MatiereSerializer, UtilisateurSerializer, ClasseSerializer, NoteSerializer
-from django.db.models import Avg, Count, Sum, Max, Case, When, Value
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.shortcuts import render
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from .models import Recommandation
-from django.shortcuts import render
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from django.db.models import Avg
-from datetime import datetime, timedelta
 from .models import (
     Utilisateur, Classe, Matiere, Note, Performance, 
     Alerte, Recommandation
 )
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
-from .models import Note
-
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
-from .models import Note
-from .serializers import NoteSerializer
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-from .ml_utils import classify_students, generate_risk_alerts, generate_recommendations_for_class
-from .models import Alerte, Recommandation
-import csv
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import Matiere, Classe, Utilisateur
-from django.db.models import Avg, Count, Q
-from collections import defaultdict
-import datetime
+from .serializers import (
+    MatiereSerializer, UtilisateurSerializer, ClasseSerializer, 
+    NoteSerializer, AlerteSerializer, RecommandationSerializer
+)
+from .ml_utils import (
+    classify_students, generate_risk_alerts, 
+    generate_recommendations_for_class, predict_s3_s4_grades
+)
 
 
 
@@ -896,123 +835,6 @@ def import_matieres(request):
     return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
 
 
-# Machine Learning Views
-@csrf_exempt
-def classify_class_students(request):
-    """
-    Classifie tous les étudiants d'une classe spécifique
-    """
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            class_id = data.get('class_id')
-            
-            if not class_id:
-                return JsonResponse({'error': 'class_id is required'}, status=400)
-            
-            results = classify_students(class_id)
-            return JsonResponse({'students': results})
-        
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-@csrf_exempt
-def get_class_alerts(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            class_id = data.get('class_id')
-            
-            if not class_id:
-                return JsonResponse({'error': 'class_id is required'}, status=400)
-            
-            alerts = generate_risk_alerts(class_id)
-            print(f"Generated alerts: {alerts}")  # Add this logging
-            
-            return JsonResponse({'alerts': alerts})
-        
-        except Exception as e:
-            print(f"Error in get_class_alerts: {str(e)}")  # Add this logging
-            return JsonResponse({'error': str(e)}, status=500)
-
-@csrf_exempt
-def get_class_recommendations(request):
-    """
-    Récupère les recommandations pour une classe spécifique
-    """
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            class_id = data.get('class_id')
-            
-            if not class_id:
-                return JsonResponse({'error': 'class_id is required'}, status=400)
-            
-            recommendations = generate_recommendations_for_class(class_id)
-            
-            # Sauvegarder les recommandations en base de données
-            for rec in recommendations:
-                for detail in rec['recommendations']:
-                    # Find the corresponding subject if applicable
-                    matiere = None
-                    if detail.get('type') == 'matiere':
-                        try:
-                            matiere_name = detail['message'].split(' ')[-1]
-                            matiere = Matiere.objects.filter(nom__icontains=matiere_name).first()
-                        except:
-                            pass
-                    
-                    Recommandation.objects.create(
-                        etudiant_id=rec['student_id'],
-                        contenu=detail['message'],
-                        matiere=matiere
-                    )
-            
-            return JsonResponse({'recommendations': recommendations})
-        
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .ml_utils import classify_students, generate_risk_alerts
-
-@csrf_exempt
-def class_dashboard(request):
-    """Endpoint principal avec les 3 catégories"""
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            class_id = data.get('class_id')
-            
-            if not class_id:
-                return JsonResponse({'error': 'class_id is required'}, status=400)
-            
-            classification = classify_students(class_id)
-            
-            stats = {
-                'average_score': sum(s.get('average_score', 0) for s in classification) / len(classification) if classification else 0,
-                'at_risk_count': sum(1 for s in classification if s['performance_category'] == 'À risque'),
-                'good_performers': sum(1 for s in classification if s['performance_category'] == 'Bon performeur'),
-                'total_students': len(classification)
-            }
-            
-            alerts = generate_risk_alerts(class_id)
-            
-            return JsonResponse({
-                'classification': classification,
-                'statistics': stats,
-                'alerts': alerts
-            })
-            
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    
-    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
 
 
@@ -1618,7 +1440,6 @@ def update_teacher_password(request):
 
 #students dahboard views
 
-
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -1876,3 +1697,152 @@ def update_student_password(request):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+
+
+
+
+# Machine Learning Views
+@csrf_exempt
+def classify_class_students(request):
+    """
+    Classifie tous les étudiants d'une classe spécifique
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            class_id = data.get('class_id')
+            
+            if not class_id:
+                return JsonResponse({'error': 'class_id is required'}, status=400)
+            
+            results = classify_students(class_id)
+            return JsonResponse({'students': results})
+        
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def get_class_alerts(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            class_id = data.get('class_id')
+            
+            if not class_id:
+                return JsonResponse({'error': 'class_id is required'}, status=400)
+            
+            alerts = generate_risk_alerts(class_id)
+            print(f"Generated alerts: {alerts}")  # Add this logging
+            
+            return JsonResponse({'alerts': alerts})
+        
+        except Exception as e:
+            print(f"Error in get_class_alerts: {str(e)}")  # Add this logging
+            return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def get_class_recommendations(request):
+    """
+    Récupère les recommandations pour une classe spécifique
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            class_id = data.get('class_id')
+            
+            if not class_id:
+                return JsonResponse({'error': 'class_id is required'}, status=400)
+            
+            recommendations = generate_recommendations_for_class(class_id)
+            
+            # Sauvegarder les recommandations en base de données
+            for rec in recommendations:
+                for detail in rec['recommendations']:
+                    # Find the corresponding subject if applicable
+                    matiere = None
+                    if detail.get('type') == 'matiere':
+                        try:
+                            matiere_name = detail['message'].split(' ')[-1]
+                            matiere = Matiere.objects.filter(nom__icontains=matiere_name).first()
+                        except:
+                            pass
+                    
+                    Recommandation.objects.create(
+                        etudiant_id=rec['student_id'],
+                        contenu=detail['message'],
+                        matiere=matiere
+                    )
+            
+            return JsonResponse({'recommendations': recommendations})
+        
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .ml_utils import classify_students, generate_risk_alerts
+
+@csrf_exempt
+def class_dashboard(request):
+    """Endpoint principal avec les 3 catégories"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            class_id = data.get('class_id')
+            
+            if not class_id:
+                return JsonResponse({'error': 'class_id is required'}, status=400)
+            
+            classification = classify_students(class_id)
+            
+            stats = {
+                'average_score': sum(s.get('average_score', 0) for s in classification) / len(classification) if classification else 0,
+                'at_risk_count': sum(1 for s in classification if s['performance_category'] == 'À risque'),
+                'good_performers': sum(1 for s in classification if s['performance_category'] == 'Bon performeur'),
+                'total_students': len(classification)
+            }
+            
+            alerts = generate_risk_alerts(class_id)
+            
+            return JsonResponse({
+                'classification': classification,
+                'statistics': stats,
+                'alerts': alerts
+            })
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+
+@csrf_exempt
+def predict_grades(request):
+    """
+    Endpoint pour prédictions sans doublons
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            class_id = data.get('class_id')
+            
+            if not class_id:
+                return JsonResponse({'error': 'class_id required'}, status=400)
+            
+            predictions = predict_s3_s4_grades(class_id)
+            
+            if 'error' in predictions:
+                return JsonResponse({'error': predictions['error']}, status=400)
+                
+            return JsonResponse(predictions)
+        
+        except Exception as e:
+            logger.error(f"Error in predict_grades: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

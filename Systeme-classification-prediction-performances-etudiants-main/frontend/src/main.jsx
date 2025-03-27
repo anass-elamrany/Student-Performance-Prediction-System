@@ -26,13 +26,14 @@ import TeacherDashboard from "./pages/teacher/Dashboard";
 import TeacherNotes from "./pages/teacher/Notes ";
 import TeacherAnalysis from "./pages/teacher/Analyse";
 import Profile from "./pages/teacher/Profile";
-
+import PredictNotes from "./pages/admin/PredictNotes";
 // Dashboard Pages - Student
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentRecommendations from "./pages/student/Recommendations";
 
 import StudentNotes from "./pages/student/Mes Notes ";
 import StudentProfile from "./pages/student/StudentProfile";
+
 
 
 
@@ -54,14 +55,13 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <AdminDashboard /> },
       { path: "Classes", element: <AdminClasses /> },
       { path: "Enseignants", element: <AdminEnseignants /> },
-
       { path: "Etudiants", element: <Etudiants/> },
       { path: "Matieres", element: <AdminMatieres/> },
-
       { path: "Classment", element: <AdminClassment/> },
       { path: "Alerts", element: <AdminAlerts/> },
       { path: "Recommendations", element: <AdminRecommendations/> },
       { path: "AdminNotes", element: <AdminNotes/> },
+      { path: "PredictNotes", element: <PredictNotes/> },
       
     ],
   },
@@ -95,7 +95,6 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <StudentDashboard /> },
       { path: "Guidance", element: <StudentRecommendations/> },
       { path: "Notes", element: <StudentNotes /> },
-
       { path: "StudentProfile", element: <StudentProfile /> }, 
     ],
   },

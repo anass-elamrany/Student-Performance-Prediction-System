@@ -59,7 +59,7 @@ urlpatterns = [
     path('api/ml/class-alerts/', views.get_class_alerts, name='get-class-alerts'),
     path('api/ml/class-recommendations/', views.get_class_recommendations, name='get-class-recommendations'),
     path('api/ml/class-dashboard/', views.class_dashboard, name='class-dashboard'),
-    
+    path('api/predict-grades/', views.predict_grades, name='predict_grades'),
     
 
     # Teacher Dashboard (inchangé)

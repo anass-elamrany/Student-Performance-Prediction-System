@@ -88,6 +88,7 @@ const adminMenuItems = {
     { text: "Classement", icon: <LeaderboardOutlinedIcon />, path: "/admin/Classment" },
     { text: "Alertes", icon: <NotificationsActiveOutlinedIcon />, path: "/admin/Alerts" },
     { text: "Recommandations", icon: <ThumbUpOutlinedIcon />, path: "/admin/Recommendations" },
+    { text: "PredictNotes", icon: <ThumbUpOutlinedIcon />, path: "/admin/PredictNotes" },
 
   ],
 };

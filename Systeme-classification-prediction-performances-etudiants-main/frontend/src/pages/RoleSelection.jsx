@@ -3,6 +3,8 @@ import { Box, Typography, Button, Container, Paper, Grid } from "@mui/material"
 import SchoolIcon from "@mui/icons-material/School"
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount"
 import PersonIcon from "@mui/icons-material/Person"
+import Navbar from "../components/Navbar"
+import Footer from "../components/Footer"
 
 const SelectionRole = () => {
   const roles = [
@@ -30,6 +32,8 @@ const SelectionRole = () => {
   ]
 
   return (
+    <>
+    <Navbar />
     <Container
       maxWidth="lg"
       sx={{ height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}
@@ -92,6 +96,8 @@ const SelectionRole = () => {
         </Box>
      
     </Container>
+    <Footer />
+  </>
   )
 }
 

@@ -3,7 +3,7 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 import pandas as pd
 from django.db.models import Avg, Count
-from .models import Note, Utilisateur, Matiere
+from .models import Matiere, Note, Utilisateur
 import joblib
 import os
 from django.conf import settings
@@ -157,7 +157,7 @@ def classify_students(class_id):
         # Calculate average score
         notes = Note.objects.filter(etudiant=student)
         if not notes:
-            continue  # Skip students with no grades
+            continue  
         
         average_score = sum(note.note_module * 0.7 + note.note_devoir_projet * 0.3 for note in notes) / len(notes)
         
@@ -174,7 +174,7 @@ def classify_students(class_id):
             'student_name': student.username,
             'average_score': average_score,
             'performance_category': performance_category,
-            # Add these lines to include class information
+           
             'class_id': class_id,
             'class_name': student.classe.nom if student.classe else None
         })
@@ -248,7 +248,7 @@ def generate_recommendations_for_class(class_id):
             else:
                 rec['recommendations'].extend([
                     {"message": "Parcours d'excellence"},
-                            {"message": "Projet personnel encadré"},
+                    {"message": "Projet personnel encadré"},
        
                 ])
             
@@ -271,3 +271,95 @@ def generate_recommendations_for_class(class_id):
     except Exception as e:
         logger.error(f"Erreur dans generate_recommendations_for_class: {str(e)}", exc_info=True)
         return []
+    
+def predict_s3_s4_grades(class_id=None):
+    """
+    Calcule les moyennes S1/S2 existantes et prédit seulement S3/S4
+    """
+    try:
+        # 1. Récupération des étudiants (distincts)
+        students_query = Utilisateur.objects.filter(
+            user_type='student',
+            note__isnull=False
+        ).distinct()
+
+        if class_id:
+            students_query = students_query.filter(classe_id=class_id)
+
+        students = list(students_query.prefetch_related('note_set', 'classe'))
+
+        # 2. Récupération des matières S3/S4
+        class_id = students[0].classe.id if students and students[0].classe else None
+        matieres_s3_s4 = Matiere.objects.filter(
+            semestre__in=[3, 4],
+            classe_id=class_id
+        ).distinct()
+
+        # 3. Calculs et prédictions
+        results = []
+        for student in students:
+            notes = student.note_set.all()
+            
+            # CALCUL DES MOYENNES RÉELLES S1/S2 (pas de prédiction ici)
+            def calculate_semester_avg(notes_list):
+                if not notes_list: return 0
+                total = sum(
+                    n.note_module * 0.5 +  # Poids module
+                    n.note_devoir_projet * 0.3 +  # Poids projet
+                    (n.presence / 20) * 2 +  # Poids présence
+                    n.assiduite * 0.1  # Poids assiduité
+                    for n in notes_list
+                )
+                return total / len(notes_list)
+
+            # Notes S1 existantes (calcul)
+            s1_notes = [n for n in notes if n.matiere.semestre == 1]
+            s1_avg = calculate_semester_avg(s1_notes) if s1_notes else 0
+            
+            # Notes S2 existantes (calcul)
+            s2_notes = [n for n in notes if n.matiere.semestre == 2]
+            s2_avg = calculate_semester_avg(s2_notes) if s2_notes else 0
+
+            # PRÉDICTION S3/S4 seulement
+            matieres_pred = {}
+            for matiere in matieres_s3_s4:
+                # Formule de prédiction basée sur S1/S2
+                if matiere.semestre == 3:  # S3
+                    base_pred = s2_avg * 0.7 + s1_avg * 0.3
+                else:  # S4
+                    base_pred = s2_avg * 0.6 + s1_avg * 0.2 + (s2_avg - s1_avg) * 0.2
+                
+                # Ajustement aléatoire léger
+                adjustment = np.random.uniform(-0.5, 0.5)
+                predicted_note = max(0, min(20, base_pred + adjustment))
+
+                matieres_pred[f'mat_{matiere.id}'] = {
+                    'note': round(predicted_note, 2),
+                    'matiere_nom': matiere.nom,
+                    'semestre': matiere.semestre,
+                    'coef': matiere.coefficient
+                }
+
+            results.append({
+                'student_id': student.id,
+                'student_name': f"{student.first_name} {student.last_name}",
+                's1_avg': round(s1_avg, 2) if s1_notes else 'N/A',  # Moyenne CALCULÉE
+                's2_avg': round(s2_avg, 2) if s2_notes else 'N/A',  # Moyenne CALCULÉE
+                **matieres_pred  # Notes PRÉDITES seulement pour S3/S4
+            })
+
+        return {
+            'students': results,
+            'matieres': [{
+                'id': m.id,
+                'nom': m.nom,
+                'semestre': m.semestre,
+                'coef': m.coefficient,
+                'field_name': f'mat_{m.id}'
+            } for m in matieres_s3_s4],
+            'class_name': students[0].classe.nom if students and students[0].classe else ''
+        }
+
+    except Exception as e:
+        logger.error(f"Erreur dans predict_s3_s4_grades: {str(e)}", exc_info=True)
+        return {'error': str(e)}
