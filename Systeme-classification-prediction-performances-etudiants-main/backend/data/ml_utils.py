@@ -460,8 +460,12 @@ def train_global_classification_model(retrain=True):
         logger.error(f"Error in train_global_classification_model: {str(e)}", exc_info=True)
         raise
 
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
 def predict_s3_s4_grades(class_id=None):
-    """Prédit les notes des semestres 3 et 4"""
+    """Prédit les notes des semestres 3 et 4 en utilisant la régression linéaire"""
     try:
         students = Utilisateur.objects.filter(
             user_type='student',
@@ -474,43 +478,115 @@ def predict_s3_s4_grades(class_id=None):
             classe_id=class_id
         )
 
-        results = []
+        # Préparer les données historiques pour l'entraînement
+        X = []
+        y_s3 = []
+        y_s4 = []
+        
+        # Collecter les données des étudiants ayant des notes complètes (S1, S2, S3, S4)
         for student in students:
             notes = list(student.note_set.all())
             
             s1_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 1])
             s2_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 2])
-
-            # Gestion des valeurs manquantes
-            if s1_avg is None and s2_avg is None:
-                continue
-            s1_avg = s1_avg if s1_avg is not None else s2_avg
-            s2_avg = s2_avg if s2_avg is not None else s1_avg
-
-            # Prédiction
-            matieres_pred = {}
-            for matiere in matieres_s3_s4:
-                if matiere.semestre == 3:
-                    base_pred = s2_avg * 0.7 + s1_avg * 0.3
-                else:
-                    base_pred = s2_avg * 0.6 + s1_avg * 0.2 + (s2_avg - s1_avg) * 0.2
+            s3_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 3])
+            s4_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 4])
+            
+            if None not in [s1_avg, s2_avg, s3_avg, s4_avg]:
+                X.append([s1_avg, s2_avg])
+                y_s3.append(s3_avg)
+                y_s4.append(s4_avg)
+        
+        results = []
+        
+        if len(X) >= 5:  # Minimum 5 échantillons pour entraîner le modèle
+            # Entraîner le modèle pour S3
+            X_train, X_test, y_train, y_test = train_test_split(X, y_s3, test_size=0.2, random_state=42)
+            model_s3 = LinearRegression()
+            model_s3.fit(X_train, y_train)
+            
+            # Entraîner le modèle pour S4
+            X_train, X_test, y_train, y_test = train_test_split(X, y_s4, test_size=0.2, random_state=42)
+            model_s4 = LinearRegression()
+            model_s4.fit(X_train, y_train)
+            
+            # Prédiction pour les étudiants actuels
+            for student in students:
+                notes = list(student.note_set.all())
                 
-                predicted_note = max(0, min(20, base_pred + np.random.uniform(-0.5, 0.5)))
+                s1_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 1])
+                s2_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 2])
 
-                matieres_pred[f'mat_{matiere.id}'] = {
-                    'note': round(predicted_note, 2),
-                    'matiere_nom': matiere.nom,
-                    'semestre': matiere.semestre,
-                    'coef': matiere.coefficient
-                }
+                # Gestion des valeurs manquantes
+                if s1_avg is None and s2_avg is None:
+                    continue
+                s1_avg = s1_avg if s1_avg is not None else s2_avg
+                s2_avg = s2_avg if s2_avg is not None else s1_avg
 
-            results.append({
-                'student_id': student.id,
-                'student_name': f"{student.first_name} {student.last_name}",
-                's1_avg': round(s1_avg, 2) if s1_avg is not None else 'N/A',
-                's2_avg': round(s2_avg, 2) if s2_avg is not None else 'N/A',
-                **matieres_pred
-            })
+                # Prédiction avec le modèle
+                matieres_pred = {}
+                for matiere in matieres_s3_s4:
+                    input_features = [[s1_avg, s2_avg]]
+                    
+                    if matiere.semestre == 3:
+                        predicted_note = model_s3.predict(input_features)[0]
+                    else:
+                        predicted_note = model_s4.predict(input_features)[0]
+                    
+                    # Assurer que la note est entre 0 et 20
+                    predicted_note = max(0, min(20, predicted_note))
+
+                    matieres_pred[f'mat_{matiere.id}'] = {
+                        'note': round(predicted_note, 2),
+                        'matiere_nom': matiere.nom,
+                        'semestre': matiere.semestre,
+                        'coef': matiere.coefficient
+                    }
+
+                results.append({
+                    'student_id': student.id,
+                    'student_name': f"{student.first_name} {student.last_name}",
+                    's1_avg': round(s1_avg, 2) if s1_avg is not None else 'N/A',
+                    's2_avg': round(s2_avg, 2) if s2_avg is not None else 'N/A',
+                    **matieres_pred
+                })
+        else:
+            # Fallback à la méthode originale si pas assez de données
+            logger.warning("Pas assez de données historiques pour la régression linéaire. Utilisation de la méthode heuristique.")
+            for student in students:
+                notes = list(student.note_set.all())
+                
+                s1_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 1])
+                s2_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 2])
+
+                if s1_avg is None and s2_avg is None:
+                    continue
+                s1_avg = s1_avg if s1_avg is not None else s2_avg
+                s2_avg = s2_avg if s2_avg is not None else s1_avg
+
+                matieres_pred = {}
+                for matiere in matieres_s3_s4:
+                    if matiere.semestre == 3:
+                        base_pred = s2_avg * 0.7 + s1_avg * 0.3
+                    else:
+                        base_pred = s2_avg * 0.6 + s1_avg * 0.2 + (s2_avg - s1_avg) * 0.2
+                    
+                    predicted_note = max(0, min(20, base_pred + np.random.uniform(-0.5, 0.5)))
+
+                    matieres_pred[f'mat_{matiere.id}'] = {
+                        'note': round(predicted_note, 2),
+                        'matiere_nom': matiere.nom,
+                        'semestre': matiere.semestre,
+                        'coef': matiere.coefficient
+                    }
+
+                results.append({
+                    'student_id': student.id,
+                    'student_name': f"{student.first_name} {student.last_name}",
+                    's1_avg': round(s1_avg, 2) if s1_avg is not None else 'N/A',
+                    's2_avg': round(s2_avg, 2) if s2_avg is not None else 'N/A',
+                    **matieres_pred
+                })
 
         return {
             'students': results,
@@ -521,7 +597,8 @@ def predict_s3_s4_grades(class_id=None):
                 'coef': m.coefficient,
                 'field_name': f'mat_{m.id}'
             } for m in matieres_s3_s4],
-            'class_name': students[0].classe.nom if students else ''
+            'class_name': students[0].classe.nom if students else '',
+            'method_used': 'regression' if len(X) >= 5 else 'heuristic'
         }
     except Exception as e:
         logger.error(f"Error in predict_s3_s4_grades: {str(e)}", exc_info=True)
