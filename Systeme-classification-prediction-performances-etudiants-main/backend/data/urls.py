@@ -11,7 +11,7 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-      # Dashboard Chart Data Endpoints
+    # Dashboard Chart Data Endpoints
     path('api/charts/performance-trend/', views.get_performance_trend, name='performance-trend'),
     path('api/charts/attendance-rate/', views.get_attendance_rate, name='attendance-rate'),
     path('api/charts/category-distribution/', views.get_category_distribution, name='category-distribution'),

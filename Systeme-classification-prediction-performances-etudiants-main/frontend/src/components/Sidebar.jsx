@@ -19,9 +19,13 @@ import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import EmojiObjectsOutlinedIcon from "@mui/icons-material/EmojiObjectsOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import GradeOutlinedIcon from "@mui/icons-material/GradeOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
+import RecommendOutlinedIcon from "@mui/icons-material/RecommendOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
+import ClassOutlinedIcon from "@mui/icons-material/ClassOutlined";
 import { useNavigate } from "react-router-dom";
 import { grey, blue } from "@mui/material/colors";
 import { getCurrentUser, getUserRole } from "../utils/auth"; 
@@ -79,18 +83,56 @@ const Drawer = styled(MuiDrawer, {
 // Menu items for each role
 const adminMenuItems = {
   main: [
-    { text: "Tableau de bord", icon: <DashboardOutlinedIcon />, path: "/admin/dashboard" },
-    { text: "Classes", icon: <SchoolOutlinedIcon />, path: "/admin/Classes" },
-    { text: "Enseignants", icon: <PeopleOutlineOutlinedIcon />, path: "/admin/Enseignants" },
-    { text: "Étudiants", icon: <SchoolOutlinedIcon />, path: "/admin/Etudiants" },
-    { text: "Matières", icon: <MenuBookOutlinedIcon />, path: "/admin/Matieres" },
-    { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/admin/AdminNotes" },
-    { text: "Classement", icon: <LeaderboardOutlinedIcon />, path: "/admin/Classment" },
-    { text: "Alertes", icon: <NotificationsActiveOutlinedIcon />, path: "/admin/Alerts" },
-    { text: "Recommandations", icon: <ThumbUpOutlinedIcon />, path: "/admin/Recommendations" },
-    { text: "PredictNotes", icon: <ThumbUpOutlinedIcon />, path: "/admin/PredictNotes" },
-
-
+    {
+      text: "Tableau de bord",
+      icon: <DashboardOutlinedIcon />,
+      path: "/admin/dashboard"
+    },
+    {
+      text: "Classes", 
+      icon: <ClassOutlinedIcon />,  // More specific for classes
+      path: "/admin/Classes"
+    },
+    {
+      text: "Enseignants",
+      icon: <PersonOutlineOutlinedIcon />,  // More appropriate for teachers
+      path: "/admin/Enseignants" 
+    },
+    {
+      text: "Étudiants",
+      icon: <SchoolOutlinedIcon />,
+      path: "/admin/Etudiants"
+    },
+    {
+      text: "Matières",
+      icon: <MenuBookOutlinedIcon />,
+      path: "/admin/Matieres"
+    },
+    {
+      text: "Notes",
+      icon: <GradeOutlinedIcon />,  // More specific for grades
+      path: "/admin/AdminNotes"
+    },
+    {
+      text: "Classement", 
+      icon: <LeaderboardOutlinedIcon />,
+      path: "/admin/Classment"
+    },
+    {
+      text: "Alertes",
+      icon: <NotificationsActiveOutlinedIcon />,
+      path: "/admin/Alerts"
+    },
+    {
+      text: "Recommandations",
+      icon: <RecommendOutlinedIcon />,  // More specific for recommendations
+      path: "/admin/Recommendations"
+    },
+    {
+      text: "Prédiction des Notes",
+      icon: <AnalyticsOutlinedIcon />,  // More appropriate for predictions
+      path: "/admin/PredictNotes"
+    }
   ],
 };
 

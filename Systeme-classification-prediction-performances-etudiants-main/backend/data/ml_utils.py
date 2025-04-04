@@ -120,7 +120,7 @@ MATIERE_RECOMMENDATIONS = {
     }
 }
 
-# Orientations académiques basées sur le fichier CSV
+# Orientations académiques 
 ORIENTATIONS = [
     {
         "orientation": "Développement Web",
@@ -159,6 +159,46 @@ ORIENTATIONS = [
     }
 ]
 
+def calculate_subject_grade(note, total_seances=20):
+    """Calcule la note d'une matière avec normalisation stricte 0-20"""
+    # Normalisation des composantes
+    note_module = max(0, min(20, note.note_module or 0))
+    note_devoir = max(0, min(20, note.note_devoir_projet or 0))
+    assiduite = max(0, min(20, note.assiduite or 0))
+    
+    # Conversion des absences en taux de présence (0-1)
+    absences = max(0, min(total_seances, note.presence or 0))
+    taux_presence = (total_seances - absences) / total_seances
+    
+    # Calcul pondéré (garanti <= 20)
+    return (
+        (note_module * 0.5) +
+        (note_devoir * 0.3) +
+        (taux_presence * 0.1) +
+        (assiduite * 0.1)
+    )
+
+def calculate_semester_avg(notes_list, total_seances=20):
+    """Calcule la moyenne d'un semestre"""
+    if not notes_list:
+        return None
+    
+    # Grouper par matière
+    matieres = {}
+    for note in notes_list:
+        matiere_id = note.matiere.id
+        if matiere_id not in matieres:
+            matieres[matiere_id] = []
+        matieres[matiere_id].append(note)
+    
+    # Calculer la moyenne par matière
+    moyennes = []
+    for notes_matiere in matieres.values():
+        moy_matiere = sum(calculate_subject_grade(n, total_seances) for n in notes_matiere) / len(notes_matiere)
+        moyennes.append(moy_matiere)
+    
+    return sum(moyennes) / len(moyennes) if moyennes else None
+
 def get_subject_recommendations(matiere_nom):
     """Retourne les recommandations pour une matière spécifique"""
     try:
@@ -190,7 +230,7 @@ def get_academic_orientation(student_notes):
         student_profile = {}
         for note in student_notes:
             matiere_name = note.matiere.nom.lower().replace(" ", "")
-            student_profile[matiere_name] = note.note_module
+            student_profile[matiere_name] = calculate_subject_grade(note)
         
         orientation_scores = []
         for orientation in ORIENTATIONS:
@@ -217,38 +257,27 @@ def get_academic_orientation(student_notes):
 def prepare_student_data(class_id=None):
     """Prépare les données des étudiants"""
     try:
-        query = Utilisateur.objects.filter(
+        students = Utilisateur.objects.filter(
             user_type='student',
             note__isnull=False
-        ).annotate(
-            note_count=Count('note')
-        ).prefetch_related('note_set', 'classe')
-
+        )
+        
         if class_id:
-            query = query.filter(classe_id=class_id)
-
-        students = list(query)
-        if not students:
-            return pd.DataFrame()
+            students = students.filter(classe_id=class_id)
 
         data = []
-        for student in students:
-            notes = student.note_set.all()
-            averages = notes.aggregate(
-                avg_note=Avg('note_module'),
-                avg_project=Avg('note_devoir_projet'),
-                avg_attendance=Avg('presence'),
-                avg_assiduite=Avg('assiduite')
-            )
+        for student in students.prefetch_related('note_set'):
+            notes = list(student.note_set.all())
+            if not notes:
+                continue
+
+            # Calcul de la moyenne générale avec la nouvelle méthode
+            total = sum(calculate_subject_grade(n) for n in notes)
+            avg_grade = total / len(notes)
 
             data.append({
                 'student_id': student.id,
-                'features': [
-                    float(averages['avg_note']) if averages['avg_note'] else 0.0,
-                    float(averages['avg_project']) if averages['avg_project'] else 0.0,
-                    float(averages['avg_attendance']) if averages['avg_attendance'] else 0.0,
-                    float(averages['avg_assiduite']) if averages['avg_assiduite'] else 0.0
-                ],
+                'features': [avg_grade],
                 'info': {
                     'first_name': student.first_name,
                     'last_name': student.last_name,
@@ -268,11 +297,12 @@ def classify_students(class_id):
     classification = []
     
     for student in students:
-        notes = Note.objects.filter(etudiant=student)
+        notes = list(Note.objects.filter(etudiant=student))
         if not notes:
             continue
         
-        avg_score = sum(n.note_module * 0.7 + n.note_devoir_projet * 0.3 for n in notes) / len(notes)
+        # Calcul de la moyenne avec la nouvelle méthode
+        avg_score = sum(calculate_subject_grade(n) for n in notes) / len(notes)
         
         if avg_score >= 16:
             category = 'Bon performeur'
@@ -283,15 +313,14 @@ def classify_students(class_id):
         
         classification.append({
             'student_id': student.id,
-            'student_name': student.username,
-            'average_score': avg_score,
+            'student_name': f"{student.first_name} {student.last_name}",
+            'average_score': round(avg_score, 2),
             'performance_category': category,
             'class_id': class_id,
             'class_name': student.classe.nom if student.classe else None
         })
     
-    classification.sort(key=lambda x: x['average_score'], reverse=True)
-    return classification
+    return sorted(classification, key=lambda x: x['average_score'], reverse=True)
 
 def generate_risk_alerts(class_id=None):
     """Génère des alertes pour les étudiants à risque"""
@@ -318,19 +347,11 @@ def generate_risk_alerts(class_id=None):
                         ]
                     })
                 
-                alert = Alerte.objects.create(
-                    etudiant_id=student['student_id'],
-                    message=f"Étudiant à risque (moyenne: {student['average_score']:.2f})"
-                )
-                
                 alerts.append({
                     'student_id': student['student_id'],
                     'student_name': student['student_name'],
-                    'performance_category': student['performance_category'],
-                    'class_id': student['class_id'],
-                    'class_name': student['class_name'],
                     'average_score': student['average_score'],
-                    'alert_message': alert.message,
+                    'performance_category': student['performance_category'],
                     'course_recommendations': courses
                 })
         
@@ -346,14 +367,12 @@ def generate_recommendations_for_class(class_id):
         recommendations = []
         
         for student in classified:
-            notes = Note.objects.filter(etudiant_id=student['student_id'])
+            notes = list(Note.objects.filter(etudiant_id=student['student_id']))
             orientation = get_academic_orientation(notes)
             
             rec = {
                 'student_id': student['student_id'],
                 'student_name': student['student_name'],
-                'class_id': student['class_id'],
-                'class_name': student['class_name'],
                 'performance_category': student['performance_category'],
                 'recommendations': [],
                 'academic_orientation': orientation
@@ -399,18 +418,11 @@ def generate_recommendations_for_class(class_id):
                     "type": "subject",
                     "message": f"Soutien en {matiere.nom}",
                     "subject": matiere.nom,
-                    "priority": "high",
                     "resources": [
                         {"name": name, "link": link} 
                         for name, link in zip(recs['noms'], recs['liens'])
                     ]
                 })
-                
-                Recommandation.objects.create(
-                    etudiant_id=student['student_id'],
-                    matiere=matiere,
-                    contenu=f"Soutien recommandé en {matiere.nom}"
-                )
             
             recommendations.append(rec)
         
@@ -425,42 +437,25 @@ def train_global_classification_model(retrain=True):
     
     try:
         if not retrain and os.path.exists(model_path):
-            saved_data = joblib.load(model_path)
-            return saved_data['model'], saved_data['scaler']
+            return joblib.load(model_path)
         
         df = prepare_student_data()
         if df.empty:
             raise ValueError("Pas assez de données pour l'entraînement")
         
-        df['category'] = pd.cut(
-            df['features'].apply(lambda x: x[0]),
-            bins=[0, 12, 14, 20],
-            labels=['À risque', 'Moyenne performance', 'Bon performeur'],
-            right=False
-        )
-        
+        # Utilisation de la moyenne unique comme feature
         X = np.array(df['features'].tolist())
-        y = df['category'].values
-        
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-        
-        model = RandomForestClassifier(
-            n_estimators=150,
-            max_depth=5,
-            random_state=42,
-            class_weight='balanced'
+        y = pd.cut(
+            df['features'].apply(lambda x: x[0]),
+            bins=[0, 12, 16, 20],
+            labels=['À risque', 'Moyenne performance', 'Bon performeur']
         )
-        model.fit(X_scaled, y)
         
-        joblib.dump({
-            'model': model,
-            'scaler': scaler,
-            'features': df['features'].tolist(),
-            'categories': df['category'].tolist()
-        }, model_path)
+        model = RandomForestClassifier(n_estimators=100, random_state=42)
+        model.fit(X, y)
         
-        return model, scaler
+        joblib.dump(model, model_path)
+        return model
     except Exception as e:
         logger.error(f"Error in train_global_classification_model: {str(e)}", exc_info=True)
         raise
@@ -472,31 +467,27 @@ def predict_s3_s4_grades(class_id=None):
             user_type='student',
             note__isnull=False,
             classe_id=class_id
-        ).distinct().prefetch_related('note_set', 'classe')
+        ).prefetch_related('note_set', 'classe')
 
         matieres_s3_s4 = Matiere.objects.filter(
             semestre__in=[3, 4],
             classe_id=class_id
-        ).distinct()
+        )
 
         results = []
         for student in students:
-            notes = student.note_set.all()
+            notes = list(student.note_set.all())
             
-            def calculate_semester_avg(notes_list):
-                if not notes_list: return 0
-                total = sum(
-                    n.note_module * 0.5 +
-                    n.note_devoir_projet * 0.3 +
-                    (n.presence / 20) * 2 +
-                    n.assiduite * 0.1
-                    for n in notes_list
-                )
-                return total / len(notes_list)
-
             s1_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 1])
             s2_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 2])
 
+            # Gestion des valeurs manquantes
+            if s1_avg is None and s2_avg is None:
+                continue
+            s1_avg = s1_avg if s1_avg is not None else s2_avg
+            s2_avg = s2_avg if s2_avg is not None else s1_avg
+
+            # Prédiction
             matieres_pred = {}
             for matiere in matieres_s3_s4:
                 if matiere.semestre == 3:
@@ -504,8 +495,7 @@ def predict_s3_s4_grades(class_id=None):
                 else:
                     base_pred = s2_avg * 0.6 + s1_avg * 0.2 + (s2_avg - s1_avg) * 0.2
                 
-                adjustment = np.random.uniform(-0.5, 0.5)
-                predicted_note = max(0, min(20, base_pred + adjustment))
+                predicted_note = max(0, min(20, base_pred + np.random.uniform(-0.5, 0.5)))
 
                 matieres_pred[f'mat_{matiere.id}'] = {
                     'note': round(predicted_note, 2),
@@ -517,8 +507,8 @@ def predict_s3_s4_grades(class_id=None):
             results.append({
                 'student_id': student.id,
                 'student_name': f"{student.first_name} {student.last_name}",
-                's1_avg': round(s1_avg, 2) if s1_avg else 'N/A',
-                's2_avg': round(s2_avg, 2) if s2_avg else 'N/A',
+                's1_avg': round(s1_avg, 2) if s1_avg is not None else 'N/A',
+                's2_avg': round(s2_avg, 2) if s2_avg is not None else 'N/A',
                 **matieres_pred
             })
 
