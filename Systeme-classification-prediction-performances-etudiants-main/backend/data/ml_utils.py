@@ -1,20 +1,20 @@
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
 import numpy as np
 import pandas as pd
-from django.db.models import Avg, Count
-from .models import Matiere, Note, Utilisateur, Recommandation, Alerte
+from .models import Matiere, Note, Utilisateur
 import joblib
 import os
 from django.conf import settings
 import logging
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, accuracy_score
 
 logger = logging.getLogger(__name__)
 MODELS_DIR = os.path.join(settings.BASE_DIR, 'ml_models')
 os.makedirs(MODELS_DIR, exist_ok=True)
 
-# Dictionnaire complet des recommandations par matière
+
 MATIERE_RECOMMENDATIONS = {
     "java": {
         "noms": ["Java complet pour débutants", "Java Masterclass Udemy"],
@@ -120,7 +120,7 @@ MATIERE_RECOMMENDATIONS = {
     }
 }
 
-# Orientations académiques 
+
 ORIENTATIONS = [
     {
         "orientation": "Développement Web",
@@ -161,16 +161,16 @@ ORIENTATIONS = [
 
 def calculate_subject_grade(note, total_seances=20):
     """Calcule la note d'une matière avec normalisation stricte 0-20"""
-    # Normalisation des composantes
+
     note_module = max(0, min(20, note.note_module or 0))
     note_devoir = max(0, min(20, note.note_devoir_projet or 0))
     assiduite = max(0, min(20, note.assiduite or 0))
     
-    # Conversion des absences en taux de présence (0-1)
+
     absences = max(0, min(total_seances, note.presence or 0))
     taux_presence = (total_seances - absences) / total_seances
     
-    # Calcul pondéré (garanti <= 20)
+
     return (
         (note_module * 0.5) +
         (note_devoir * 0.3) +
@@ -183,7 +183,7 @@ def calculate_semester_avg(notes_list, total_seances=20):
     if not notes_list:
         return None
     
-    # Grouper par matière
+
     matieres = {}
     for note in notes_list:
         matiere_id = note.matiere.id
@@ -191,7 +191,7 @@ def calculate_semester_avg(notes_list, total_seances=20):
             matieres[matiere_id] = []
         matieres[matiere_id].append(note)
     
-    # Calculer la moyenne par matière
+ 
     moyennes = []
     for notes_matiere in matieres.values():
         moy_matiere = sum(calculate_subject_grade(n, total_seances) for n in notes_matiere) / len(notes_matiere)
@@ -207,11 +207,11 @@ def get_subject_recommendations(matiere_nom):
         
         matiere_key = matiere_nom.lower().replace(" ", "")
         
-        # Recherche exacte
+
         if matiere_key in MATIERE_RECOMMENDATIONS:
             return MATIERE_RECOMMENDATIONS[matiere_key]
         
-        # Recherche partielle
+
         for key in MATIERE_RECOMMENDATIONS:
             if key in matiere_key or matiere_key in key:
                 return MATIERE_RECOMMENDATIONS[key]
@@ -271,7 +271,7 @@ def prepare_student_data(class_id=None):
             if not notes:
                 continue
 
-            # Calcul de la moyenne générale avec la nouvelle méthode
+      
             total = sum(calculate_subject_grade(n) for n in notes)
             avg_grade = total / len(notes)
 
@@ -301,7 +301,7 @@ def classify_students(class_id):
         if not notes:
             continue
         
-        # Calcul de la moyenne avec la nouvelle méthode
+  
         avg_score = sum(calculate_subject_grade(n) for n in notes) / len(notes)
         
         if avg_score >= 16:
@@ -378,7 +378,7 @@ def generate_recommendations_for_class(class_id):
                 'academic_orientation': orientation
             }
             
-            # Performance recommendations
+       
             if student['performance_category'] == 'À risque':
                 rec['recommendations'].extend([
                     {"type": "performance", "message": "Tutorat intensif", "priority": "high"},
@@ -395,7 +395,7 @@ def generate_recommendations_for_class(class_id):
                     {"type": "performance", "message": "Projet personnel", "priority": "low"}
                 ])
             
-            # Academic orientation
+     
             if orientation:
                 rec['recommendations'].append({
                     "type": "orientation",
@@ -404,7 +404,7 @@ def generate_recommendations_for_class(class_id):
                     "priority": "medium"
                 })
             
-            # Subject-specific recommendations
+ 
             weak_subjects = Note.objects.filter(
                 etudiant_id=student['student_id'],
                 note_module__lt=10
@@ -432,8 +432,9 @@ def generate_recommendations_for_class(class_id):
         return []
 
 def train_global_classification_model(retrain=True):
-    """Entraîne ou charge le modèle de classification"""
+    """Entraîne ou charge le modèle de classification avec évaluation des métriques"""
     model_path = os.path.join(MODELS_DIR, 'global_classifier.pkl')
+    metrics_path = os.path.join(MODELS_DIR, 'classification_metrics.txt')
     
     try:
         if not retrain and os.path.exists(model_path):
@@ -443,7 +444,7 @@ def train_global_classification_model(retrain=True):
         if df.empty:
             raise ValueError("Pas assez de données pour l'entraînement")
         
-        # Utilisation de la moyenne unique comme feature
+
         X = np.array(df['features'].tolist())
         y = pd.cut(
             df['features'].apply(lambda x: x[0]),
@@ -451,8 +452,29 @@ def train_global_classification_model(retrain=True):
             labels=['À risque', 'Moyenne performance', 'Bon performeur']
         )
         
+     
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
         model = RandomForestClassifier(n_estimators=100, random_state=42)
-        model.fit(X, y)
+        model.fit(X_train, y_train)
+        
+ 
+        y_pred = model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        
+
+        y_test_num = [12 if x == 'À risque' else 14 if x == 'Moyenne performance' else 18 for x in y_test]
+        y_pred_num = [12 if x == 'À risque' else 14 if x == 'Moyenne performance' else 18 for x in y_pred]
+        rmse = np.sqrt(mean_squared_error(y_test_num, y_pred_num))
+        
+       
+        with open(metrics_path, 'w') as f:
+            f.write(f"Random Forest Classifier Metrics:\n")
+            f.write(f"Accuracy: {acc:.4f}\n")
+            f.write(f"RMSE: {rmse:.4f}\n")
+            f.write(f"Feature Importance: {model.feature_importances_}\n")
+        
+        logger.info(f"Model trained - Accuracy: {acc:.4f}, RMSE: {rmse:.4f}")
         
         joblib.dump(model, model_path)
         return model
@@ -460,9 +482,7 @@ def train_global_classification_model(retrain=True):
         logger.error(f"Error in train_global_classification_model: {str(e)}", exc_info=True)
         raise
 
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+
 
 def predict_s3_s4_grades(class_id=None):
     """Prédit les notes des semestres 3 et 4 en utilisant la régression linéaire"""
@@ -478,12 +498,12 @@ def predict_s3_s4_grades(class_id=None):
             classe_id=class_id
         )
 
-        # Préparer les données historiques pour l'entraînement
+        
         X = []
         y_s3 = []
         y_s4 = []
         
-        # Collecter les données des étudiants ayant des notes complètes (S1, S2, S3, S4)
+     
         for student in students:
             notes = list(student.note_set.all())
             
@@ -499,31 +519,31 @@ def predict_s3_s4_grades(class_id=None):
         
         results = []
         
-        if len(X) >= 5:  # Minimum 5 échantillons pour entraîner le modèle
-            # Entraîner le modèle pour S3
+        if len(X) >= 5:  
+            
             X_train, X_test, y_train, y_test = train_test_split(X, y_s3, test_size=0.2, random_state=42)
             model_s3 = LinearRegression()
             model_s3.fit(X_train, y_train)
             
-            # Entraîner le modèle pour S4
+           
             X_train, X_test, y_train, y_test = train_test_split(X, y_s4, test_size=0.2, random_state=42)
             model_s4 = LinearRegression()
             model_s4.fit(X_train, y_train)
             
-            # Prédiction pour les étudiants actuels
+        
             for student in students:
                 notes = list(student.note_set.all())
                 
                 s1_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 1])
                 s2_avg = calculate_semester_avg([n for n in notes if n.matiere.semestre == 2])
 
-                # Gestion des valeurs manquantes
+               
                 if s1_avg is None and s2_avg is None:
                     continue
                 s1_avg = s1_avg if s1_avg is not None else s2_avg
                 s2_avg = s2_avg if s2_avg is not None else s1_avg
 
-                # Prédiction avec le modèle
+               
                 matieres_pred = {}
                 for matiere in matieres_s3_s4:
                     input_features = [[s1_avg, s2_avg]]
@@ -533,7 +553,7 @@ def predict_s3_s4_grades(class_id=None):
                     else:
                         predicted_note = model_s4.predict(input_features)[0]
                     
-                    # Assurer que la note est entre 0 et 20
+                    
                     predicted_note = max(0, min(20, predicted_note))
 
                     matieres_pred[f'mat_{matiere.id}'] = {
@@ -551,7 +571,7 @@ def predict_s3_s4_grades(class_id=None):
                     **matieres_pred
                 })
         else:
-            # Fallback à la méthode originale si pas assez de données
+            
             logger.warning("Pas assez de données historiques pour la régression linéaire. Utilisation de la méthode heuristique.")
             for student in students:
                 notes = list(student.note_set.all())

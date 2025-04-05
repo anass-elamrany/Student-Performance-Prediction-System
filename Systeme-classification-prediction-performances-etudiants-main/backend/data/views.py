@@ -1,26 +1,37 @@
 import json
 import csv
 import logging
-import datetime
-from datetime import datetime, timedelta
-from collections import defaultdict
+from datetime import  timedelta
 
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.hashers import make_password
-from django.shortcuts import get_object_or_404, render
+from django.contrib.auth import authenticate
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db import IntegrityError
-from django.db.models import Avg, Count, Sum, Max, Case, When, Value, F, Q
+from django.db.models import Avg, Count, Max, Case, When, Value
 from django.db.models.functions import TruncMonth
 
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from django.db.models import Avg, Count
+from django.db.models.functions import TruncMonth
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import Note, Performance, Matiere, Utilisateur
+
+from .ml_utils import (
+    classify_students,
+    generate_risk_alerts,
+    generate_recommendations_for_class,
+    predict_s3_s4_grades
+)
+import logging
+
+
 
 from .models import (
     Utilisateur, Classe, Matiere, Note, Performance, 
@@ -28,15 +39,12 @@ from .models import (
 )
 from .serializers import (
     MatiereSerializer, UtilisateurSerializer, ClasseSerializer, 
-    NoteSerializer, AlerteSerializer, RecommandationSerializer
+    NoteSerializer
 )
 from .ml_utils import (
     classify_students, generate_risk_alerts, 
     generate_recommendations_for_class, get_academic_orientation, get_subject_recommendations, predict_s3_s4_grades, 
 )
-
-
-
 
 
 # Helper Functions
@@ -131,12 +139,6 @@ def get_user_info(request):
             'message': 'Rôle utilisateur inconnu'
         }, status=403)
 
-
-from django.db.models import Avg, Count
-from django.db.models.functions import TruncMonth
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import Note, Performance, Matiere, Utilisateur
 
 @api_view(['GET'])
 def get_performance_trend(request):
@@ -569,7 +571,6 @@ def delete_matiere(request, id):
 
 
 #notes view
-
 # Get all Matieres (for admin)
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
@@ -835,10 +836,6 @@ def import_matieres(request):
     return JsonResponse({'success': False, 'error': 'Aucun fichier trouvé.'}, status=400)
 
 
-
-
-
-
 #teacher dashboard
 # Get Matieres for the logged-in teacher
 @api_view(['GET'])
@@ -1092,7 +1089,6 @@ def get_teacher_classes(request):
         'success': True,
         'classes': serializer.data
     })
-
 
 
 logger = logging.getLogger(__name__)
@@ -1426,18 +1422,7 @@ def update_teacher_password(request):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+from django.http import JsonResponse
 #students dahboard views
 
 @api_view(['GET'])
@@ -1715,18 +1700,7 @@ def update_student_password(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
     
 
-
-
-
 # Machine Learning Views
-from .ml_utils import (
-    classify_students,
-    generate_risk_alerts,
-    generate_recommendations_for_class,
-    predict_s3_s4_grades
-)
-import logging
-
 logger = logging.getLogger(__name__)
 
 @csrf_exempt
