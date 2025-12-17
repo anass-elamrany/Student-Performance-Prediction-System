@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import './index.css';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { getDesignTokens } from './theme';
+
 import LandingPage from "./pages/LandingPage";
 import RoleSelection from "./pages/RoleSelection";
 import LoginForm from "./pages/LoginForm";
@@ -30,10 +33,7 @@ import StudentRecommendations from "./pages/student/Recommendations";
 import StudentNotes from "./pages/student/Mes Notes ";
 import StudentProfile from "./pages/student/StudentProfile";
 
-
-
-
-
+const theme = createTheme(getDesignTokens("light", null));
 
 const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -59,8 +59,6 @@ const router = createBrowserRouter([
       { path: "Recommendations", element: <AdminRecommendations/> },
       { path: "AdminNotes", element: <AdminNotes/> },
       { path: "PredictNotes", element: <PredictNotes/> },
-
-      
     ],
   },
 
@@ -77,7 +75,6 @@ const router = createBrowserRouter([
       { path: "Notes", element: <TeacherNotes /> },
       { path: "Analyse", element: <TeacherAnalysis /> },
       { path: "Profile", element: <Profile /> },
- 
     ],
   },
 
@@ -100,6 +97,9 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </React.StrictMode>
 );

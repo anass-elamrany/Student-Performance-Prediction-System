@@ -1,54 +1,73 @@
-"use client";
-import { Box, Container, Typography, Button, Grid } from "@mui/material";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { useNavigate } from "react-router-dom";
+import React from 'react';
+import { Box, Container, Typography, Button, Grid, Stack } from '@mui/material';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import { useNavigate } from 'react-router-dom';
+
 export default function Hero() {
   const navigate = useNavigate();
+
   return (
     <Box
       id="accueil"
       sx={{
-        bgcolor: "background.paper",
-        pt: { xs: 8, md: 12 },
-        pb: { xs: 8, md: 12 },
-        overflow: "hidden",
+        position: 'relative',
+        bgcolor: 'background.paper',
+        pt: { xs: 12, md: 20 },
+        pb: { xs: 8, md: 16 },
+        overflow: 'hidden',
       }}
     >
-      <Container maxWidth="lg">
-        <Grid
-          container
-          spacing={4}
-          alignItems="center"
-          justifyContent="center" // Center the content horizontally
-          direction="column" // Stack items vertically
-          textAlign="center" // Center text horizontally
-        >
-          {/* Texte à gauche (now centered) */}
-          <Grid item xs={12}>
-            <Box
-              sx={{
-                maxWidth: "600px",
-                mx: "auto",
-                opacity: 1,
-                transform: "translateY(0)",
-                transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
-              }}
-            >
-              <Typography component="h1" variant="h2" color="primary.main" gutterBottom sx={{ fontWeight: 700 }}>
-                Prédisez et améliorez les performances académiques
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+        <Grid container spacing={6} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <Box>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  color: 'secondary.main', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: 2, 
+                  mb: 2 
+                }}
+              >
+                Orientation Académique & Réussite - UMP
+              </Typography>
+              <Typography 
+                component="h1" 
+                variant="h1" 
+                color="primary.main" 
+                sx={{ 
+                  fontWeight: 800, 
+                  fontSize: { xs: '2.5rem', md: '3.5rem' },
+                  lineHeight: 1.2,
+                  mb: 3 
+                }}
+              >
+                Classification et <br/>
+                <Box component="span" sx={{ color: 'secondary.main' }}>Prédiction</Box> des Performances
               </Typography>
 
-              <Typography variant="h5" color="text.secondary" paragraph sx={{ mb: 4 }}>
-                EduPredict utilise l'intelligence artificielle pour analyser, classifier et prédire les performances
-                des étudiants, permettant aux établissements d'intervenir au bon moment et d'optimiser les parcours
-                d'apprentissage.
+              <Typography variant="h6" color="text.secondary" paragraph sx={{ mb: 5, maxWidth: 550, fontWeight: 400, lineHeight: 1.6 }}>
+                Une plateforme intelligente pour l'Université Mohammed Premier, utilisant l'IA pour orienter les décisions académiques, anticiper les besoins et personnaliser les parcours de réussite.
               </Typography>
 
-              <Button variant="contained" color="primary" size="large"onClick={() => navigate("/login")}  endIcon={<ArrowForwardIcon />} sx={{ px: 4, py: 1.5 }}>
-                Commencer
-              </Button>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  size="large"
+                  onClick={() => navigate("/login")}
+                  endIcon={<ArrowForwardIcon />} 
+                  sx={{ px: 4, py: 1.8, fontSize: '1rem', boxShadow: '0 10px 20px rgba(5, 25, 45, 0.2)' }}
+                >
+                  Accéder à la plateforme
+                </Button>
+              </Stack>
             </Box>
           </Grid>
+        
         </Grid>
       </Container>
     </Box>

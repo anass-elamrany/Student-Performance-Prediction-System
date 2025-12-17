@@ -11,13 +11,17 @@ import {
   IconButton,
   FormControlLabel,
   Checkbox,
-  Alert
+  Alert,
+  useTheme
 } from '@mui/material';
 import { Visibility, VisibilityOff, SupervisorAccount, School, Person } from '@mui/icons-material';
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 const LoginForm = () => {
   const { role } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -29,34 +33,33 @@ const LoginForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Use purple for everyone for a cleaner look, or adapt if strict requirement
+  const primaryColor = theme.palette.primary.main;
+  const secondaryColor = theme.palette.secondary.main;
+
   const roleInfo = {
     admin: {
-      title: 'Connexion Administrateur',
-      icon: <SupervisorAccount fontSize="large" sx={{ color: '#3f51b5' }} />,
+      title: 'Portail Administration',
+      icon: <SupervisorAccount fontSize="large" />,
       redirectPath: '/admin/dashboard',
-      color: '#3f51b5'
     },
     teacher: {
-      title: 'Connexion Enseignant',
-      icon: <School fontSize="large" sx={{ color: '#4caf50' }} />,
+      title: 'Espace Enseignant',
+      icon: <School fontSize="large" />,
       redirectPath: '/teacher/dashboard',
-      color: '#4caf50'
     },
     student: {
-      title: 'Connexion Étudiant',
-      icon: <Person fontSize="large" sx={{ color: '#ff9800' }} />,
+      title: 'Espace Étudiant',
+      icon: <Person fontSize="large" />,
       redirectPath: '/student/dashboard',
-      color: '#ff9800'
     }
   };
 
   useEffect(() => {
-    // Check if the role is valid
     if (!roleInfo[role]) {
       navigate('/login');
     }
     
-    // Check if there's a remembered username
     const savedUsername = localStorage.getItem('username');
     const savedRole = localStorage.getItem('userRole');
     
@@ -69,7 +72,6 @@ const LoginForm = () => {
     }
   }, [role, navigate]);
 
-  // If the role doesn't exist in our mapping, return null (useEffect will handle the redirect)
   if (!roleInfo[role]) {
     return null;
   }
@@ -107,14 +109,9 @@ const LoginForm = () => {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        // Stocker les tokens dans localStorage
         localStorage.setItem('accessToken', data.access);
         localStorage.setItem('refreshToken', data.refresh);
-  
-        // Stocker les informations de l'utilisateur dans sessionStorage
         sessionStorage.setItem('currentUser', JSON.stringify(data.user));
-        
-        // Rediriger vers le tableau de bord approprié
         navigate(roleInfo[role].redirectPath);
       } else {
         setError(data.message || 'Erreur de connexion');
@@ -128,107 +125,134 @@ const LoginForm = () => {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ height: '100vh', display: 'flex', alignItems: 'center' }}>
-      <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ 
-            p: 2, 
-            borderRadius: '50%', 
-            bgcolor: `${roleInfo[role].color}20`,
-            mb: 2 
-          }}>
-            {roleInfo[role].icon}
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
+      <Navbar />
+      <Container maxWidth="xs" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 8 }}>
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            p: 4, 
+            width: '100%',
+            borderRadius: 4,
+            border: '1px solid',
+            borderColor: 'divider',
+            background: 'rgba(255,255,255,0.8)', // Slight glass
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.05)'
+          }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ 
+              p: 2, 
+              borderRadius: '50%', 
+              bgcolor: 'primary.main',
+              color: 'white',
+              mb: 2,
+              boxShadow: '0 4px 12px rgba(5, 25, 45, 0.2)'
+            }}>
+              {roleInfo[role].icon}
+            </Box>
+            <Typography variant="h5" component="h1" align="center" sx={{ fontWeight: 700 }}>
+              {roleInfo[role].title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Connectez-vous pour continuer
+            </Typography>
           </Box>
-          <Typography variant="h5" component="h1" align="center">
-            {roleInfo[role].title}
-          </Typography>
-        </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+          {error && (
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+              {error}
+            </Alert>
+          )}
 
-        <form onSubmit={handleSubmit}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="username"
-            label="Nom d'utilisateur"
-            name="username"
-            autoComplete="username"
-            autoFocus
-            value={formData.username}
-            onChange={handleChange}
-          />
-          
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Mot de passe"
-            type={showPassword ? 'text' : 'password'}
-            id="password"
-            autoComplete="current-password"
-            value={formData.password}
-            onChange={handleChange}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={handleTogglePassword}
-                    edge="end"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-          />
-          
-          <FormControlLabel
-            control={
-              <Checkbox 
-                name="rememberMe" 
-                color="primary" 
-                checked={formData.rememberMe}
-                onChange={handleChange}
-              />
-            }
-            label="Se souvenir de moi"
-          />
-          
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ 
-              mt: 3, 
-              mb: 2, 
-              bgcolor: roleInfo[role].color,
-              '&:hover': {
-                bgcolor: `${roleInfo[role].color}CC`,
+          <form onSubmit={handleSubmit}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="username"
+              label="Nom d'utilisateur"
+              name="username"
+              autoComplete="username"
+              autoFocus
+              value={formData.username}
+              onChange={handleChange}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Mot de passe"
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              autoComplete="current-password"
+              value={formData.password}
+              onChange={handleChange}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleTogglePassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            
+            <FormControlLabel
+              control={
+                <Checkbox 
+                  name="rememberMe" 
+                  color="secondary" 
+                  checked={formData.rememberMe}
+                  onChange={handleChange}
+                />
               }
-            }}
-            disabled={loading}
-          >
-            {loading ? 'Connexion...' : 'Se connecter'}
-          </Button>
-          
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <Link to="/login" style={{ textDecoration: 'none' }}>
-              <Button variant="text" color="primary">
-                Changer de rôle
-              </Button>
-            </Link>
-          </Box>
-        </form>
-      </Paper>
-    </Container>
+              label="Se souvenir de moi"
+              sx={{ mt: 1 }}
+            />
+            
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="secondary"
+              size="large"
+              sx={{ 
+                mt: 4, 
+                mb: 2, 
+                py: 1.5,
+                borderRadius: 2,
+                fontWeight: 700,
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(156, 39, 176, 0.3)'
+              }}
+              disabled={loading}
+            >
+              {loading ? 'Connexion...' : 'Se connecter'}
+            </Button>
+            
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <Link to="/login" style={{ textDecoration: 'none' }}>
+                <Button variant="text" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                  ← Choisir un autre rôle
+                </Button>
+              </Link>
+            </Box>
+          </form>
+        </Paper>
+      </Container>
+      <Footer />
+    </Box>
   );
 };
 

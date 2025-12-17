@@ -1,5 +1,4 @@
-"use client";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AppBar,
   Box,
@@ -10,42 +9,88 @@ import {
   Container,
   Button,
   MenuItem,
+  useScrollTrigger,
+  Slide,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import SchoolIcon from "@mui/icons-material/School";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-const pages = ["Accueil", "Fonctionnalités", "Avantages"];
+const pages = [
+  { label: "Accueil", id: "hero" },
+  { label: "À propos", id: "roles" },
+  { label: "Statistiques", id: "stats" },
+  { label: "FAQ", id: "faq" },
+];
 
-export default function Navbar() {
+function HideOnScroll(props) {
+  const { children, window } = props;
+  const trigger = useScrollTrigger({
+    target: window ? window() : undefined,
+  });
+
+  return (
+    <Slide appear={false} direction="down" in={!trigger}>
+      {children}
+    </Slide>
+  );
+}
+
+export default function Navbar(props) {
   const [anchorElNav, setAnchorElNav] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
   const handleCloseNavMenu = () => setAnchorElNav(null);
 
   const scrollToSection = (sectionId) => {
     handleCloseNavMenu();
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
+    if (location.pathname !== "/") {
+      navigate("/");
+      setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } else {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   return (
-    <AppBar position="sticky" color="default" elevation={1} sx={{ backgroundColor: "white" }}>
+    <AppBar 
+      position="fixed" 
+      color="default" 
+      elevation={scrolled ? 4 : 0}
+      sx={{ 
+        backgroundColor: scrolled ? "rgba(255, 255, 255, 0.95)" : "transparent",
+        backdropFilter: scrolled ? "blur(10px)" : "none",
+        transition: "all 0.3s ease-in-out",
+        borderBottom: scrolled ? "1px solid rgba(0,0,0,0.05)" : "none",
+      }}
+    >
       <Container maxWidth="xl">
-        <Toolbar disableGutters>
+        <Toolbar disableGutters sx={{ height: 80 }}>
           {/* Logo Desktop */}
-          <SchoolIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1, color: "primary.main" }} />
+          <SchoolIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1, color: "primary.main", fontSize: 32 }} />
           <Typography
-            variant="h6"
+            variant="h5"
             noWrap
             component="a"
             href="/"
             sx={{
-              mr: 2,
+              mr: 4,
               display: { xs: "none", md: "flex" },
-              fontFamily: "monospace",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
               fontWeight: 700,
-              letterSpacing: ".2rem",
               color: "primary.main",
               textDecoration: "none",
             }}
@@ -65,8 +110,8 @@ export default function Navbar() {
               sx={{ display: { xs: "block", md: "none" } }}
             >
               {pages.map((page) => (
-                <MenuItem key={page} onClick={() => scrollToSection(page.toLowerCase())}>
-                  <Typography textAlign="center">{page}</Typography>
+                <MenuItem key={page.label} onClick={() => scrollToSection(page.id)}>
+                  <Typography textAlign="center">{page.label}</Typography>
                 </MenuItem>
               ))}
             </Menu>
@@ -75,7 +120,7 @@ export default function Navbar() {
           {/* Logo Mobile */}
           <SchoolIcon sx={{ display: { xs: "flex", md: "none" }, mr: 1, color: "primary.main" }} />
           <Typography
-            variant="h5"
+            variant="h6"
             noWrap
             component="a"
             href="/"
@@ -83,9 +128,8 @@ export default function Navbar() {
               mr: 2,
               display: { xs: "flex", md: "none" },
               flexGrow: 1,
-              fontFamily: "monospace",
+              fontFamily: '"Studio-Feixen-Sans", sans-serif',
               fontWeight: 700,
-              letterSpacing: ".2rem",
               color: "primary.main",
               textDecoration: "none",
             }}
@@ -94,23 +138,44 @@ export default function Navbar() {
           </Typography>
 
           {/* Menu Desktop */}
-          <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" }, justifyContent: "center" }}>
+          <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" }, justifyContent: "flex-end", mr: 4 }}>
             {pages.map((page) => (
               <Button
-                key={page}
-                onClick={() => scrollToSection(page.toLowerCase())}
-                sx={{ my: 2, color: "text.primary", mx: 1 }}
+                key={page.label}
+                onClick={() => scrollToSection(page.id)}
+                sx={{ 
+                  my: 2, 
+                  color: "text.primary", 
+                  mx: 1.5,
+                  fontWeight: 500,
+                  fontSize: '0.95rem',
+                  '&:hover': {
+                    color: "primary.main",
+                    backgroundColor: "transparent"
+                  }
+                }}
               >
-                {page}
+                {page.label}
               </Button>
             ))}
           </Box>
 
           {/* Bouton Connexion */}
           <Box sx={{ flexGrow: 0 }}>
-            <Button variant="contained" color="primary" onClick={() => navigate("/login")} sx={{ px: 3 }}>
-              Connexion
-            </Button>
+            <Button
+                color="primary"
+                variant="contained"
+                onClick={() => navigate("/login")}
+                sx={{
+                  fontWeight: 600,
+                  px: 3,
+                  py: 1,
+                  borderRadius: 2,
+                  boxShadow: '0 4px 12px rgba(156, 39, 176, 0.2)', // Purple shadow
+                }}
+              >
+                Se connecter
+              </Button>
           </Box>
         </Toolbar>
       </Container>
