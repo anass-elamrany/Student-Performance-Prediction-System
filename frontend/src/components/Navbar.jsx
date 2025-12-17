@@ -42,6 +42,9 @@ export default function Navbar(props) {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
 
+  // Only apply transparent/white text logic on the Landing Page ("/")
+  const isLandingPage = location.pathname === "/";
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -65,22 +68,29 @@ export default function Navbar(props) {
     }
   };
 
+  // Logic: 
+  // If Landing Page AND Not Scrolled -> Transparent BG, White Text
+  // Otherwise (Other pages OR Scrolled) -> White BG, Dark Text
+  const isTransparent = isLandingPage && !scrolled;
+  const textColor = isTransparent ? "white" : "primary.main";
+  const bgColor = isTransparent ? "transparent" : "rgba(255, 255, 255, 0.95)";
+
   return (
     <AppBar 
       position="fixed" 
       color="default" 
-      elevation={scrolled ? 4 : 0}
+      elevation={isTransparent ? 0 : 4}
       sx={{ 
-        backgroundColor: scrolled ? "rgba(255, 255, 255, 0.95)" : "transparent",
-        backdropFilter: scrolled ? "blur(10px)" : "none",
+        backgroundColor: bgColor,
+        backdropFilter: isTransparent ? "none" : "blur(10px)",
         transition: "all 0.3s ease-in-out",
-        borderBottom: scrolled ? "1px solid rgba(0,0,0,0.05)" : "none",
+        borderBottom: isTransparent ? "none" : "1px solid rgba(0,0,0,0.05)",
       }}
     >
       <Container maxWidth="xl">
         <Toolbar disableGutters sx={{ height: 80 }}>
           {/* Logo Desktop */}
-          <SchoolIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1, color: "primary.main", fontSize: 32 }} />
+          <SchoolIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1, color: textColor, fontSize: 32 }} />
           <Typography
             variant="h5"
             noWrap
@@ -91,7 +101,7 @@ export default function Navbar(props) {
               display: { xs: "none", md: "flex" },
               fontFamily: '"Plus Jakarta Sans", sans-serif',
               fontWeight: 700,
-              color: "primary.main",
+              color: textColor,
               textDecoration: "none",
             }}
           >
@@ -100,7 +110,7 @@ export default function Navbar(props) {
 
           {/* Menu Mobile */}
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
-            <IconButton size="large" onClick={handleOpenNavMenu} color="primary">
+            <IconButton size="large" onClick={handleOpenNavMenu} sx={{ color: textColor }}>
               <MenuIcon />
             </IconButton>
             <Menu
@@ -118,7 +128,7 @@ export default function Navbar(props) {
           </Box>
 
           {/* Logo Mobile */}
-          <SchoolIcon sx={{ display: { xs: "flex", md: "none" }, mr: 1, color: "primary.main" }} />
+          <SchoolIcon sx={{ display: { xs: "flex", md: "none" }, mr: 1, color: textColor }} />
           <Typography
             variant="h6"
             noWrap
@@ -130,7 +140,7 @@ export default function Navbar(props) {
               flexGrow: 1,
               fontFamily: '"Studio-Feixen-Sans", sans-serif',
               fontWeight: 700,
-              color: "primary.main",
+              color: textColor,
               textDecoration: "none",
             }}
           >
@@ -145,12 +155,12 @@ export default function Navbar(props) {
                 onClick={() => scrollToSection(page.id)}
                 sx={{ 
                   my: 2, 
-                  color: "text.primary", 
+                  color: textColor,
                   mx: 1.5,
                   fontWeight: 500,
                   fontSize: '0.95rem',
                   '&:hover': {
-                    color: "primary.main",
+                    color: "secondary.main",
                     backgroundColor: "transparent"
                   }
                 }}
