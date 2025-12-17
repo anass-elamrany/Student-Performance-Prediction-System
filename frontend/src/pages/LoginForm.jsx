@@ -127,7 +127,17 @@ const LoginForm = () => {
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
       <Navbar />
-      <Container maxWidth="xs" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 8 }}>
+      <Container 
+        maxWidth="xs" 
+        sx={{ 
+          flexGrow: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'center', 
+          pt: 16, // Added spacing for fixed Navbar
+          pb: 8   // Spacing for footer
+        }}
+      >
         <Paper 
           elevation={0} 
           sx={{ 
@@ -141,7 +151,7 @@ const LoginForm = () => {
             boxShadow: '0 8px 32px rgba(0,0,0,0.05)'
           }}
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
             <Box sx={{ 
               p: 2, 
               borderRadius: '50%', 
@@ -152,10 +162,10 @@ const LoginForm = () => {
             }}>
               {roleInfo[role].icon}
             </Box>
-            <Typography variant="h5" component="h1" align="center" sx={{ fontWeight: 700 }}>
+            <Typography variant="h4" component="h1" align="center" sx={{ fontWeight: 700, mb: 1 }}>
               {roleInfo[role].title}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 500 }}>
               Connectez-vous pour continuer
             </Typography>
           </Box>
@@ -231,6 +241,7 @@ const LoginForm = () => {
                 mt: 4, 
                 mb: 2, 
                 py: 1.5,
+                fontSize: '1.1rem',
                 borderRadius: 2,
                 fontWeight: 700,
                 color: 'white',

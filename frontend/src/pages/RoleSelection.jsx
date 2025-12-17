@@ -39,16 +39,23 @@ const SelectionRole = () => {
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: 'background.default' }}>
     <Navbar />
-    <Container
-      maxWidth="lg"
-      sx={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", py: 8 }}
+    <Container 
+      maxWidth="lg" 
+      sx={{ 
+        flexGrow: 1, 
+        display: "flex", 
+        flexDirection: "column", 
+        justifyContent: "center", 
+        pt: 20, // Added spacing for fixed Navbar (approx 128px)
+        pb: 16   // Spacing for footer
+      }}
     >
       
         <Box sx={{ textAlign: "center", mb: 8 }}>
-          <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 800 }}>
+          <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 800, fontSize: { xs: '2rem', md: '3.5rem' } }}>
             Bienvenue sur <Box component="span" sx={{ color: 'secondary.main' }}>EduPredict</Box>
           </Typography>
-          <Typography variant="h5" color="textSecondary" sx={{ maxWidth: 600, mx: "auto", mb: 2 }}>
+          <Typography variant="h5" color="textSecondary" sx={{ maxWidth: 700, mx: "auto", mb: 2, fontWeight: 500 }}>
             Veuillez sélectionner votre espace de connexion
           </Typography>
         </Box>

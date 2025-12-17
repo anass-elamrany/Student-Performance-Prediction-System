@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { Box, Container, Typography, Button, Stack, useTheme } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -119,8 +120,8 @@ const Hero = () => {
               onClick={() => navigate("/login")}
               endIcon={<ArrowForwardIcon />} 
               sx={{ 
-                px: 5, 
-                py: 2, 
+                px: 4, 
+                py: 1.5, 
                 fontSize: '1.1rem', 
                 borderRadius: 2,
                 boxShadow: '0 10px 25px rgba(5, 25, 45, 0.3)',
