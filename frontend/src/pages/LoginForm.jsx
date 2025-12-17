@@ -15,8 +15,9 @@ import {
   useTheme
 } from '@mui/material';
 import { Visibility, VisibilityOff, SupervisorAccount, School, Person } from '@mui/icons-material';
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+// @ts-ignore
+import backgroundImage from '../assets/images/background_Loginpage.png';
+
 
 const LoginForm = () => {
   const { role } = useParams();
@@ -52,7 +53,7 @@ const LoginForm = () => {
       title: 'Espace Étudiant',
       icon: <Person fontSize="large" />,
       redirectPath: '/student/dashboard',
-    }
+    },
   };
 
   useEffect(() => {
@@ -125,28 +126,37 @@ const LoginForm = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-      <Navbar />
+    <Box sx={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      bgcolor: 'background.default',
+      backgroundImage: `url(${backgroundImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }}>
       <Container 
-        maxWidth="xs" 
+        maxWidth="sm" 
         sx={{ 
           flexGrow: 1, 
           display: 'flex', 
           flexDirection: 'column', 
           justifyContent: 'center', 
-          pt: 16, // Added spacing for fixed Navbar
-          pb: 8   // Spacing for footer
+          pt: 16, 
+          pb: 8,
         }}
       >
         <Paper 
           elevation={0} 
           sx={{ 
             p: 4, 
+            
             width: '100%',
-            borderRadius: 4,
+            borderRadius: 0,
             border: '1px solid',
             borderColor: 'divider',
-            background: 'rgba(255,255,255,0.8)', // Slight glass
+            background: 'rgba(255, 255, 255, 1)', 
             backdropFilter: 'blur(10px)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.05)'
           }}
@@ -171,7 +181,7 @@ const LoginForm = () => {
           </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 0 }}>
               {error}
             </Alert>
           )}
@@ -188,7 +198,7 @@ const LoginForm = () => {
               autoFocus
               value={formData.username}
               onChange={handleChange}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
             />
             
             <TextField
@@ -202,7 +212,7 @@ const LoginForm = () => {
               autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -218,18 +228,7 @@ const LoginForm = () => {
               }}
             />
             
-            <FormControlLabel
-              control={
-                <Checkbox 
-                  name="rememberMe" 
-                  color="secondary" 
-                  checked={formData.rememberMe}
-                  onChange={handleChange}
-                />
-              }
-              label="Se souvenir de moi"
-              sx={{ mt: 1 }}
-            />
+
             
             <Button
               type="submit"
@@ -242,7 +241,7 @@ const LoginForm = () => {
                 mb: 2, 
                 py: 1.5,
                 fontSize: '1.1rem',
-                borderRadius: 2,
+                borderRadius: 0,
                 fontWeight: 700,
                 color: 'white',
                 boxShadow: '0 4px 12px rgba(156, 39, 176, 0.3)'
@@ -262,7 +261,6 @@ const LoginForm = () => {
           </form>
         </Paper>
       </Container>
-      <Footer />
     </Box>
   );
 };

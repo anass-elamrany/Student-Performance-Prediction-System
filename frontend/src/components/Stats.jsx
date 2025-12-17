@@ -2,9 +2,9 @@ import React from 'react';
 import { Box, Container, Grid, Typography, Paper } from '@mui/material';
 
 const stats = [
-  { value: '10k+', label: 'Étudiants Actifs' },
-  { value: '98%', label: 'Taux de Précision' },
-  { value: '500+', label: 'Établissements' },
+  { value: '1k+', label: 'Étudiants Actifs' },
+  { value: '92%', label: 'Taux de Précision' },
+  { value: '4+', label: 'Établissements' },
   { value: '24/7', label: 'Support Technique' },
 ];
 

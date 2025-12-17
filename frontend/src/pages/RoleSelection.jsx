@@ -46,14 +46,14 @@ const SelectionRole = () => {
         display: "flex", 
         flexDirection: "column", 
         justifyContent: "center", 
-        pt: 20, // Added spacing for fixed Navbar (approx 128px)
-        pb: 16   // Spacing for footer
+        pt: 20, 
+        pb: 16   
       }}
     >
       
         <Box sx={{ textAlign: "center", mb: 8 }}>
           <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 800, fontSize: { xs: '2rem', md: '3.5rem' } }}>
-            Bienvenue sur <Box component="span" sx={{ color: 'secondary.main' }}>EduPredict</Box>
+            Bienvenue !
           </Typography>
           <Typography variant="h5" color="textSecondary" sx={{ maxWidth: 700, mx: "auto", mb: 2, fontWeight: 500 }}>
             Veuillez sélectionner votre espace de connexion
@@ -93,7 +93,7 @@ const SelectionRole = () => {
                     sx={{
                       p: 3,
                       borderRadius: "50%",
-                      bgcolor: `${role.color}15`, // VERY subtle tint
+                      bgcolor: `${role.color}15`, 
                       color: role.color,
                       mb: 3,
                       transition: "transform 0.3s ease",
