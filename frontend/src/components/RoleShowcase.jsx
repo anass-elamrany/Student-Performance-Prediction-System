@@ -22,7 +22,7 @@ const RoleSection = ({ title, description, image, imagePosition, buttonText, onB
               endIcon={<ArrowForwardIcon />}
               onClick={onButtonClick}
               sx={{ 
-                borderRadius: '50px', 
+                borderRadius: 0, 
                 px: 4, 
                 py: 1.5,
                 textTransform: 'none',

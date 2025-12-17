@@ -123,7 +123,7 @@ const Hero = () => {
                 px: 4, 
                 py: 1.5, 
                 fontSize: '1.1rem', 
-                borderRadius: 2,
+                borderRadius: 0,
                 boxShadow: '0 10px 25px rgba(5, 25, 45, 0.3)',
                 transition: 'transform 0.2s',
                 '&:hover': { transform: 'translateY(-3px)' }

@@ -1,10 +1,13 @@
+// @ts-nocheck
+import React from 'react';
 import { Link } from "react-router-dom"
-import { Box, Typography, Button, Container, Paper, Grid, useTheme } from "@mui/material"
+import { Box, Typography, Button, Container, Paper, Grid, useTheme, alpha } from "@mui/material"
 import SchoolIcon from "@mui/icons-material/School"
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount"
 import PersonIcon from "@mui/icons-material/Person"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
+import backgroundImage from '../assets/images/background_Loginpage.png'; // Reusing the background for consistency
 
 const SelectionRole = () => {
   const theme = useTheme();
@@ -16,7 +19,8 @@ const SelectionRole = () => {
       description: "Gestion globale et paramétrage du système",
       icon: <SupervisorAccountIcon sx={{ fontSize: 60 }} />,
       color: theme.palette.primary.main,
-      borderColor: theme.palette.secondary.main
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      shadow: '0 8px 32px rgba(118, 75, 162, 0.3)'
     },
     {
       id: "teacher",
@@ -24,106 +28,242 @@ const SelectionRole = () => {
       description: "Suivi des performances et détection des risques",
       icon: <SchoolIcon sx={{ fontSize: 60 }} />,
       color: theme.palette.secondary.main,
-      borderColor: theme.palette.primary.main
+      gradient: 'linear-gradient(135deg, #2af598 0%, #009efd 100%)',
+      shadow: '0 8px 32px rgba(0, 158, 253, 0.3)'
     },
     {
       id: "student",
       title: "Étudiant",
       description: "Consultation des résultats et orientation",
       icon: <PersonIcon sx={{ fontSize: 60 }} />,
-      color: theme.palette.primary.main,
-      borderColor: theme.palette.secondary.main
+      color: theme.palette.info.main,
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      shadow: '0 8px 32px rgba(79, 172, 254, 0.3)'
     },
   ]
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: 'background.default' }}>
-    <Navbar />
-    <Container 
-      maxWidth="lg" 
-      sx={{ 
-        flexGrow: 1, 
-        display: "flex", 
-        flexDirection: "column", 
-        justifyContent: "center", 
-        pt: 20, 
-        pb: 16   
-      }}
-    >
-      
-        <Box sx={{ textAlign: "center", mb: 8 }}>
-          <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 800, fontSize: { xs: '2rem', md: '3.5rem' } }}>
-            Bienvenue !
-          </Typography>
-          <Typography variant="h5" color="textSecondary" sx={{ maxWidth: 700, mx: "auto", mb: 2, fontWeight: 500 }}>
-            Veuillez sélectionner votre espace de connexion
-          </Typography>
-        </Box>
+    <Box sx={{ 
+      minHeight: "100vh", 
+      display: "flex", 
+      flexDirection: "column", 
+      bgcolor: 'background.default',
+      backgroundImage: `url(${backgroundImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed',
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: alpha('#000', 0.4), // Dark overlay for contrast
+        zIndex: 0
+      }
+    }}>
+    <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          flexGrow: 1, 
+          display: "flex", 
+          flexDirection: "column", 
+          justifyContent: "center", 
+          pt: 16, 
+          pb: 12   
+        }}
+      >
+        
+          <Box sx={{ textAlign: "center", mb: 8 }}>
+            <Typography 
+              variant="h2" 
+              component="h1" 
+              gutterBottom 
+              sx={{ 
+                fontWeight: 800, 
+                fontSize: { xs: '2.5rem', md: '4rem' },
+                color: 'white',
+                textShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                mb: 2
+              }}
+            >
+              Bienvenue !
+            </Typography>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                maxWidth: 700, 
+                mx: "auto", 
+                mb: 2, 
+                fontWeight: 500,
+                color: alpha('#fff', 0.9),
+                lineHeight: 1.6
+              }}
+            >
+              Veuillez sélectionner votre espace pour accéder à votre tableau de bord personnalisé
+            </Typography>
+          </Box>
 
-        <Grid container spacing={4} justifyContent="center">
-          {roles.map((role) => (
-            <Grid item xs={12} md={4} key={role.id}>
-              <Link to={`/login/${role.id}`} style={{ textDecoration: "none" }}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 4,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    height: "100%",
-                    borderRadius: 4,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    transition: "all 0.3s ease-in-out",
-                    cursor: "pointer",
-                    "&:hover": {
-                      transform: "translateY(-8px)",
-                      boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-                      borderColor: role.color,
-                      '& .role-icon': {
-                        transform: 'scale(1.1)',
-                        color: role.color
-                      }
-                    },
-                  }}
-                >
-                  <Box
-                    className="role-icon"
+          <Grid container spacing={4} justifyContent="center" alignItems="stretch">
+            {roles.map((role) => (
+              <Grid item xs={12} md={4} key={role.id}>
+                <Link to={`/login/${role.id}`} style={{ textDecoration: "none", height: '100%', display: 'block' }}>
+                  <Paper
+                    elevation={0}
                     sx={{
-                      p: 3,
-                      borderRadius: "50%",
-                      bgcolor: `${role.color}15`, 
-                      color: role.color,
-                      mb: 3,
-                      transition: "transform 0.3s ease",
+                      p: 5,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      height: "100%",
+                      borderRadius: 0,
+                      background: 'rgba(255, 255, 255, 0.1)', // Glass effect
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                      cursor: "pointer",
+                      position: 'relative',
+                      overflow: 'hidden',
+                      "&:hover": {
+                        transform: "translateY(-12px)",
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        boxShadow: role.shadow,
+                        borderColor: 'transparent',
+                        '& .role-icon-box': {
+                          transform: 'scale(1.1) rotate(5deg)',
+                          background: role.gradient,
+                          color: 'white',
+                          boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
+                        },
+                        '& .role-title': {
+                          color: '#1a202c',
+                          transform: 'translateY(2px)'
+                        },
+                        '& .role-desc': {
+                          color: '#4a5568'
+                        },
+                        '& .role-arrow': {
+                          color: role.color, // Show role color on hover for contrast with white background? User said "it should be white". Let's stick to white or maybe role color if background becomes white? 
+                          // Wait, if hover background is white, white text is invisible.
+                          // User said "it should be white" and "displayed before hover".
+                          // Before hover: background is glass (dark/transparent), white text works.
+                          // On hover: background is white. White text is invisible.
+                          // I should probably keep it white before hover, and role.color on hover?
+                          // But user said "it should be white". If I make it white always, I must ensure background isn't white on hover OR background is dark enough.
+                          // The hover effect makes background: 'rgba(255, 255, 255, 0.95)'.
+                          // So white text will be invisible on hover.
+                          // I will assume they want white TEXT generally. I'll act smart:
+                          // Default: color: 'white', opacity: 1.
+                          // Hover: color: role.color (to be visible on white card).
+                          // Re-reading: "button conexion it should be white and displyed befor the hover"
+                          // It implies the state BEFORE hover should be white and visible.
+                          opacity: 1,
+                          transform: 'translateX(5px)'
+                        }
+                      },
                     }}
                   >
-                    {role.icon}
-                  </Box>
-                  <Typography variant="h5" component="h2" align="center" gutterBottom sx={{ fontWeight: 700, color: 'text.primary' }}>
-                    {role.title}
-                  </Typography>
-                  <Typography variant="body1" align="center" color="text.secondary">
-                    {role.description}
-                  </Typography>
-                </Paper>
-              </Link>
-            </Grid>
-          ))}
-        </Grid>
+                    <Box
+                      className="role-icon-box"
+                      sx={{
+                        p: 3,
+                        borderRadius: "24px",
+                        background: 'rgba(255,255,255,0.1)',
+                        color: 'white',
+                        mb: 4,
+                        transition: "all 0.4s ease",
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 100,
+                        height: 100
+                      }}
+                    >
+                      {role.icon}
+                    </Box>
+                    <Typography 
+                      className="role-title"
+                      variant="h4" 
+                      component="h2" 
+                      align="center" 
+                      gutterBottom 
+                      sx={{ 
+                        fontWeight: 700, 
+                        color: 'white', 
+                        fontSize: '1.75rem',
+                        transition: 'color 0.3s ease',
+                        mb: 2
+                      }}
+                    >
+                      {role.title}
+                    </Typography>
+                    <Typography 
+                      className="role-desc"
+                      variant="body1" 
+                      align="center" 
+                      sx={{ 
+                        color: alpha('#fff', 0.8),
+                        fontSize: '1.05rem',
+                        lineHeight: 1.6,
+                        transition: 'color 0.3s ease',
+                        flexGrow: 1
+                      }}
+                    >
+                      {role.description}
+                    </Typography>
+                    
+                    <Box 
+                      className="role-arrow"
+                      sx={{ 
+                        mt: 3, 
+                        opacity: 1, 
+                        transform: 'none', 
+                        transition: 'all 0.4s ease',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      Connexion →
+                    </Box>
+                  </Paper>
+                </Link>
+              </Grid>
+            ))}
+          </Grid>
 
-        <Box sx={{ mt: 8, textAlign: "center" }}>
-          <Button component={Link} to="/" sx={{ fontSize: "1rem", fontWeight: 600, color: 'text.secondary' }}>
-            ← Retour à l'accueil
-          </Button>
-        </Box>
-     
-    </Container>
-    <Footer />
-  </Box>
+          <Box sx={{ mt: 10, textAlign: "center" }}>
+            <Button 
+              component={Link} 
+              to="/" 
+              sx={{ 
+                fontSize: "1rem", 
+                fontWeight: 600, 
+                color: alpha('#fff', 0.9),
+                textTransform: 'none',
+                py: 1.5,
+                px: 4,
+                borderRadius: 0,
+                border: '1px solid rgba(255,255,255,0.3)',
+                backdropFilter: 'blur(5px)',
+                '&:hover': {
+                  background: 'rgba(255,255,255,0.1)',
+                  borderColor: 'white'
+                }
+              }}
+            >
+              ← Retour à l'accueil
+            </Button>
+          </Box>
+      
+      </Container>
+    </Box>
+    </Box>
   )
 }
 
 export default SelectionRole
-

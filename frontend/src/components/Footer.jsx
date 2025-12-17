@@ -84,7 +84,7 @@ const Footer = () => {
                 size="small"
                 sx={{ 
                   bgcolor: 'rgba(255,255,255,0.1)',
-                  borderRadius: '4px 0 0 4px',
+                  borderRadius: 0,
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': { borderColor: 'transparent' },
                     '&:hover fieldset': { borderColor: 'transparent' },
@@ -96,7 +96,7 @@ const Footer = () => {
                 variant="contained" 
                 color="secondary"
                 sx={{ 
-                  borderRadius: '0 4px 4px 0',
+                  borderRadius: 0,
                   color: '#05192D',
                   fontWeight: 700
                 }}

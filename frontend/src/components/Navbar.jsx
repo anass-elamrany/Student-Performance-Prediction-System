@@ -171,7 +171,7 @@ export default function Navbar(props) {
           </Box>
 
           {/* Bouton Connexion */}
-          <Box sx={{ flexGrow: 0 }}>
+          <Box sx={{ flexGrow: 0, display: { xs: 'none', md: 'block' } }}>
             <Button
                 color="primary"
                 variant="contained"
@@ -180,7 +180,7 @@ export default function Navbar(props) {
                   fontWeight: 600,
                   px: 3,
                   py: 1,
-                  borderRadius: 2,
+                  borderRadius: 0,
                   boxShadow: '0 4px 12px rgba(156, 39, 176, 0.2)', // Purple shadow
                 }}
               >

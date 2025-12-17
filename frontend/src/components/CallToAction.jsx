@@ -26,7 +26,7 @@ const CallToAction = () => {
             color="secondary" 
             size="large"
             onClick={() => navigate("/login")}
-            sx={{ px: 4, py: 1.5, fontSize: '1.1rem', fontWeight: 700, color: 'primary.main' }}
+            sx={{ px: 4, py: 1.5, fontSize: '1.1rem', fontWeight: 700, color: 'primary.main', borderRadius: 0 }}
           >
             Se connecter
           </Button>
@@ -34,7 +34,7 @@ const CallToAction = () => {
             variant="outlined" 
             color="inherit" 
             size="large"
-            sx={{ px: 4, py: 1.5, fontSize: '1.1rem', borderWidth: 2, '&:hover': { borderWidth: 2 } }}
+            sx={{ px: 4, py: 1.5, fontSize: '1.1rem', borderWidth: 2, borderRadius: 0, '&:hover': { borderWidth: 2 } }}
           >
             Support Administration
           </Button>
