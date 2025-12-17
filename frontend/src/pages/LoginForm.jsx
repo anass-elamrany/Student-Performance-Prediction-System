@@ -147,6 +147,23 @@ const LoginForm = () => {
           pb: 8,
         }}
       >
+          {/* Logo Heading */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+              <School sx={{ fontSize: 40, mr: 1, color: 'white' }} />
+              <Typography 
+                variant="h4" 
+                component="span" 
+                sx={{ 
+                  fontWeight: 700, 
+                  color: 'white',
+                  fontFamily: '"Plus Jakarta Sans", sans-serif'
+                }}
+              >
+                EduPredict
+              </Typography>
+            </Link>
+          </Box>
         <Paper 
           elevation={0} 
           sx={{ 
@@ -161,6 +178,7 @@ const LoginForm = () => {
             boxShadow: '0 8px 32px rgba(0,0,0,0.05)'
           }}
         >
+
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
             <Box sx={{ 
               p: 2, 
