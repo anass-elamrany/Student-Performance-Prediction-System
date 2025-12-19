@@ -1,4 +1,5 @@
 import Navbar from "../components/Navbar";
+import ScrollToTop from "../components/ScrollToTop";
 import Hero from "../components/Hero";
 import RoleShowcase from "../components/RoleShowcase";
 import Stats from "../components/Stats";
@@ -10,6 +11,7 @@ import Footer from "../components/Footer";
 const LandingPage = () => {
   return (
     <>
+      <div id="back-to-top-anchor" />
       <Navbar />
       <main>
         <Hero />
@@ -20,6 +22,7 @@ const LandingPage = () => {
         <CallToAction />
       </main>
       <Footer />
+      <ScrollToTop />
     </>
   );
 };

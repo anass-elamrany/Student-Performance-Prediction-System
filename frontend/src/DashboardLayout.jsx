@@ -6,6 +6,7 @@ import TopBar from "./components/TopBar";
 import Sidebar from "./components/Sidebar";
 import { getDesignTokens } from "./theme";
 import { Outlet, useLocation } from "react-router-dom";
+import ScrollToTop from "./components/ScrollToTop";
 
 const DrawerHeader = styled("div")(({ theme }) => ({
   display: "flex",
@@ -42,6 +43,7 @@ const DashboardLayout = ({ role }) => {
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: "flex" }}>
+        <div id="back-to-top-anchor" />
         <CssBaseline />
         <TopBar 
           open={open} 
@@ -61,6 +63,7 @@ const DashboardLayout = ({ role }) => {
           <DrawerHeader />
           <Outlet />
         </Box>
+        <ScrollToTop />
       </Box>
     </ThemeProvider>
   );
