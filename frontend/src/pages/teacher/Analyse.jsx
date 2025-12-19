@@ -139,14 +139,13 @@ const TeacherAnalysis = () => {
       <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', gap: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={4}>
-            <FormControl fullWidth sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
+            <FormControl fullWidth sx={{ bgcolor: 'background.paper' }}>
               <InputLabel id="matiere-select-label">Matière</InputLabel>
               <Select
                 labelId="matiere-select-label"
                 value={selectedMatiere}
                 onChange={(e) => setSelectedMatiere(e.target.value)}
                 label="Matière"
-                sx={{ borderRadius: 1 }}
               >
                 {matieres.map((matiere) => (
                   <MenuItem key={matiere.id} value={matiere.id}>
@@ -190,7 +189,7 @@ const TeacherAnalysis = () => {
       )}
 
       {!loading && (
-        <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Card elevation={2} sx={{ overflow: 'hidden' }}>
           <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
             <TableContainer component={Paper}>
               <Table>

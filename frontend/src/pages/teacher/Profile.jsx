@@ -47,7 +47,7 @@ const Profile = () => {
   
   const theme = useTheme();
   // Couleur de thème pour l'enseignant
-  const teacherColor = "#4caf50"; // Vert pour l'enseignant
+  const teacherColor = theme.palette.primary.main;
 
   // Récupérer les données de l'enseignant au montage du composant
   useEffect(() => {
@@ -148,7 +148,6 @@ const Profile = () => {
       <Box sx={{ width: "100%", mt: 4 }}>
         <LinearProgress sx={{ 
           height: 6, 
-          borderRadius: 3,
           backgroundColor: alpha(teacherColor, 0.15),
           '& .MuiLinearProgress-bar': {
             backgroundColor: teacherColor
@@ -188,7 +187,6 @@ const Profile = () => {
         <Grid item xs={12} md={6}>
           <Card 
             sx={{ 
-              borderRadius: 2,
               height: "100%",
               boxShadow: 3,
               position: "relative",
@@ -322,7 +320,6 @@ const Profile = () => {
         <Grid item xs={12} md={6}>
           <Card 
             sx={{ 
-              borderRadius: 2,
               height: "100%",
               boxShadow: 3,
               position: "relative",
@@ -447,7 +444,6 @@ const Profile = () => {
                       } 
                       sx={{
                         height: 8,
-                        borderRadius: 1,
                         backgroundColor: alpha(theme.palette.grey[300], 0.5),
                         '& .MuiLinearProgress-bar': {
                           backgroundColor: 
@@ -474,7 +470,6 @@ const Profile = () => {
                       minWidth: 200,
                       py: 1.2,
                       fontWeight: "bold",
-                      borderRadius: 2,
                       boxShadow: 2,
                       transition: "transform 0.2s",
                       backgroundColor: teacherColor,

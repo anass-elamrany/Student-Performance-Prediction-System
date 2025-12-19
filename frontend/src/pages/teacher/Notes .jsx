@@ -397,14 +397,13 @@ const TeacherNotes = () => {
         gap: 2 
       }}>
         {/* Matiere Filter */}
-        <FormControl sx={{ minWidth: 240, bgcolor: "background.paper", borderRadius: 1 }}>
+        <FormControl sx={{ minWidth: 240, bgcolor: "background.paper" }}>
           <InputLabel id="matiere-filter-label">Filtrer par Matière</InputLabel>
           <Select
             labelId="matiere-filter-label"
             value={selectedMatiere}
             onChange={handleMatiereFilterChange}
             label="Filtrer par Matière"
-            sx={{ borderRadius: 1 }}
           >
             <MenuItem value="">Toutes les Matières</MenuItem>
             {matieres.map((matiere) => (
@@ -423,7 +422,6 @@ const TeacherNotes = () => {
     startIcon={<GetAppIcon />}
     onClick={downloadTemplate}
     sx={{ 
-      borderRadius: 1,
       backgroundColor: "primary.main", // Using theme's primary color (green for teacher)
       color: "white",
       "&:hover": {
@@ -438,7 +436,6 @@ const TeacherNotes = () => {
     component="label"
     startIcon={<CloudUploadIcon />}
     sx={{ 
-      borderRadius: 1,
       backgroundColor: "primary.main", // Using theme's primary color (green for teacher)
       color: "white",
       "&:hover": {
@@ -466,11 +463,11 @@ const TeacherNotes = () => {
 
       {/* Table of Students and Notes */}
       {!loading && (
-        <Card elevation={2} sx={{ overflow: "hidden", borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+        <Card elevation={2} sx={{ overflow: "hidden", bgcolor: theme.palette.background.paper }}>
           <TableContainer component={Paper} elevation={0} sx={{ bgcolor: theme.palette.background.paper }}>
             <Table sx={{ minWidth: 650 }}>
               <TableHead>
-                <TableRow sx={{ backgroundColor: "rgba(0, 0, 0, 0.03)" }}>
+                <TableRow sx={{ backgroundColor: theme.palette.action.hover }}>
                   <TableCell 
                     sx={{ 
                       fontWeight: "bold", 
@@ -541,10 +538,10 @@ const TeacherNotes = () => {
                         key={student.id}
                         sx={{
                           '&:nth-of-type(odd)': {
-                            backgroundColor: 'rgba(0, 0, 0, 0.01)',
+                            backgroundColor: theme.palette.action.hover,
                           },
                           '&:hover': {
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                            backgroundColor: theme.palette.action.selected,
                           },
                           transition: 'background-color 0.2s'
                         }}
@@ -665,7 +662,6 @@ const TeacherNotes = () => {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 2,
             bgcolor: theme.palette.background.paper
           }
         }}
@@ -766,7 +762,6 @@ const TeacherNotes = () => {
             onClick={handleSubmit} 
             variant="contained"
             sx={{ 
-              borderRadius: 1,
               boxShadow: 'none',
               '&:hover': {
                 boxShadow: 'none',

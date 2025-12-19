@@ -194,32 +194,34 @@ const StudentDashboard = () => {
               </Box>
               <Divider sx={{ mb: 2 }} />
               <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={studentData.monthlyPerformance}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                  <XAxis 
-                    dataKey="month" 
-                    tick={{ fill: theme.palette.text.secondary }}
-                    axisLine={{ stroke: theme.palette.divider }}
-                  />
-                  <YAxis 
-                    domain={[0, 20]} 
-                    tick={{ fill: theme.palette.text.secondary }}
-                    axisLine={{ stroke: theme.palette.divider }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: theme.palette.background.paper,
-                      borderColor: theme.palette.divider,
-                      color: theme.palette.text.primary
-                    }} 
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="average" 
-                    stroke={theme.palette.primary.main}
-                    strokeWidth={2}
-                    activeDot={{ r: 8, fill: theme.palette.primary.main }} 
-                  />
+                  <LineChart data={studentData.monthlyPerformance}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fill: theme.palette.text.secondary }}
+                      axisLine={{ stroke: theme.palette.divider }}
+                      tickLine={{ stroke: theme.palette.divider }}
+                    />
+                    <YAxis 
+                      domain={[0, 20]} 
+                      tick={{ fill: theme.palette.text.secondary }}
+                      axisLine={{ stroke: theme.palette.divider }}
+                      tickLine={{ stroke: theme.palette.divider }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: theme.palette.background.paper,
+                        borderColor: theme.palette.divider,
+                        color: theme.palette.text.primary
+                      }} 
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="average" 
+                      stroke={theme.palette.primary.main}
+                      strokeWidth={2}
+                      activeDot={{ r: 8, fill: theme.palette.primary.main }} 
+                    />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>

@@ -19,17 +19,13 @@ const SelectionRole = () => {
       description: "Gestion globale et paramétrage du système",
       icon: <SupervisorAccountIcon sx={{ fontSize: 60 }} />,
       color: theme.palette.primary.main,
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      shadow: '0 8px 32px rgba(118, 75, 162, 0.3)'
     },
     {
       id: "teacher",
       title: "Enseignant",
       description: "Suivi des performances et détection des risques",
       icon: <SchoolIcon sx={{ fontSize: 60 }} />,
-      color: theme.palette.secondary.main,
-      gradient: 'linear-gradient(135deg, #2af598 0%, #009efd 100%)',
-      shadow: '0 8px 32px rgba(0, 158, 253, 0.3)'
+      color: theme.palette.secondary.main, // Uses Purple from theme
     },
     {
       id: "student",
@@ -37,8 +33,6 @@ const SelectionRole = () => {
       description: "Consultation des résultats et orientation",
       icon: <PersonIcon sx={{ fontSize: 60 }} />,
       color: theme.palette.info.main,
-      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      shadow: '0 8px 32px rgba(79, 172, 254, 0.3)'
     },
   ]
 
@@ -130,13 +124,13 @@ const SelectionRole = () => {
                       "&:hover": {
                         transform: "translateY(-12px)",
                         background: 'rgba(255, 255, 255, 0.95)',
-                        boxShadow: role.shadow,
+                        boxShadow: theme.shadows[4],
                         borderColor: 'transparent',
                         '& .role-icon-box': {
                           transform: 'scale(1.1) rotate(5deg)',
-                          background: role.gradient,
+                          background: role.color,
                           color: 'white',
-                          boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
+                          boxShadow: theme.shadows[4]
                         },
                         '& .role-title': {
                           color: '#1a202c',

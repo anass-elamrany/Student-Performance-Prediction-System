@@ -53,7 +53,7 @@ const StudentProfile = () => {
   
   const theme = useTheme();
   // Student theme color matching other components
-  const studentColor = "#ff9800";
+  const studentColor = theme.palette.primary.main;
 
   // Fetch student's data on component mount
   useEffect(() => {
@@ -154,7 +154,6 @@ const StudentProfile = () => {
       <Box sx={{ width: "100%", mt: 4 }}>
         <LinearProgress sx={{ 
           height: 6, 
-          borderRadius: 3,
           backgroundColor: alpha(studentColor, 0.15),
           '& .MuiLinearProgress-bar': {
             backgroundColor: studentColor
@@ -194,7 +193,6 @@ const StudentProfile = () => {
         <Grid item xs={12} md={6}>
           <Card 
             sx={{ 
-              borderRadius: 2,
               height: "100%",
               boxShadow: 3,
               position: "relative",
@@ -374,7 +372,6 @@ const StudentProfile = () => {
         <Grid item xs={12} md={6}>
           <Card 
             sx={{ 
-              borderRadius: 2,
               height: "100%",
               boxShadow: 3,
               position: "relative",
@@ -499,7 +496,6 @@ const StudentProfile = () => {
                       } 
                       sx={{
                         height: 8,
-                        borderRadius: 1,
                         backgroundColor: alpha(theme.palette.grey[300], 0.5),
                         '& .MuiLinearProgress-bar': {
                           backgroundColor: 
@@ -530,7 +526,6 @@ const StudentProfile = () => {
                       minWidth: 200,
                       py: 1.2,
                       fontWeight: "bold",
-                      borderRadius: 2,
                       boxShadow: 2,
                       transition: "transform 0.2s",
                       "&:hover": {

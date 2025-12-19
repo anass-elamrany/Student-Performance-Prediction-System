@@ -171,14 +171,14 @@ const TeacherDashboard = () => {
       title: 'Moyenne de la classe', 
       value: matiereStats.length > 0 ? `${matiereStats[0].average_grade}/20` : '0/20', 
       icon: <TrendingUpIcon fontSize="large" />, 
-      color: theme.palette.success.main || '#4caf50',
+      color: theme.palette.success.main,
       description: 'Performance moyenne'
     },
     { 
       title: 'Meilleure note', 
       value: matiereStats.length > 0 ? `${matiereStats[0].highest_grade}/20` : '0/20', 
       icon: <WarningIcon fontSize="large" />, 
-      color: theme.palette.warning.main || '#ff9800',
+      color: theme.palette.warning.main,
       description: 'Note la plus élevée'
     },
   ];
@@ -264,8 +264,8 @@ const TeacherDashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={gradeDistribution}>
                       <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                      <XAxis dataKey="range" tick={{ fill: theme.palette.text.secondary }} />
-                      <YAxis tick={{ fill: theme.palette.text.secondary }} />
+                      <XAxis dataKey="range" tick={{ fill: theme.palette.text.secondary }} stroke={theme.palette.divider} />
+                      <YAxis tick={{ fill: theme.palette.text.secondary }} stroke={theme.palette.divider} />
                       <Tooltip
                         contentStyle={{ 
                           backgroundColor: theme.palette.background.paper,

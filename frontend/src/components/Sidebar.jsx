@@ -212,16 +212,7 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
 
   //  avatar background color based on role
   const getAvatarBgColor = () => {
-    switch (userRole) {
-      case "admin":
-        return "#3f51b5"; // Indigo
-      case "teacher":
-        return "#4caf50"; // Green
-      case "student":
-        return "#ff9800"; // Orange - change this to match your selection page
-      default:
-        return blue[600]; // Default blue
-    }
+    return theme.palette.primary.main;
   };
 
   const renderMenuItems = (items) => {
@@ -273,7 +264,7 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
           mx: "auto",
           width: open ? 88 : 44,
           height: open ? 88 : 44,
-          my: 1,
+          my: 3,
           border: "2px solid grey",
           transition: "0.25s",
           bgcolor: getAvatarBgColor(),
@@ -299,6 +290,7 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
       <Typography
         align="center"
         sx={{
+          my: 1.5,
           fontSize: open ? 15 : 0,
           transition: "0.25s",
           color: theme.palette.info.main,

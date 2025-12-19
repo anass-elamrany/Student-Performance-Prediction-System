@@ -1,11 +1,9 @@
 export const getDesignTokens = (mode, role) => {
-  const roleColors = {
-    admin: "#3f51b5",
-    teacher: "#4caf50",
-    student: "#ff9800",
-  };
-
-  const primaryColor = role && roleColors[role] ? roleColors[role] : "#05192D"; // DataCamp Navy Blue
+  // Unified color scheme matching Landing Page
+  // Unified color scheme matching Landing Page
+  // DataCamp Navy Blue for Light Mode, Lighter Blue for Dark Mode
+  const primaryColor = mode === 'dark' ? "#90CAF9" : "#05192D"; 
+  const secondaryColor = "#9C27B0"; // Purple Accent
 
   return {
     palette: {
@@ -14,7 +12,7 @@ export const getDesignTokens = (mode, role) => {
         main: primaryColor,
       },
       secondary: {
-        main: "#9C27B0", // Purple Accent
+        main: secondaryColor,
       },
       background: {
         default: mode === 'light' ? "#ffffff" : "#121212",
@@ -29,22 +27,50 @@ export const getDesignTokens = (mode, role) => {
       h4: { fontWeight: 600 },
       h5: { fontWeight: 600 },
       h6: { fontWeight: 600 },
-      button: { fontWeight: 600, textTransform: 'none' }, // Cast to any if needed, but 'none' is valid CSS. However, Material UI types can be strict.
+      button: { fontWeight: 600, textTransform: 'none' },
     },
 
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: 0, 
           },
         },
       },
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 12,
+            borderRadius: 0, 
             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+          },
+        },
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+             borderRadius: 0, // Square design
+          },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            borderRadius: 0, 
+          },
+        },
+      },
+      MuiLinearProgress: {
+        styleOverrides: {
+          root: {
+            borderRadius: 0,
+          },
+        },
+      },
+      MuiAlert: {
+        styleOverrides: {
+          root: {
+            borderRadius: 0,
           },
         },
       },

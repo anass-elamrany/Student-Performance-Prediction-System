@@ -250,8 +250,16 @@ const AdminDashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={subjectsPerformance}>
                       <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                      <XAxis dataKey="subject" tick={{ fill: theme.palette.text.secondary }} />
-                      <YAxis domain={[0, 20]} tick={{ fill: theme.palette.text.secondary }} />
+                      <XAxis 
+                        dataKey="subject" 
+                        tick={{ fill: theme.palette.text.secondary }} 
+                        stroke={theme.palette.divider}
+                      />
+                      <YAxis 
+                        domain={[0, 20]} 
+                        tick={{ fill: theme.palette.text.secondary }} 
+                        stroke={theme.palette.divider}
+                      />
                       <Tooltip
                         contentStyle={{ 
                           backgroundColor: theme.palette.background.paper,

@@ -170,7 +170,6 @@ const LoginForm = () => {
             p: 4, 
             
             width: '100%',
-            borderRadius: 0,
             border: '1px solid',
             borderColor: 'divider',
             background: 'rgba(255, 255, 255, 1)', 
@@ -199,7 +198,7 @@ const LoginForm = () => {
           </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 0 }}>
+            <Alert severity="error" sx={{ mb: 3 }}>
               {error}
             </Alert>
           )}
@@ -216,7 +215,7 @@ const LoginForm = () => {
               autoFocus
               value={formData.username}
               onChange={handleChange}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
+              sx={{ mb: 2 }}
             />
             
             <TextField
@@ -230,7 +229,7 @@ const LoginForm = () => {
               autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
+              sx={{ mb: 2 }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -259,7 +258,6 @@ const LoginForm = () => {
                 mb: 2, 
                 py: 1.5,
                 fontSize: '1.1rem',
-                borderRadius: 0,
                 fontWeight: 700,
                 color: 'white',
                 boxShadow: '0 4px 12px rgba(156, 39, 176, 0.3)'

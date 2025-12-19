@@ -122,7 +122,6 @@ const StudentRecommendations = () => {
       <Box sx={{ width: "100%", mt: 4 }}>
         <LinearProgress sx={{ 
           height: 6, 
-          borderRadius: 3,
           backgroundColor: alpha(primaryColor, 0.15),
           '& .MuiLinearProgress-bar': {
             backgroundColor: primaryColor
@@ -273,7 +272,6 @@ const StudentRecommendations = () => {
                       onClick={() => toggleExpand('subjectRecs', index)}
                       sx={{ 
                         mb: 1,
-                        borderRadius: 1,
                         borderLeft: `4px solid ${primaryColor}`,
                         backgroundColor: alpha(primaryColor, 0.05)
                       }}
@@ -320,7 +318,7 @@ const StudentRecommendations = () => {
           {!recommendations.academic_orientation && 
            recommendations.performance_recommendations.length === 0 && 
            recommendations.subject_recommendations.length === 0 && (
-            <Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 2 }}>
+            <Paper elevation={3} sx={{ p: 4, textAlign: "center" }}>
               <Lightbulb sx={{ fontSize: 60, color: alpha(primaryColor, 0.7), mb: 2 }} />
               <Typography variant="h6" sx={{ mb: 1 }}>
                 Aucune recommandation disponible
@@ -334,7 +332,7 @@ const StudentRecommendations = () => {
       ) : (
         <Box>
           {alerts.length === 0 ? (
-            <Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 2 }}>
+            <Paper elevation={3} sx={{ p: 4, textAlign: "center" }}>
               <Notifications sx={{ fontSize: 60, color: alpha(errorColor, 0.7), mb: 2 }} />
               <Typography variant="h6" sx={{ mb: 1 }}>
                 Aucune alerte active
@@ -354,7 +352,6 @@ const StudentRecommendations = () => {
                     onClick={() => toggleExpand('alerts', index)}
                     sx={{ 
                       mb: 1,
-                      borderRadius: 1,
                       borderLeft: `4px solid ${errorColor}`,
                       backgroundColor: alpha(errorColor, 0.05)
                     }}

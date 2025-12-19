@@ -99,7 +99,7 @@ const StudentNotes = () => {
       </Box>
 
       {/* Notes Table */}
-      <Card elevation={2} sx={{ overflow: "hidden", borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+      <Card elevation={2} sx={{ overflow: "hidden", bgcolor: theme.palette.background.paper }}>
         <TableContainer component={Paper} elevation={0} sx={{ bgcolor: theme.palette.background.paper}}>
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
