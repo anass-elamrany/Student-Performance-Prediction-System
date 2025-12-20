@@ -38,6 +38,7 @@ const StudentRecommendations = lazy(() => import("./pages/student/Recommendation
 const StudentNotes = lazy(() => import("./pages/student/Mes Notes "));
 const StudentProfile = lazy(() => import("./pages/student/StudentProfile"));
 
+// @ts-ignore
 const theme = createTheme(getDesignTokens("light", null));
 
 // Loading Component
