@@ -51,6 +51,8 @@ const StudentStatCard = ({ title, value, icon, color, subtitle }) => {
   );
 };
 
+import { Helmet } from 'react-helmet-async';
+
 const StudentDashboard = () => {
     const theme = useTheme();
     const [loading, setLoading] = useState(true);
@@ -93,6 +95,10 @@ const StudentDashboard = () => {
 
     return (
         <Box>
+            <Helmet>
+                <title>EduPredict - Tableau de bord Étudiant</title>
+                <meta name="description" content="Suivez vos performances, absences et recommandations." />
+            </Helmet>
              <Box mb={4}>
                 <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
                     Bienvenue, {legacyData?.name}

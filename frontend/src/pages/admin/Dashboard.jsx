@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { 
   Box, Typography, Grid, Card, CardContent, Divider, CircularProgress, 
   Snackbar, Alert, useTheme, Avatar, LinearProgress
@@ -99,12 +100,16 @@ const AdminDashboard = () => {
 
     return (
         <Box>
+            <Helmet>
+                <title>EduPredict - Administration</title>
+                <meta name="description" content="Vue d'ensemble et statistiques globales du système." />
+            </Helmet>
             <Box mb={4}>
                 <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
                     Tableau de Bord Admin
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    Vue d'ensemble des performances académiques et de l'assiduité.
+                    Vue d'overview des performances académiques et de l'assiduité.
                 </Typography>
                 <Divider sx={{ mt: 2 }} />
             </Box>

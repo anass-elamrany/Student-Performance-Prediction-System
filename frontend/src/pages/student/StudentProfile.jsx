@@ -72,7 +72,7 @@ const StudentProfile = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Backend Response:", data);
+
         setStudent(data.data);
       } else {
         throw new Error("Failed to fetch profile data");

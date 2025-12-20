@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from "react-router-dom"
 import { Box, Typography, Button, Container, Paper, Grid, useTheme, alpha } from "@mui/material"
+import { Helmet } from 'react-helmet-async';
 import SchoolIcon from "@mui/icons-material/School"
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount"
 import PersonIcon from "@mui/icons-material/Person"
@@ -58,6 +59,10 @@ const SelectionRole = () => {
         zIndex: 0
       }
     }}>
+      <Helmet>
+        <title>EduPredict - Sélection du Rôle</title>
+        <meta name="description" content="Veuillez sélectionner votre espace (Admin, Enseignant, Étudiant) pour vous connecter." />
+      </Helmet>
     <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
       <Container 
         maxWidth="lg" 

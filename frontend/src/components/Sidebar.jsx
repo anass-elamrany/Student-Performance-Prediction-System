@@ -238,7 +238,7 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
   };
 
   return (
-    <Drawer variant="permanent" open={open}>
+    <Drawer variant="permanent" open={open} PaperProps={{ component: 'nav' }}>
       <DrawerHeader>
         <IconButton onClick={handleDrawerClose}>
           {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}

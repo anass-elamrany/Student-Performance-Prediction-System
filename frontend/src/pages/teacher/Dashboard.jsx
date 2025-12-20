@@ -56,6 +56,8 @@ const StatCard = ({ title, value, icon, color, subtitle }) => {
   );
 };
 
+import { Helmet } from 'react-helmet-async';
+
 const TeacherDashboard = () => {
     const theme = useTheme();
     const [loading, setLoading] = useState(true);
@@ -90,6 +92,10 @@ const TeacherDashboard = () => {
 
     return (
         <Box>
+            <Helmet>
+                <title>EduPredict - Espace Enseignant</title>
+                <meta name="description" content="Tableau de bord enseignant : classes, étudiants, performances." />
+            </Helmet>
             <Box mb={4}>
                 <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
                     Espace Enseignant

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { 
   Container, 
   Paper, 
@@ -137,6 +138,10 @@ const LoginForm = () => {
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat'
     }}>
+      <Helmet>
+        <title>EduPredict - Connexion {roleInfo[role]?.title}</title>
+        <meta name="description" content="Connectez-vous à votre espace personnel EduPredict." />
+      </Helmet>
       <Container 
         maxWidth="sm" 
         sx={{ 

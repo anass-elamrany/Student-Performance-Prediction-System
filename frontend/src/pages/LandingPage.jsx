@@ -8,9 +8,15 @@ import CallToAction from "../components/CallToAction";
 import FAQ from "../components/FAQ";
 import Footer from "../components/Footer";
 
+import { Helmet } from 'react-helmet-async';
+
 const LandingPage = () => {
   return (
     <>
+      <Helmet>
+        <title>EduPredict - AI Student Performance Platform</title>
+        <meta name="description" content="Predict and improve student performance with our advanced AI-driven analytics platform." />
+      </Helmet>
       <div id="back-to-top-anchor" />
       <Navbar />
       <main>

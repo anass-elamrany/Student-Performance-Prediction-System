@@ -31,12 +31,9 @@ const StudentNotes = () => {
       const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/notes/");
       const data = await response.json();
 
-      console.log("API Response:", data); // Debugging: Log the API response
 
       if (data.success && Array.isArray(data.notes)) {
-        // Debugging: Log the filtered notes
         const filteredNotes = data.notes.filter(note => note.date_ajout);
-        console.log("Filtered Notes:", filteredNotes);
 
         setNotes(filteredNotes);
       } else {

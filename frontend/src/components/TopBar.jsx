@@ -106,7 +106,7 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
   };
 
   return (
-    <AppBar position="fixed" 
+    <AppBar position="fixed" component="header"
 // @ts-ignore
     open={open}>
       <Toolbar>

@@ -66,7 +66,7 @@ const Profile = () => {
   
       if (response.ok) {
         const data = await response.json();
-        console.log("Réponse du backend :", data);
+
         setTeacher(data.data);
       } else {
         throw new Error("Échec de la récupération des données de profil");

@@ -64,7 +64,7 @@ const RoleShowcase = () => {
       buttonText: "Accéder au tableau de bord",
       imagePosition: "left",
       color: "primary.main",
-      onButtonClick: () => console.log('Admin clicked')
+      onButtonClick: () => {}
     },
     {
       title: "Enseignants : Intervention Précoce",
@@ -73,7 +73,7 @@ const RoleShowcase = () => {
       buttonText: "Suivre mes étudiants",
       imagePosition: "right",
       color: "secondary.main",
-      onButtonClick: () => console.log('Teacher clicked')
+      onButtonClick: () => {}
     },
     {
       title: "Étudiants : Orientation & Réussite",
@@ -82,7 +82,7 @@ const RoleShowcase = () => {
       buttonText: "Voir mon profil",
       imagePosition: "left",
       color: "primary.main",
-      onButtonClick: () => console.log('Student clicked')
+      onButtonClick: () => {}
     }
   ];
 
