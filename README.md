@@ -25,6 +25,30 @@ Ce projet est une plateforme intelligente conçue pour révolutionner le suivi p
 
 ---
 
+## 🧠 Cœur Intelligent 
+
+Le module d'intelligence artificielle est le moteur de notre plateforme. Il ne se contente pas d'afficher des données, il les interprète pour anticiper l'avenir académique de l'étudiant.
+
+### 📂 Source des Données
+Le modèle initial a été entraîné sur le célèbre dataset **UCI Student Performance**, reconnu pour sa richesse en variables socio-démographiques et académiques.
+- **Entraînement initial** : 395 étudiants, 33 critères (Notes, Absences, Environnement familial, Temps d'étude...).
+- **Apprentissage continu** : L'application est conçue pour se ré-entraîner sur les nouvelles données générées par l'établissement pour affiner ses prédictions au fil du temps.
+- **Lien vers le Dataset** : [UCI Student Performance](https://archive.ics.uci.edu/ml/datasets/Student+Performance)
+- **Repo Machine Learning** : [student-performance-ml](https://github.com/anass-elamrany/student-performance-ml) (Explication détaillée du modèle)
+
+### 🤖 Pipeline de Traitement
+1.  **Nettoyage (ETL)** : Traitement des valeurs manquantes et encodage des variables catégorielles (One-Hot Encoding).
+2.  **Sélection de Modèle** : Comparaison de plusieurs algorithmes (SVM, KNN, Linear Regression).
+3.  **Modèle Retenu** : **Random Forest** (Forêt Aléatoire) a été choisi pour sa robustesse et sa précision supérieure.
+
+### 📈 Performances du Modèle
+- **Classification (Risque)** : Précision de **~92%** (Accuracy) pour classer les élèves en 3 catégories.
+- **Régression (Notes)** : Marge d'erreur moyenne (**MAE**) inférieure à **1.5 points** sur la note finale.
+
+> *L'IA utilise principalement les notes des semestres précédents (G1, G2) et le taux d'assiduité pour pondérer ses prédictions.*
+
+---
+
 ## 🛠️ Architecture Technique
 
 ### 🎨 Frontend (Interface Utilisateur)
@@ -48,7 +72,7 @@ Ce projet est une plateforme intelligente conçue pour révolutionner le suivi p
 ## 👥 Équipe de Réalisation
 Ce projet a été réalisé avec passion par :
 - **[Anass El Amrany](https://github.com/anass-elamrany)**
-- **[Awitty Gentleman](https://github.com/awittygenlteman)**
+- **[El khadir Safouane](https://github.com/awittygenlteman)**
 - **[Maryame Dani](https://github.com/MaryameDani)** 
 
 ---
