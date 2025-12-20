@@ -1,7 +1,9 @@
 {
-  "name": "frontend",
+  "name": "edupredict-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Interface utilisateur pour le système de prédiction de performances étudiantes",
+  "author": "Anass El Amrany",
   "type": "module",
   "scripts": {
     "dev": "vite",
