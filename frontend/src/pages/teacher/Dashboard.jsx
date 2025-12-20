@@ -1,270 +1,248 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Card, 
-  CardContent,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Divider,
-  useTheme
+  Box, Typography, Grid, Card, CardContent, Divider, CircularProgress, 
+  Alert, useTheme, Avatar
 } from '@mui/material';
 import { 
-  BarChart,
-  Bar,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
-import PeopleIcon from '@mui/icons-material/People';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import WarningIcon from '@mui/icons-material/Warning';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import { checkAuthStatus, getUserRole, logout } from '../../utils/auth';
-import { useNavigate } from 'react-router-dom';
+import {
+  School as SchoolIcon,
+  TrendingUp as TrendingUpIcon,
+  Warning as WarningIcon,
+  Groups as GroupsIcon,
+  Class as ClassIcon,
+  FactCheck as FactCheckIcon
+} from '@mui/icons-material';
+
 import { api, endpoints } from '../../services/api';
 
-const TeacherDashboard = () => {
-  const [loading, setLoading] = useState(false);
-  const [matiereStats, setMatiereStats] = useState([]);
-  const [gradeDistribution, setGradeDistribution] = useState([]);
-  const [selectedMatiere, setSelectedMatiere] = useState('');
-  const [matieres, setMatieres] = useState([]);
-  const navigate = useNavigate();
-  const theme = useTheme();
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-  // Check authentication and user role on component mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const user = await checkAuthStatus();
-      if (!user || getUserRole() !== 'teacher') {
-        navigate('/login');
-      }
-    };
-
-    checkAuth();
-  }, [navigate]);
-
-  // Fetch matieres and data on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch matieres taught by the teacher
-        const matieresResponse = await api.get(endpoints.teacherDashboard.matieres);
-        const matieresData = await matieresResponse.json();
-        if (matieresData.success) {
-          setMatieres(matieresData.matieres);
-          if (matieresData.matieres.length > 0) {
-            setSelectedMatiere(matieresData.matieres[0].id);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching matieres:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Fetch data when selectedMatiere changes
-  useEffect(() => {
-    if (selectedMatiere) {
-      fetchMatiereData(selectedMatiere);
-    }
-  }, [selectedMatiere]);
-
-  // Fetch statistics and grade distribution for the selected matiere
-  const fetchMatiereData = async (matiereId) => {
-    setLoading(true);
-    try {
-      // Fetch teacher statistics for the selected matiere
-      const statsResponse = await api.get(`${endpoints.teacherDashboard.statistics}?matiere_id=${matiereId}`);
-      const statsData = await statsResponse.json();
-
-      if (!statsResponse.ok) {
-        throw new Error(statsData.message || 'Erreur lors de la récupération des statistiques');
-      }
-
-      if (statsData.success) {
-        setMatiereStats(statsData.matiere_stats);
-      }
-
-      // Fetch grade distribution for the selected matiere
-      const gradeResponse = await api.get(`${endpoints.teacherDashboard.gradeDistribution}?matiere_id=${matiereId}`);
-      const gradeData = await gradeResponse.json();
-
-      if (!gradeResponse.ok) {
-        throw new Error(gradeData.message || 'Erreur lors de la récupération de la distribution des notes');
-      }
-
-      if (gradeData.success) {
-        setGradeDistribution(gradeData.grade_distribution);
-      }
-
-    } catch (error) {
-      console.error('Error fetching matiere data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle Matiere filter change
-  const handleMatiereChange = (event) => {
-    setSelectedMatiere(event.target.value);
-  };
-
-  // Summary stats
-  const summaryStats = [
-    { 
-      title: 'Resumé', 
-      value: matieres.length, 
-      icon: <PeopleIcon fontSize="large" />, 
-      color: theme.palette.primary.main,
-      description: 'Nombre total de matières'
-    },
-    { 
-      title: 'Moyenne de la classe', 
-      value: matiereStats.length > 0 && matiereStats[0].average_grade !== null ? `${parseFloat(matiereStats[0].average_grade).toFixed(2)}/20` : 'N/A', 
-      icon: <TrendingUpIcon fontSize="large" />, 
-      color: theme.palette.success.main,
-      description: 'Performance moyenne'
-    },
-    { 
-      title: 'Meilleure note', 
-      value: matiereStats.length > 0 && matiereStats[0].highest_grade !== null ? `${matiereStats[0].highest_grade}/20` : 'N/A', 
-      icon: <WarningIcon fontSize="large" />, 
-      color: theme.palette.warning.main,
-      description: 'Note la plus élevée'
-    },
-  ];
-
+const StatCard = ({ title, value, icon, color, subtitle }) => {
   return (
-    <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-          Tableau de Bord Enseignant
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Bienvenue! Voici un aperçu de vos classes et activités récentes.
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
-
-      {/* Matiere Filter */}
-      <Box sx={{ mb: 4 }}>
-        <FormControl sx={{ minWidth: 250 }}>
-          <InputLabel id="matiere-filter-label">Sélectionner une Matière</InputLabel>
-          <Select
-            labelId="matiere-filter-label"
-            value={selectedMatiere}
-            onChange={handleMatiereChange}
-            label="Sélectionner une Matière"
-          >
-            {matieres.map((matiere) => (
-              <MenuItem key={matiere.id} value={matiere.id}>
-                {matiere.nom}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {summaryStats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <Card 
-              elevation={2}
-              sx={{ 
-                height: 140, 
-                borderLeft: `4px solid ${stat.color}`,
-                transition: "transform 0.3s",
-                "&:hover": {
-                  transform: "translateY(-5px)",
-                  boxShadow: theme.shadows[8]
-                }
-              }}
+    <Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        <Box display="flex" alignItems="center" gap={2}>
+            <Avatar 
+                variant="square" 
+                sx={{ 
+                    bgcolor: `${color}15`, 
+                    color: color,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 0
+                }}
             >
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">
-                  {stat.title}
+                {React.cloneElement(icon, { sx: { fontSize: 24 } })}
+            </Avatar>
+            <Box overflow="hidden">
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {title}
                 </Typography>
-                <Typography variant="h3" sx={{ mt: 2, fontWeight: "bold", color: stat.color }}>
-                  {stat.value}
+                <Typography variant="h5" fontWeight="700" noWrap title={value} sx={{ lineHeight: 1.2, my: 0.5 }}>
+                    {value}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  {stat.description}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Main Content */}
-      <Grid container spacing={4}>
-        {/* Grade Distribution */}
-        <Grid item xs={12}>
-          <Card elevation={2} sx={{ p: 1 }}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <AssessmentIcon sx={{ mr: 1, color: "primary.main" }} />
-                <Typography variant="h6" fontWeight="medium">
-                  Distribution des Notes - {matieres.find(m => m.id === selectedMatiere)?.nom || ''}
-                </Typography>
-              </Box>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ height: 320 }}>
-                {gradeDistribution.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={gradeDistribution}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                      <XAxis dataKey="range" tick={{ fill: theme.palette.text.secondary }} stroke={theme.palette.divider} />
-                      <YAxis tick={{ fill: theme.palette.text.secondary }} stroke={theme.palette.divider} />
-                      <Tooltip
-                        contentStyle={{ 
-                          backgroundColor: theme.palette.background.paper,
-                          borderColor: theme.palette.divider,
-                          color: theme.palette.text.primary
-                        }}
-                      />
-                      <Bar dataKey="count" fill={theme.palette.primary.main} name="Nombre d'élèves" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    height: '100%',
-                    color: theme.palette.text.secondary
-                  }}>
-                    Aucune donnée disponible pour cette matière
-                  </Box>
+                {subtitle && (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }} noWrap>
+                        {subtitle}
+                    </Typography>
                 )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Loading State */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
+            </Box>
         </Box>
-      )}
-    </Box>
+      </CardContent>
+    </Card>
   );
+};
+
+const TeacherDashboard = () => {
+    const theme = useTheme();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [stats, setStats] = useState(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            setLoading(true);
+            try {
+                const response = await api.get(endpoints.dashboard.teacher);
+                const data = await response.json();
+
+                if (data.success) {
+                    setStats(data);
+                } else {
+                    throw new Error(data.message || "Impossible de charger les statistiques.");
+                }
+            } catch (err) {
+                console.error(err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
+    if (loading) return <Box p={3} display="flex" justifyContent="center"><CircularProgress /></Box>;
+    if (error) return <Box p={3}><Alert severity="error">{error}</Alert></Box>;
+
+    return (
+        <Box>
+            <Box mb={4}>
+                <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
+                    Espace Enseignant
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                    Suivi des classes, performances et engagement.
+                </Typography>
+                <Divider sx={{ mt: 2 }} />
+            </Box>
+
+            {/* --- 4 CARDS --- */}
+            <Grid container spacing={3} mb={4}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard 
+                        title="Mes Classes"
+                        value={stats?.cards?.total_classes || 0}
+                        icon={<ClassIcon />}
+                        color={theme.palette.primary.main}
+                        subtitle="Classes actives"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard 
+                        title="Total Étudiants"
+                        value={stats?.cards?.total_students || 0}
+                        icon={<GroupsIcon />}
+                        color={theme.palette.secondary.main}
+                        subtitle="Sous votre responsabilité"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard 
+                        title="Moyenne Générale"
+                        value={stats?.cards?.my_avg || "N/A"}
+                        icon={<TrendingUpIcon />}
+                        color={theme.palette.success.main}
+                        subtitle="Moyenne de vos matières"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard 
+                        title="Étudiants à Risque"
+                        value={stats?.cards?.at_risk_count || 0}
+                        icon={<WarningIcon />}
+                        color={theme.palette.error.main}
+                        subtitle="Nécessitent soutien"
+                    />
+                </Grid>
+            </Grid>
+
+            {/* --- 4 CHARTS (GRID 2x2) --- */}
+            <Grid container spacing={3}>
+                
+                {/* Chart 1: Class Comparison (Bar) */}
+                <Grid item xs={12} md={6}>
+                    <Card elevation={2} sx={{ height: 400 }}>
+                        <CardContent>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                Comparaison des Classes (Moyenne)
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={stats?.charts?.class_comparison || []}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis domain={[0, 20]} />
+                                    <Tooltip />
+                                    <Bar dataKey="avg" fill={theme.palette.primary.main} name="Moyenne" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Chart 2: Grade Distribution (Bar) */}
+                <Grid item xs={12} md={6}>
+                    <Card elevation={2} sx={{ height: 400 }}>
+                        <CardContent>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                Distribution des Notes
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={stats?.charts?.grade_distribution || []}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="range" />
+                                    <YAxis allowDecimals={false} />
+                                    <Tooltip />
+                                    <Bar dataKey="count" fill={theme.palette.secondary.main} name="Nombre d'étudiants" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Chart 3: Pass/Fail Rate (Donut) */}
+                <Grid item xs={12} md={6}>
+                    <Card elevation={2} sx={{ height: 400 }}>
+                        <CardContent>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                Taux de Réussite (Global)
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                    <Pie
+                                        data={stats?.charts?.pass_fail || []}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                        label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}
+                                    >
+                                        {stats?.charts?.pass_fail?.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={index === 0 ? theme.palette.success.main : theme.palette.error.main} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                 {/* Chart 4: Activity Trend (Line) */}
+                 <Grid item xs={12} md={6}>
+                    <Card elevation={2} sx={{ height: 400 }}>
+                        <CardContent>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                Activité et Participation (Tendance)
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={stats?.charts?.activity_trend || []}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="msgs" stroke={theme.palette.primary.main} name="Messages" strokeWidth={2} />
+                                    <Line type="monotone" dataKey="files" stroke={theme.palette.secondary.main} name="Fichiers" strokeWidth={2} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+            </Grid>
+        </Box>
+    );
 };
 
 export default TeacherDashboard;

@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import auth, stats, admin, teacher, student, ml
+from .views import auth, stats, admin, teacher, student, ml, dashboard_stats
 
 urlpatterns = [
     # Authentication
@@ -10,7 +10,12 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # Dashboard Chart Data Endpoints
+    # New Unified Dashboard Stats
+    path('api/dashboard/admin/', dashboard_stats.admin_dashboard_stats, name='admin-dashboard-stats'),
+    path('api/dashboard/teacher/', dashboard_stats.teacher_dashboard_stats, name='teacher-dashboard-stats'),
+    path('api/dashboard/student/', dashboard_stats.student_dashboard_stats, name='student-dashboard-stats'),
+
+    # Dashboard Chart Data Endpoints (Legacy/Specific)
     path('api/charts/performance-trend/', stats.get_performance_trend, name='performance-trend'),
     path('api/charts/attendance-rate/', stats.get_attendance_rate, name='attendance-rate'),
     path('api/charts/category-distribution/', stats.get_category_distribution, name='category-distribution'),

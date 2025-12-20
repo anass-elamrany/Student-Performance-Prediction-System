@@ -42,6 +42,14 @@ export const endpoints = {
       teacherDelete: (id) => `${API_BASE_URL}/teacher/notes/delete/${id}/`,
       teacherImport: `${API_BASE_URL}/teacher/notes/import/`,
   },
+  
+  // Dashboard Stats (Unified)
+  dashboard: {
+    admin: `${API_BASE_URL}/dashboard/admin/`,
+    teacher: `${API_BASE_URL}/dashboard/teacher/`,
+    student: `${API_BASE_URL}/dashboard/student/`,
+  },
+
   stats: {
     performanceTrend: `${API_BASE_URL}/charts/performance-trend/`,
     attendanceRate: `${API_BASE_URL}/charts/attendance-rate/`,
@@ -61,6 +69,9 @@ export const endpoints = {
     gradeDistribution: `${API_BASE_URL}/teacher/grade-distribution/`,
     studentsByMatiere: `${API_BASE_URL}/teacher/students-by-matiere/`,
     notes: `${API_BASE_URL}/teacher/notes/`,
+  },
+  studentDashboard: {
+      dashboard: `${API_BASE_URL}/student/dashboard/`,
   }
 };
 

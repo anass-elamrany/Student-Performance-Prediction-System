@@ -195,7 +195,9 @@ const TeacherAnalysis = () => {
               <Table>
                 <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
                   <TableRow>
-                    <TableCell fontWeight="bold">Étudiant</TableCell>
+                    <TableCell 
+// @ts-ignore
+                    fontWeight="bold">Étudiant</TableCell>
                     <TableCell>Performance Matière</TableCell>
                     <TableCell align="center">Note Matière</TableCell>
                     <TableCell align="center" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>

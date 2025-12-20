@@ -1,272 +1,254 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Card, 
-  CardContent,
-  Divider,
-  CircularProgress,
-  Snackbar,
-  Alert,
-  useTheme
+  Box, Typography, Grid, Card, CardContent, Divider, CircularProgress, 
+  Snackbar, Alert, useTheme, Avatar, LinearProgress
 } from '@mui/material';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import SchoolIcon from '@mui/icons-material/School';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import WarningIcon from '@mui/icons-material/Warning';
+import {
+  School as SchoolIcon,
+  TrendingUp as TrendingUpIcon,
+  Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
+  Groups as GroupsIcon,
+  Timeline as TimelineIcon,
+  Speed as SpeedIcon
+} from '@mui/icons-material';
 
 import { api, endpoints } from '../../services/api';
 
-const AdminDashboard = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const theme = useTheme();
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-  // State for statistics
-  const [numStudents, setNumStudents] = useState(0);
-  const [numTeachers, setNumTeachers] = useState(0);
-  const [numMatieres, setNumMatieres] = useState(0);
-  const [numClasses, setNumClasses] = useState(0);
-
-  // State for charts
-  const [subjectsPerformance, setSubjectsPerformance] = useState([]);
-
-  // Fetch data from backend
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-  
-    try {
-      // Fetch number of students
-      const studentsResponse = await api.get(endpoints.students.list);
-  
-      if (!studentsResponse.ok) {
-        const errorData = await studentsResponse.json();
-        throw new Error(errorData.error || 'Failed to fetch students data');
-      }
-  
-      const studentsData = await studentsResponse.json();
-      setNumStudents(studentsData.length);
-  
-      // Fetch number of teachers
-      const teachersResponse = await api.get(endpoints.teachers.list);
-  
-      if (!teachersResponse.ok) {
-        const errorData = await teachersResponse.json();
-        throw new Error(errorData.error || 'Failed to fetch teachers data');
-      }
-  
-      const teachersData = await teachersResponse.json();
-      setNumTeachers(teachersData.length);
-  
-      // Fetch number of matières
-      const matieresResponse = await api.get(endpoints.subjects.list);
-  
-      if (!matieresResponse.ok) {
-        const errorData = await matieresResponse.json();
-        throw new Error(errorData.error || 'Failed to fetch matières data');
-      }
-  
-      const matieresData = await matieresResponse.json();
-      setNumMatieres(matieresData.length);
-  
-      // Fetch number of classes
-      const classesResponse = await api.get(endpoints.classes.list);
-  
-      if (!classesResponse.ok) {
-        const errorData = await classesResponse.json();
-        throw new Error(errorData.error || 'Failed to fetch classes data');
-      }
-  
-      const classesData = await classesResponse.json();
-      setNumClasses(classesData.length);
-  
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err.message);
-    }
-  };
-
-  // Fetch chart data
-  const fetchChartData = async () => {
-    try {
-      // Fetch subject success rate
-      const subjectsResponse = await api.get(endpoints.stats.subjectSuccessRate);
-      const subjectsData = await subjectsResponse.json();
-      setSubjectsPerformance(subjectsData);
-
-    } catch (error) {
-      console.error('Error fetching chart data:', error);
-      setError('Impossible de charger les données des graphiques');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch data on component mount
-  useEffect(() => {
-    fetchData();
-    fetchChartData();
-  }, []);
-
-  // Summary stats
-  const summaryStats = [
-    { 
-      title: 'Nombre d\'étudiants', 
-      value: numStudents, 
-      icon: <AssessmentIcon fontSize="large" />, 
-      color: theme.palette.primary.main,
-      description: 'Total des étudiants inscrits'
-    },
-    { 
-      title: 'Nombre d\'enseignants', 
-      value: numTeachers, 
-      icon: <SchoolIcon fontSize="large" />, 
-      color: theme.palette.success.main || '#4caf50',
-      description: 'Total des enseignants'
-    },
-    { 
-      title: 'Nombre de matières', 
-      value: numMatieres, 
-      icon: <TrendingUpIcon fontSize="large" />, 
-      color: theme.palette.info.main || '#2196f3',
-      description: 'Matières disponibles'
-    },
-    { 
-      title: 'Nombre de classes', 
-      value: numClasses, 
-      icon: <WarningIcon fontSize="large" />, 
-      color: theme.palette.warning.main || '#ff9800',
-      description: 'Classes existantes'
-    }
-  ];
-
+const StatCard = ({ title, value, icon, color, subtitle }) => {
   return (
-    <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-          Tableau de Bord Administrateur
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Vue d'ensemble des statistiques académiques
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
-
-      {/* Loading indicator */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
-
-      {/* Error message */}
-      {error && (
-        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
-            {error}
-          </Alert>
-        </Snackbar>
-      )}
-
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {summaryStats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card 
-              elevation={2}
-              sx={{ 
-                height: 140, 
-                borderLeft: `4px solid ${stat.color}`,
-                transition: "transform 0.3s",
-                "&:hover": {
-                  transform: "translateY(-5px)",
-                  boxShadow: theme.shadows[8]
-                }
-              }}
+    <Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        <Box display="flex" alignItems="center" gap={2}>
+            <Avatar 
+                variant="square" 
+                sx={{ 
+                    bgcolor: `${color}15`, 
+                    color: color,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 0
+                }}
             >
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">
-                  {stat.title}
+                {React.cloneElement(icon, { sx: { fontSize: 24 } })}
+            </Avatar>
+            <Box overflow="hidden">
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {title}
                 </Typography>
-                <Typography variant="h3" sx={{ mt: 2, fontWeight: "bold", color: stat.color }}>
-                  {stat.value}
+                <Typography variant="h5" fontWeight="700" noWrap title={value} sx={{ lineHeight: 1.2, my: 0.5 }}>
+                    {value}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  {stat.description}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Main Content */}
-      <Grid container spacing={4}>
-        {/* Subject Success Rate */}
-        <Grid item xs={12}>
-          <Card elevation={2} sx={{ p: 1 }}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <AssessmentIcon sx={{ mr: 1, color: "primary.main" }} />
-                <Typography variant="h6" fontWeight="medium">
-                  Taux de Réussite par Matière
-                </Typography>
-              </Box>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ height: 320 }}>
-                {subjectsPerformance.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={subjectsPerformance}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                      <XAxis 
-                        dataKey="subject" 
-                        tick={{ fill: theme.palette.text.secondary }} 
-                        stroke={theme.palette.divider}
-                      />
-                      <YAxis 
-                        domain={[0, 20]} 
-                        tick={{ fill: theme.palette.text.secondary }} 
-                        stroke={theme.palette.divider}
-                      />
-                      <Tooltip
-                        contentStyle={{ 
-                          backgroundColor: theme.palette.background.paper,
-                          borderColor: theme.palette.divider,
-                          color: theme.palette.text.primary
-                        }}
-                      />
-                      <Bar dataKey="success_rate" fill={theme.palette.primary.main} name="Moyenne" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    height: '100%',
-                    color: theme.palette.text.secondary
-                  }}>
-                    Aucune donnée disponible
-                  </Box>
+                {subtitle && (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }} noWrap>
+                        {subtitle}
+                    </Typography>
                 )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+            </Box>
+        </Box>
+      </CardContent>
+    </Card>
   );
+};
+
+const AdminDashboard = () => {
+    const theme = useTheme();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [stats, setStats] = useState(null); // Unified stats
+    const [subjectStats, setSubjectStats] = useState([]); // Separate endpoint
+
+    useEffect(() => {
+        const fetchAllData = async () => {
+            setLoading(true);
+            try {
+                // 1. Fetch Unified Dashboard Stats
+                const dashboardRes = await api.get(endpoints.dashboard.admin);
+                const dashboardData = await dashboardRes.json();
+
+                if (dashboardData.success) {
+                    setStats(dashboardData);
+                } else {
+                    throw new Error(dashboardData.message || "Erreur chargement dashboard");
+                }
+
+                // 2. Fetch Subject Success Rate (Existing endpoint)
+                const subjectsRes = await api.get(endpoints.stats.subjectSuccessRate);
+                const subjectsData = await subjectsRes.json();
+                setSubjectStats(subjectsData);
+
+            } catch (err) {
+                console.error("Dashboard Error:", err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAllData();
+    }, []);
+
+    if (loading) return <Box p={3} display="flex" justifyContent="center"><CircularProgress /></Box>;
+    if (error) return <Box p={3}><Alert severity="error">{error}</Alert></Box>;
+
+    return (
+        <Box>
+            <Box mb={4}>
+                <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
+                    Tableau de Bord Admin
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                    Vue d'ensemble des performances académiques et de l'assiduité.
+                </Typography>
+                <Divider sx={{ mt: 2 }} />
+            </Box>
+
+            {/* --- 4 INFO CARDS --- */}
+            <Grid container spacing={3} mb={4}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard 
+                        title="Total Étudiants"
+                        value={stats?.cards?.total_students || 0}
+                        icon={<GroupsIcon />}
+                        color={theme.palette.primary.main}
+                        subtitle="Inscrits cette année"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard 
+                        title="Moyenne Globale"
+                        value={stats?.cards?.global_avg?.toFixed(2) || "N/A"}
+                        icon={<SpeedIcon />}
+                        color={theme.palette.info.main}
+                        subtitle="Sur toutes les matières"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard 
+                        title="Taux de Présence"
+                        value={`${stats?.cards?.attendance_rate}%`}
+                        icon={<CheckCircleIcon />}
+                        color={theme.palette.success.main}
+                        subtitle="Moyenne générale"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard 
+                        title="Étudiants à Risque"
+                        value={stats?.cards?.at_risk_count || 0}
+                        icon={<WarningIcon />}
+                        color={theme.palette.error.main}
+                        subtitle="Nécessitent attention"
+                    />
+                </Grid>
+            </Grid>
+
+            {/* --- 4 CHARTS (GRID 2x2) --- */}
+            <Grid container spacing={3}>
+                
+                {/* Chart 1: Global Performance Distribution (Pie) */}
+                <Grid item xs={12} md={6}>
+                    <Card elevation={2} sx={{ height: 400 }}>
+                        <CardContent>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                Distribution des Performances IA
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                    <Pie
+                                        data={stats?.charts?.performance_distribution || []}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                        label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                    >
+                                        {stats?.charts?.performance_distribution?.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Chart 2: Attendance Trends (Area) */}
+                <Grid item xs={12} md={6}>
+                    <Card elevation={2} sx={{ height: 400 }}>
+                        <CardContent>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                Tendance de l'Assiduité (Mensuelle)
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <AreaChart data={stats?.charts?.attendance_trend || []}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis domain={[0, 100]} />
+                                    <Tooltip />
+                                    <Area type="monotone" dataKey="rate" stroke={theme.palette.success.main} fill={theme.palette.success.light} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Chart 3: Subject Success Rate (Bar - Existing) */}
+                <Grid item xs={12} md={6}>
+                    <Card elevation={2} sx={{ height: 400 }}>
+                        <CardContent>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                Taux de Réussite par Matière
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={subjectStats}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="subject" tick={false} /> {/* Hide labels if too long */}
+                                    <YAxis domain={[0, 20]} />
+                                    <Tooltip />
+                                    <Bar dataKey="success_rate" fill={theme.palette.primary.main} name="Note Moy." />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Chart 4: Teacher Workload (Bar - Horizontal) */}
+                 <Grid item xs={12} md={6}>
+                    <Card elevation={2} sx={{ height: 400 }}>
+                        <CardContent>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                Charge Enseignant (Top 5)
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart layout="vertical" data={stats?.charts?.teacher_workload || []}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" />
+                                    <YAxis dataKey="name" type="category" width={100} />
+                                    <Tooltip />
+                                    <Bar dataKey="students" fill={theme.palette.secondary.main} name="Nb Étudiants" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+            </Grid>
+        </Box>
+    );
 };
 
 export default AdminDashboard;
