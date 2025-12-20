@@ -1,6 +1,10 @@
 import React from 'react';
 import { Box, Container, Typography, Button, Grid, useTheme } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import adminImage from '../assets/images/admin.jpg';
+import teacherImage from '../assets/images/teacher.png';
+import studentImage from '../assets/images/student-learning.png';
 
 const RoleSection = ({ title, description, image, imagePosition, buttonText, onButtonClick }) => {
   const theme = useTheme();
@@ -56,33 +60,35 @@ const RoleSection = ({ title, description, image, imagePosition, buttonText, onB
 };
 
 const RoleShowcase = () => {
+  const navigate = useNavigate();
+
   const roles = [
     {
-      title: "Administrateurs : Gestion & Alertes",
-      description: "Supervisez le système global. Gérez les données des étudiants, surveillez les indicateurs de performance à l'échelle de l'établissement et configurez les paramètres des algorithmes de prédiction (Arbres de décision, SVM).",
-      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80", // Dashboard/Analytics
-      buttonText: "Accéder au tableau de bord",
+      title: "Administrateurs",
+      description: "Vision globale de l'établissement. Suivez les indicateurs clés et gérez les données pour piloter la réussite.",
+      image: adminImage,
+      buttonText: "Gérer la plateforme",
       imagePosition: "left",
       color: "primary.main",
-      onButtonClick: () => {}
+      onButtonClick: () => navigate('/login')
     },
     {
-      title: "Enseignants : Intervention Précoce",
-      description: "Identifiez rapidement les étudiants à risque grâce au système d'alerte. Visualisez les prédictions de performance pour chaque cours et recevez des recommandations pour adapter votre enseignement et proposer du soutien ciblé.",
-      image: "https://images.unsplash.com/photo-1577896336189-d464cb3f3458?auto=format&fit=crop&w=800&q=80", // Teacher/Classroom
-      buttonText: "Suivre mes étudiants",
+      title: "Enseignants",
+      description: "Détectez les difficultés à temps. Recevez des alertes sur les étudiants à risque et adaptez votre soutien.",
+      image: teacherImage,
+      buttonText: "Suivre mes classes",
       imagePosition: "right",
       color: "secondary.main",
-      onButtonClick: () => {}
+      onButtonClick: () => navigate('/login')
     },
     {
-      title: "Étudiants : Orientation & Réussite",
-      description: "Consultez vos prédictions de réussite et découvrez les parcours recommandés pour vous. L'IA analyse vos résultats passés pour vous suggérer les modules les mieux adaptés à votre profil et maximiser vos chances de succès.",
-      image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80", // Student/Library
-      buttonText: "Voir mon profil",
+      title: "Étudiants",
+      description: "Votre avenir en main. visualisez vos progrès et recevez des conseils personnalisés pour réussir.",
+      image: studentImage,
+      buttonText: "Voir mes prédictions",
       imagePosition: "left",
       color: "primary.main",
-      onButtonClick: () => {}
+      onButtonClick: () => navigate('/login')
     }
   ];
 

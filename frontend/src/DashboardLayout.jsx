@@ -36,6 +36,7 @@ const DashboardLayout = ({ role }) => {
   );
 
   const theme = React.useMemo(
+    // @ts-ignore
     () => createTheme(getDesignTokens(mode, role)), 
     [mode, role]
   );

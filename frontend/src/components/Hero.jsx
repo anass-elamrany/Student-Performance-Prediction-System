@@ -68,7 +68,7 @@ const Hero = () => {
               textShadow: '0 2px 10px rgba(0,0,0,0.3)' // Stronger shadow
             }}
           >
-            Classification et <br/>
+            Anticipez la Réussite <br/>
             <Box component="span" sx={{ 
               color: '#ffffff', // Keep white or use a very light secondary tint
               position: 'relative',
@@ -87,8 +87,8 @@ const Hero = () => {
                 transform: 'rotate(-2deg)'
               }
             }}>
-              Prédiction
-            </Box> des Performances
+              avec l'IA
+            </Box>
           </Typography>
 
           <Typography 
@@ -105,7 +105,7 @@ const Hero = () => {
               textShadow: '0 1px 4px rgba(0,0,0,0.5)'
             }}
           >
-            Une plateforme intelligente pour l'Université Mohammed Premier, utilisant l'IA pour orienter les décisions académiques, anticiper les besoins et personnaliser les parcours de réussite.
+            Une plateforme simple pour prédire vos résultats, orienter vos choix et maximiser vos chances de succès à l'Universite.
           </Typography>
 
           <Stack 
