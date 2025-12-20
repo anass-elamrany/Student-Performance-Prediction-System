@@ -193,34 +193,67 @@ const TeacherAnalysis = () => {
           <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
             <TableContainer component={Paper}>
               <Table>
-                <TableHead>
+                <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
                   <TableRow>
-                    <TableCell>Étudiant</TableCell>
-                    <TableCell>Niveau de performance</TableCell>
-                    <TableCell>Note moyenne</TableCell>
+                    <TableCell fontWeight="bold">Étudiant</TableCell>
+                    <TableCell>Performance Matière</TableCell>
+                    <TableCell align="center">Note Matière</TableCell>
+                    <TableCell align="center" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
+                        Prédiction IA (Générale)
+                    </TableCell>
+                    <TableCell align="center">Statut Global IA</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {classifications.map((classification) => (
-                    <TableRow key={classification.student_id}>
-                      <TableCell>{classification.student_name}</TableCell>
+                    <TableRow key={classification.student_id} hover>
+                      <TableCell sx={{ fontWeight: 500 }}>{classification.student_name}</TableCell>
                       <TableCell>
                         <Chip 
                           icon={<CategoryIcon />}
                           label={classification.performance_category} 
+                          size="small"
                           sx={{ 
                             backgroundColor: getCategoryColor(classification.performance_category),
                             color: 'white'
                           }} 
                         />
                       </TableCell>
-                      <TableCell>{classification.average_score}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>{classification.average_score}</TableCell>
+                      <TableCell align="center">
+                          {classification.ai_prediction !== "-" ? (
+                              <Chip 
+                                label={classification.ai_prediction} 
+                                variant="outlined" 
+                                color="primary" 
+                                size="small" 
+                                sx={{ fontWeight: 'bold' }}
+                              />
+                          ) : (
+                              <Typography variant="caption" color="text.disabled">N/A</Typography>
+                          )}
+                      </TableCell>
+                      <TableCell align="center">
+                          {classification.ai_category && classification.ai_category !== "Non Analysé" ? (
+                             <Chip
+                                label={classification.ai_category}
+                                size="small"
+                                sx={{ 
+                                    backgroundColor: getCategoryColor(classification.ai_category),
+                                    color: 'white',
+                                    fontWeight: 500
+                                }}
+                             />
+                          ) : (
+                              <Typography variant="caption" color="text.disabled">-</Typography>
+                          )}
+                      </TableCell>
                     </TableRow>
                   ))}
                   {classifications.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={3} align="center">
-                        Aucune donnée de classification disponible
+                      <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                        Aucune donnée disponible. Sélectionnez une matière.
                       </TableCell>
                     </TableRow>
                   )}

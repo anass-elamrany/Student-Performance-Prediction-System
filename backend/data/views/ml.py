@@ -10,19 +10,16 @@ from django.utils import timezone
 import pandas as pd
 import random
 
-from ..models import Utilisateur, Performance, Alerte, Note
+from ..models import Utilisateur, Performance, Alerte, Note, Recommandation
 from ..ml_utils import predict_student, prepare_student_data
 
 logger = logging.getLogger(__name__)
 
 def _update_class_predictions(class_id):
     """
-    Helper function to run predictions for a class and update Performance/Alerts tables.
+    Helper function to run predictions for a class and update Performance/Alerts/Recommendations tables.
     """
     students = Utilisateur.objects.filter(classe_id=class_id, user_type='student')
-    
-    # Pre-fetch existing performances to avoid unnecessary DB writes if needed, 
-    # but for now we'll just update_or_create to ensure freshness.
     
     count_updated = 0
     
@@ -38,7 +35,6 @@ def _update_class_predictions(class_id):
             continue
             
         # Map category index to label
-        # 0=À risque, 1=Moyenne performance, 2=Bon performeur
         categories = ['À risque', 'Moyenne performance', 'Bon performeur']
         category_label = categories[category_idx] if 0 <= category_idx < len(categories) else 'Inconnu'
         
@@ -52,21 +48,42 @@ def _update_class_predictions(class_id):
             }
         )
         
-        # Handle Alerts
-        # If 'À risque', ensure alert exists. If not, maybe remove old alert? 
-        # For simplicity: Create if risk, Delete if no risk (to keep it clean)
+        # Handle Alerts & Recommendations
+        # Clear old ones to avoid duplicates/stale data
+        Alerte.objects.filter(etudiant=student).delete()
+        Recommandation.objects.filter(etudiant=student).delete()
         
+        # 1. ALERTS
         if category_label == 'À risque':
-            Alerte.objects.get_or_create(
+            Alerte.objects.create(
                 etudiant=student,
-                defaults={
-                    'message': f"Attention: L'étudiant {student.first_name} {student.last_name} est classé 'À risque' avec une moyenne prédite de {grade_pred}/20."
-                }
+                message=f"Attention: Vous êtes identifié 'À risque' avec une moyenne prédite de {grade_pred}/20. Veuillez consulter vos recommandations."
             )
-        else:
-            # Optional: Remove alert if student is no longer at risk?
-            # Alerte.objects.filter(etudiant=student).delete()
-            pass
+        
+        # 2. RECOMMENDATIONS
+        recs_to_create = []
+        if category_label == 'À risque':
+            recs_to_create = [
+                "Renforcer les bases en mathématiques et algorithmique.",
+                "Participer aux séances de tutorat hebdomadaires."
+            ]
+        elif category_label == 'Moyenne performance':
+            recs_to_create = [
+                "Approfondir les projets pratiques pour consolider les acquis.",
+                "Consulter les ressources complémentaires en ligne."
+            ]
+        else: # Bon performeur
+            recs_to_create = [
+                "Explorer des sujets avancés (IA, Big Data).",
+                "Participer à des hackathons ou projets de recherche."
+            ]
+            
+        for rec_msg in recs_to_create:
+            Recommandation.objects.create(
+                etudiant=student,
+                contenu=rec_msg,
+                date_creation=timezone.now()
+            )
             
         count_updated += 1
         
@@ -189,9 +206,6 @@ def get_class_alerts(request):
         if not class_id:
             return Response({'error': 'class_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Ensure data is up to date
-        _update_class_predictions(class_id)
-
         # Fetch alerts joined with Performance to get risk category
         alerts = Alerte.objects.filter(etudiant__classe_id=class_id).select_related('etudiant', 'etudiant__performance')
         
@@ -204,22 +218,17 @@ def get_class_alerts(request):
             except Performance.DoesNotExist:
                 perf_cat = 'Inconnu'
 
-            # Mock recommendations based on risk
+            # Mock recommendations based on risk (Frontend Expects this structure in alerts too)
             recommendations = []
             if perf_cat == 'À risque':
                 recommendations = [
                     {'subject': 'Soutien Général', 'resources': [{'name': 'Guide méthodologique', 'link': '#'}]},
-                    {'subject': 'Planification', 'resources': [{'name': 'Outils de gestion du temps', 'link': '#'}]}
-                ]
-            else:
-                 recommendations = [
-                    {'subject': 'Approfondissement', 'resources': [{'name': 'Articles avancés', 'link': '#'}]}
                 ]
 
             alerts_data.append({
                 'student_id': alert.etudiant.id,
                 'student_name': f"{alert.etudiant.first_name} {alert.etudiant.last_name}",
-                'alert_message': alert.message, # Map to frontend expectation
+                'alert_message': alert.message, 
                 'performance_category': perf_cat, 
                 'date': alert.date_creation,
                 'course_recommendations': recommendations
@@ -239,9 +248,6 @@ def get_class_recommendations(request):
         if not class_id:
              return Response({'error': 'class_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Ensure data is up to date
-        _update_class_predictions(class_id)
-        
         # Get students with their performance
         students = Utilisateur.objects.filter(classe_id=class_id, user_type='student').select_related('performance')
         
@@ -251,37 +257,31 @@ def get_class_recommendations(request):
             try:
                 perf = student.performance
             except Performance.DoesNotExist:
-                continue # Skip if not classified yet
-                
-            recs = []
-            orientation = {}
+                continue 
             
+            # Read real recommendations from DB
+            db_recs = Recommandation.objects.filter(etudiant=student)
+            
+            recs_list = []
+            for r in db_recs:
+                 recs_list.append({'priority': 'medium', 'message': r.contenu})
+                 
+            # Fallback if specific structure needed for frontend, or map DB recs
+            # If DB is empty (shouldn't be if classified), generate fallback?
+            # Keeping orientation logic for display
+            orientation = {}
             if perf.categorie_risque == 'À risque':
-                recs = [
-                    {'priority': 'high', 'message': "Renforcer les bases en mathématiques et algorithmique.", 'resources': [{'name': 'Cours de mise à niveau', 'link': '#'}]},
-                    {'priority': 'high', 'message': "Participer aux séances de tutorat hebdomadaires."}
-                ]
                 orientation = {'orientation': 'Soutien Intensif', 'description': 'Programme de remédiation nécessaire S3.'}
-                
             elif perf.categorie_risque == 'Moyenne performance':
-                recs = [
-                    {'priority': 'medium', 'message': "Approfondir les projets pratiques pour consolider les acquis."},
-                    {'priority': 'low', 'message': "Consulter les ressources complémentaires en ligne."}
-                ]
-                orientation = {'orientation': 'Standard', 'description': 'Poursuite du cursus standard avec vigilance.'}
-                
-            else: # Bon performeur
-                recs = [
-                    {'priority': 'low', 'message': "Explorer des sujets avancés (IA, Big Data)."},
-                    {'priority': 'medium', 'message': "Participer à des hackathons ou projets de recherche."}
-                ]
+                orientation = {'orientation': 'Standard', 'description': 'Poursuite du cursus standard.'}
+            else: 
                 orientation = {'orientation': 'Excellence', 'description': 'Orientation vers des spécialisations avancées.'}
             
             recommendations_data.append({
                 'student_id': student.id,
                 'student_name': f"{student.first_name} {student.last_name}",
                 'performance_category': perf.categorie_risque,
-                'recommendations': recs,
+                'recommendations': recs_list,
                 'academic_orientation': orientation
             })
             
@@ -299,9 +299,6 @@ def class_dashboard(request):
         class_id = request.data.get('class_id')
         if not class_id:
             return Response({'error': 'class_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Ensure data is up to date
-        _update_class_predictions(class_id)
         
         perfs = Performance.objects.filter(etudiant__classe_id=class_id).select_related('etudiant')
         

@@ -27,6 +27,8 @@ import TeacherNotes from "./pages/teacher/Notes ";
 import TeacherAnalysis from "./pages/teacher/Analyse";
 import Profile from "./pages/teacher/Profile";
 import PredictNotes from "./pages/admin/PredictNotes";
+import GlobalAIHub from "./pages/admin/GlobalAIHub"; // Import New Page
+
 // Dashboard Pages - Student
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentRecommendations from "./pages/student/Recommendations";
@@ -59,6 +61,7 @@ const router = createBrowserRouter([
       { path: "Recommendations", element: <AdminRecommendations/> },
       { path: "AdminNotes", element: <AdminNotes/> },
       { path: "PredictNotes", element: <PredictNotes/> },
+      { path: "AIHub", element: <GlobalAIHub/> }, // Add Route
     ],
   },
 

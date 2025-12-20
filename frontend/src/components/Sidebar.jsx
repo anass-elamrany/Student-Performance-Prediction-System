@@ -26,6 +26,7 @@ import RecommendOutlinedIcon from "@mui/icons-material/RecommendOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import AnalyticsOutlinedIcon from "@mui/icons-material/AnalyticsOutlined";
 import ClassOutlinedIcon from "@mui/icons-material/ClassOutlined";
+import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import { useNavigate } from "react-router-dom";
 import { grey, blue } from "@mui/material/colors";
 import { getCurrentUser, getUserRole } from "../utils/auth"; 
@@ -89,13 +90,18 @@ const adminMenuItems = {
       path: "/admin/dashboard"
     },
     {
+      text: "EduMind AI",
+      icon: <PsychologyOutlinedIcon />,
+      path: "/admin/AIHub"
+    },
+    {
       text: "Classes", 
-      icon: <ClassOutlinedIcon />,  // More specific for classes
+      icon: <ClassOutlinedIcon />,
       path: "/admin/Classes"
     },
     {
       text: "Enseignants",
-      icon: <PersonOutlineOutlinedIcon />,  // More appropriate for teachers
+      icon: <PersonOutlineOutlinedIcon />,
       path: "/admin/Enseignants" 
     },
     {
@@ -110,28 +116,8 @@ const adminMenuItems = {
     },
     {
       text: "Notes",
-      icon: <GradeOutlinedIcon />,  // More specific for grades
+      icon: <GradeOutlinedIcon />,
       path: "/admin/AdminNotes"
-    },
-    {
-      text: "Classement", 
-      icon: <LeaderboardOutlinedIcon />,
-      path: "/admin/Classment"
-    },
-    {
-      text: "Alertes",
-      icon: <NotificationsActiveOutlinedIcon />,
-      path: "/admin/Alerts"
-    },
-    {
-      text: "Recommandations",
-      icon: <RecommendOutlinedIcon />,  // More specific for recommendations
-      path: "/admin/Recommendations"
-    },
-    {
-      text: "Prédiction des Notes",
-      icon: <AnalyticsOutlinedIcon />,  // More appropriate for predictions
-      path: "/admin/PredictNotes"
     }
   ],
 };
