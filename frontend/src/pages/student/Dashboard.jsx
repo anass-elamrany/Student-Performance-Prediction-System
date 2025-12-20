@@ -5,8 +5,7 @@ import {
 } from "@mui/material";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Radar, RadarChart, PolarGrid, 
-  PolarAngleAxis, PolarRadiusAxis
+  PieChart, Pie, Cell, LineChart, Line, Legend
 } from "recharts";
 import { 
   School, TrendingUp, Warning, CheckCircle, SentimentSatisfiedAlt, 
@@ -177,15 +176,19 @@ const StudentDashboard = () => {
                                 Comparatif: Moi vs Classe
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
-                             <ResponsiveContainer width="100%" height={300}>
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={newData?.charts?.radar_data || []}>
-                                    <PolarGrid />
-                                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
-                                    <PolarRadiusAxis angle={30} domain={[0, 20]} />
-                                    <Radar name="Moi" dataKey="Me" stroke={theme.palette.primary.main} fill={theme.palette.primary.main} fillOpacity={0.6} />
-                                    <Radar name="Classe" dataKey="Class" stroke={theme.palette.secondary.main} fill={theme.palette.secondary.main} fillOpacity={0.1} />
-                                    <Tooltip />
-                                </RadarChart>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={newData?.charts?.radar_data || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="subject" tick={{ fontSize: 12 }} interval={0} />
+                                    <YAxis domain={[0, 20]} />
+                                    <Tooltip 
+                                        formatter={(value, name) => [value, name === 'Me' ? 'Ma Note' : 'Moyenne Classe']}
+                                        contentStyle={{ borderRadius: 8 }}
+                                    />
+                                    <Legend formatter={(value) => value === 'Me' ? 'Ma Note' : 'Moyenne Classe'} />
+                                    <Bar dataKey="Me" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="Class" fill={theme.palette.secondary.main} radius={[4, 4, 0, 0]} />
+                                </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
                     </Card>
