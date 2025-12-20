@@ -87,7 +87,7 @@ const RoleShowcase = () => {
   ];
 
   return (
-    <Box sx={{ py: 12, bgcolor: 'background.default' }}>
+    <Box sx={{ py: 12, bgcolor: 'background.default' }} id="roles">
       <Container maxWidth="lg">
         <Box sx={{ textAlign: "center", mb: 12 }}>
           <Typography variant="subtitle1" color="secondary" sx={{ fontWeight: 700, letterSpacing: 1.5, mb: 2 }}>

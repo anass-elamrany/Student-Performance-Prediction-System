@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Grid, Typography, Link, IconButton, Divider, TextField, Button } from '@mui/material';
+import { Box, Container, Grid, Typography, Link, IconButton, Divider, TextField, Button, useTheme } from '@mui/material';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
@@ -7,11 +7,13 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import SchoolIcon from '@mui/icons-material/School';
 
 const Footer = () => {
+  const theme = useTheme();
+
   return (
     <Box
       component="footer"
       sx={{
-        bgcolor: '#05192D', // DataCamp Navy
+        bgcolor: theme.palette.primary.main, // Dynamic theme color
         color: 'white',
         pt: 10,
         pb: 4,
@@ -21,7 +23,7 @@ const Footer = () => {
         <Grid container spacing={8}>
           <Grid item xs={12} md={4}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <SchoolIcon sx={{ mr: 1, fontSize: 32, color: '#9C27B0' }} />
+              <SchoolIcon sx={{ mr: 1, fontSize: 32, color: theme.palette.secondary.main }} />
               <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
                 EduPredict
               </Typography>
@@ -30,22 +32,28 @@ const Footer = () => {
               Notre mission est de démocratiser l'excellence éducative grâce à l'intelligence artificielle. Nous aidons les établissements à mieux comprendre et soutenir leurs étudiants.
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              {[<FacebookIcon />, <TwitterIcon />, <LinkedInIcon />, <InstagramIcon />].map((icon, index) => (
-                <IconButton 
-                  key={index} 
-                  sx={{ 
-                    color: 'white', 
-                    '&:hover': { color: '#03EF62', bgcolor: 'rgba(255,255,255,0.1)' } 
-                  }}
-                >
-                  {icon}
-                </IconButton>
-              ))}
+              <IconButton sx={{ color: 'white', '&:hover': { color: theme.palette.secondary.main, bgcolor: 'rgba(255,255,255,0.1)' } }}>
+                 <FacebookIcon />
+              </IconButton>
+              <IconButton sx={{ color: 'white', '&:hover': { color: theme.palette.secondary.main, bgcolor: 'rgba(255,255,255,0.1)' } }}>
+                 <TwitterIcon />
+              </IconButton>
+              <IconButton 
+                  component="a" 
+                  href="https://www.linkedin.com/in/anass-elamrany" 
+                  target="_blank"
+                  sx={{ color: 'white', '&:hover': { color: theme.palette.secondary.main, bgcolor: 'rgba(255,255,255,0.1)' } }}
+              >
+                 <LinkedInIcon />
+              </IconButton>
+              <IconButton sx={{ color: 'white', '&:hover': { color: theme.palette.secondary.main, bgcolor: 'rgba(255,255,255,0.1)' } }}>
+                 <InstagramIcon />
+              </IconButton>
             </Box>
           </Grid>
 
           <Grid item xs={6} md={2}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3, color: '#9C27B0' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3, color: theme.palette.secondary.main }}>
               PRODUIT
             </Typography>
             {['Fonctionnalités', 'Pour les Profs', 'Pour les Étudiants', 'Sécurité', 'Tarifs'].map((item) => (
@@ -58,7 +66,7 @@ const Footer = () => {
           </Grid>
 
           <Grid item xs={6} md={2}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3, color: '#9C27B0' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3, color: theme.palette.secondary.main }}>
               RESSOURCES
             </Typography>
             {['Blog', 'Documentation', 'Tutoriels', 'Support', 'Contact'].map((item) => (
@@ -71,7 +79,7 @@ const Footer = () => {
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3, color: '#9C27B0' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3, color: theme.palette.secondary.main }}>
               NEWSLETTER
             </Typography>
             <Typography variant="body2" sx={{ color: '#b3b3b3', mb: 2 }}>

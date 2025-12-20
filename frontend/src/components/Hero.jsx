@@ -20,6 +20,7 @@ const Hero = () => {
 
   return (
     <Box 
+      id="hero"
       sx={{ 
         position: 'relative',
         backgroundImage: `url(${heroBg})`,
