@@ -5,7 +5,6 @@ import {
   Grid, 
   Card, 
   CardContent,
-  CardHeader,
   Divider,
   CircularProgress,
   Snackbar,
@@ -26,6 +25,8 @@ import SchoolIcon from '@mui/icons-material/School';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
 
+import { api, endpoints } from '../../services/api';
+
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,15 +46,9 @@ const AdminDashboard = () => {
     setLoading(true);
     setError(null);
   
-    const token = localStorage.getItem('accessToken');
-  
     try {
       // Fetch number of students
-      const studentsResponse = await fetch('/api/students/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const studentsResponse = await api.get(endpoints.students.list);
   
       if (!studentsResponse.ok) {
         const errorData = await studentsResponse.json();
@@ -64,11 +59,7 @@ const AdminDashboard = () => {
       setNumStudents(studentsData.length);
   
       // Fetch number of teachers
-      const teachersResponse = await fetch('/api/enseignants/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const teachersResponse = await api.get(endpoints.teachers.list);
   
       if (!teachersResponse.ok) {
         const errorData = await teachersResponse.json();
@@ -79,11 +70,7 @@ const AdminDashboard = () => {
       setNumTeachers(teachersData.length);
   
       // Fetch number of matières
-      const matieresResponse = await fetch('/api/matieres/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const matieresResponse = await api.get(endpoints.subjects.list);
   
       if (!matieresResponse.ok) {
         const errorData = await matieresResponse.json();
@@ -94,11 +81,7 @@ const AdminDashboard = () => {
       setNumMatieres(matieresData.length);
   
       // Fetch number of classes
-      const classesResponse = await fetch('/api/classes/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const classesResponse = await api.get(endpoints.classes.list);
   
       if (!classesResponse.ok) {
         const errorData = await classesResponse.json();
@@ -116,13 +99,9 @@ const AdminDashboard = () => {
 
   // Fetch chart data
   const fetchChartData = async () => {
-    const token = localStorage.getItem('accessToken');
-    
     try {
       // Fetch subject success rate
-      const subjectsResponse = await fetch('/api/charts/subject-success-rate/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const subjectsResponse = await api.get(endpoints.stats.subjectSuccessRate);
       const subjectsData = await subjectsResponse.json();
       setSubjectsPerformance(subjectsData);
 

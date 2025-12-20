@@ -1,4 +1,0 @@
-=== Regression Metrics ===
-=== Linear Regression Metrics ===
-S3 - RMSE: 0.6001, R2: 0.6811
-S4 - RMSE: 0.5532, R2: 0.3497

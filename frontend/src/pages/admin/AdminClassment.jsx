@@ -34,6 +34,7 @@ import {
   School as SchoolIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
+import { api, endpoints } from '../../services/api';
 
 const STATUS_CONFIG = {
   'Bon performeur': {
@@ -77,11 +78,9 @@ const AdminClassment = () => {
 
   const theme = useTheme();
 
-  // Constantes
-  const API_ENDPOINTS = {
-    CLASSES: '/api/classes/',
-    CLASS_DATA: '/api/ml/class-dashboard/'
-  };
+
+
+  // Constantes removed as we use endpoints from api.js
 
   // Effets
   useEffect(() => {
@@ -96,15 +95,15 @@ const AdminClassment = () => {
     }
   }, [selectedClass]);
 
-  // Méthodes (previous methods remain the same)
+  // Méthodes
   const fetchClasses = async () => {
     setLoading(prev => ({ ...prev, classes: true }));
     try {
-      const response = await fetch(API_ENDPOINTS.CLASSES);
-      if (!response.ok) throw new Error('Erreur de chargement des classes');
-      setClasses(await response.json());
+      const response = await api.get(endpoints.classes.list);
+      const data = await response.json();
+      setClasses(data);
     } catch (error) {
-      showNotification(error.message, 'error');
+      showNotification('Erreur de chargement des classes', 'error');
     } finally {
       setLoading(prev => ({ ...prev, classes: false }));
     }
@@ -115,18 +114,7 @@ const AdminClassment = () => {
     setLoading(prev => ({ ...prev, data: true }));
     
     try {
-      const response = await fetch(API_ENDPOINTS.CLASS_DATA, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ class_id: selectedClass }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur de chargement des données');
-      }
+      const response = await api.post(endpoints.ml.classDashboard, { class_id: selectedClass });
       
       const data = await response.json();
       

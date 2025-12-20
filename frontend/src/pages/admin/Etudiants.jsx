@@ -32,6 +32,8 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import PersonIcon from "@mui/icons-material/Person";
 
+import { api, endpoints } from "../../services/api";
+
 const AdminEtudiants = () => {
   const [etudiants, setEtudiants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,8 +60,8 @@ const AdminEtudiants = () => {
     setError(null);
     try {
       const [studentsResponse, classesResponse] = await Promise.all([
-        fetch("http://localhost:8000/api/students/"),
-        fetch("http://localhost:8000/api/classes/")
+        api.get(endpoints.students.list),
+        api.get(endpoints.classes.list)
       ]);
 
       const studentsData = await studentsResponse.json();
@@ -139,25 +141,21 @@ const AdminEtudiants = () => {
   // Submit form (create or update student)
   const handleSubmit = async () => {
     try {
-      const url = editMode
-        ? `http://localhost:8000/api/students/update/${formData.id}/`
-        : "http://localhost:8000/api/students/create/";
-      const method = editMode ? "PUT" : "POST";
+      let response;
+      const data = {
+        last_name: formData.nom,
+        first_name: formData.prénom,
+        email: formData.email,
+        phone: formData.téléphone,
+        n_appogie: formData.numeroApogee,
+        classes: formData.classes,
+      };
 
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          last_name: formData.nom,
-          first_name: formData.prénom,
-          email: formData.email,
-          phone: formData.téléphone,
-          n_appogie: formData.numeroApogee,
-          classes: formData.classes,
-        }),
-      });
+      if (editMode) {
+        response = await api.put(endpoints.students.update(formData.id), data);
+      } else {
+        response = await api.post(endpoints.students.create, data);
+      }
 
       if (response.ok) {
         await fetchStudents();
@@ -173,10 +171,7 @@ const AdminEtudiants = () => {
   // Delete a student
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/students/delete/${id}/`,
-        { method: "DELETE" }
-      );
+      const response = await api.delete(endpoints.students.delete(id));
 
       const data = await response.json();
       if (data.success) {
@@ -198,10 +193,7 @@ const AdminEtudiants = () => {
     formData.append("file", file);
   
     try {
-      const response = await fetch("http://localhost:8000/api/students/import/", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await api.post(endpoints.students.import, formData, true);
   
       if (response.ok) {
         await fetchStudents();

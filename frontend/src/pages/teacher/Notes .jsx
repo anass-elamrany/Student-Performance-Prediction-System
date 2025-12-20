@@ -33,8 +33,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
-import { refreshToken, checkAuthStatus, getUserRole } from "../../utils/auth";
+import { getUserRole } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
+import { api, endpoints } from "../../services/api";
 
 const TeacherNotes = () => {
   const [notes, setNotes] = useState([]);
@@ -76,36 +77,9 @@ const TeacherNotes = () => {
     }
   }, [selectedMatiere]);
 
-  const fetchWithTokenRefresh = async (url, options = {}) => {
-    let response = await fetch(url, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-    });
-
-    if (response.status === 401) {
-      const newAccessToken = await refreshToken();
-      if (newAccessToken) {
-        response = await fetch(url, {
-          ...options,
-          headers: {
-            ...options.headers,
-            Authorization: `Bearer ${newAccessToken}`,
-          },
-        });
-      } else {
-        throw new Error("Failed to refresh token");
-      }
-    }
-
-    return response;
-  };
-
   const fetchMatieres = async () => {
     try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/teacher/matieres/");
+      const response = await api.get(endpoints.teacherDashboard.matieres);
       const data = await response.json();
       if (data.success) {
         setMatieres(data.matieres);
@@ -122,8 +96,8 @@ const TeacherNotes = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await fetchWithTokenRefresh(
-        `http://localhost:8000/api/teacher/students-by-matiere/?matiere_id=${selectedMatiere}`
+      const response = await api.get(
+        `${endpoints.teacherDashboard.studentsByMatiere}?matiere_id=${selectedMatiere}`
       );
       const data = await response.json();
       if (data.success) {
@@ -141,8 +115,8 @@ const TeacherNotes = () => {
 
   const fetchNotes = async () => {
     try {
-      const response = await fetchWithTokenRefresh(
-        `http://localhost:8000/api/teacher/notes/?matiere_id=${selectedMatiere}`
+      const response = await api.get(
+        `${endpoints.teacherDashboard.notes}?matiere_id=${selectedMatiere}`
       );
       const data = await response.json();
       if (data.success) {
@@ -181,10 +155,7 @@ const TeacherNotes = () => {
     formData.append("file", file);
 
     try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/teacher/notes/import/", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await api.post(endpoints.notes.teacherImport, formData, true);
 
       const data = await response.json();
       if (response.ok) {
@@ -292,16 +263,7 @@ const TeacherNotes = () => {
   // Submit form (create or update note)
   const handleSubmit = async () => {
     try {
-      const url = "http://localhost:8000/api/teacher/notes/create-update/";
-      const method = "POST";
-
-      const response = await fetchWithTokenRefresh(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await api.post(endpoints.notes.teacherCreateUpdate, formData);
 
       const data = await response.json();
       if (response.ok) {
@@ -327,9 +289,7 @@ const TeacherNotes = () => {
   // Delete a note
   const handleDelete = async (id) => {
     try {
-      const response = await fetchWithTokenRefresh(`http://localhost:8000/api/teacher/notes/delete/${id}/`, {
-        method: "DELETE",
-      });
+      const response = await api.delete(endpoints.notes.teacherDelete(id));
 
       if (response.ok) {
         fetchNotes();
@@ -416,42 +376,42 @@ const TeacherNotes = () => {
 
         
         {/* Action Buttons */}
-<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-  <Button
-    variant="contained" // Changed from "outlined" to "contained"
-    startIcon={<GetAppIcon />}
-    onClick={downloadTemplate}
-    sx={{ 
-      backgroundColor: "primary.main", // Using theme's primary color (green for teacher)
-      color: "white",
-      "&:hover": {
-        backgroundColor: "primary.dark"
-      }
-    }}
-  >
-    Télécharger le Modèle
-  </Button>
-  <Button
-    variant="contained" // Changed from "outlined" to "contained"
-    component="label"
-    startIcon={<CloudUploadIcon />}
-    sx={{ 
-      backgroundColor: "primary.main", // Using theme's primary color (green for teacher)
-      color: "white",
-      "&:hover": {
-        backgroundColor: "primary.dark"
-      }
-    }}
-  >
-    Importer CSV
-    <input
-      type="file"
-      hidden
-      accept=".csv"
-      onChange={handleFileUpload}
-    />
-  </Button>
-</Box>
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          <Button
+            variant="contained" 
+            startIcon={<GetAppIcon />}
+            onClick={downloadTemplate}
+            sx={{ 
+              backgroundColor: "primary.main",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "primary.dark"
+              }
+            }}
+          >
+            Télécharger le Modèle
+          </Button>
+          <Button
+            variant="contained"
+            component="label"
+            startIcon={<CloudUploadIcon />}
+            sx={{ 
+              backgroundColor: "primary.main",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "primary.dark"
+              }
+            }}
+          >
+            Importer CSV
+            <input
+              type="file"
+              hidden
+              accept=".csv"
+              onChange={handleFileUpload}
+            />
+          </Button>
+        </Box>
       </Box>
 
       {/* Loading State */}

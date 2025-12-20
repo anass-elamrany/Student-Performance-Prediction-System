@@ -31,6 +31,8 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import PersonIcon from "@mui/icons-material/Person";
 
+import { api, endpoints } from "../../services/api";
+
 const AdminEnseignants = () => {
   const [enseignants, setEnseignants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,7 @@ const AdminEnseignants = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:8000/api/enseignants/");
+      const response = await api.get(endpoints.teachers.list);
       const data = await response.json();
       setEnseignants(data);
     } catch (error) {
@@ -108,23 +110,19 @@ const AdminEnseignants = () => {
   // Submit form (create or update enseignant)
   const handleSubmit = async () => {
     try {
-      const url = editMode
-        ? `http://localhost:8000/api/enseignants/update/${formData.id}/`
-        : "http://localhost:8000/api/enseignants/create/";
-      const method = editMode ? "PUT" : "POST";
+      let response;
+      const data = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        phone: formData.phone,
+      };
 
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          email: formData.email,
-          phone: formData.phone,
-        }),
-      });
+      if (editMode) {
+        response = await api.put(endpoints.teachers.update(formData.id), data);
+      } else {
+        response = await api.post(endpoints.teachers.create, data);
+      }
 
       if (response.ok) {
         await fetchEnseignants();
@@ -140,10 +138,7 @@ const AdminEnseignants = () => {
   // Delete an enseignant
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/enseignants/delete/${id}/`,
-        { method: "DELETE" }
-      );
+      const response = await api.delete(endpoints.teachers.delete(id));
 
       const data = await response.json();
       if (data.success) {
@@ -165,10 +160,7 @@ const AdminEnseignants = () => {
     formData.append("file", file);
   
     try {
-      const response = await fetch("http://localhost:8000/api/enseignants/import/", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await api.post(endpoints.teachers.import, formData, true);
   
       if (response.ok) {
         await fetchEnseignants();

@@ -18,6 +18,7 @@ import { Visibility, VisibilityOff, SupervisorAccount, School, Person } from '@m
 // @ts-ignore
 import backgroundImage from '../assets/images/background_Loginpage.png';
 
+import { endpoints } from '../services/api';
 
 const LoginForm = () => {
   const { role } = useParams();
@@ -95,7 +96,7 @@ const LoginForm = () => {
     setError('');
   
     try {
-      const response = await fetch('http://localhost:8000/api/login/', {
+      const response = await fetch(endpoints.auth.login, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

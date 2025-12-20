@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../config';
+
 export const isAuthenticated = () => {
   const accessToken = localStorage.getItem('accessToken');
   return !!accessToken;
@@ -14,7 +16,7 @@ export const getUserRole = () => {
 
 export const logout = async () => {
   try {
-    await fetch('http://localhost:8000/api/logout/', {
+    await fetch(`${API_BASE_URL}/logout/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -32,7 +34,7 @@ export const logout = async () => {
 export const refreshToken = async () => {
   try {
     const refreshToken = localStorage.getItem('refreshToken');
-    const response = await fetch('http://localhost:8000/api/token/refresh/', {
+    const response = await fetch(`${API_BASE_URL}/token/refresh/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,7 +60,7 @@ export const refreshToken = async () => {
 export const checkAuthStatus = async () => {
   try {
     let token = localStorage.getItem('accessToken');
-    let response = await fetch('http://localhost:8000/api/user-info/', {
+    let response = await fetch(`${API_BASE_URL}/user-info/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -70,7 +72,7 @@ export const checkAuthStatus = async () => {
       const newToken = await refreshToken();
       if (newToken) {
         // Retry the request with the new token
-        response = await fetch('http://localhost:8000/api/user-info/', {
+        response = await fetch(`${API_BASE_URL}/user-info/`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${newToken}`,
@@ -83,20 +85,20 @@ export const checkAuthStatus = async () => {
       }
     }
 
-    const data = await response.json();
-
-    if (response.ok && data.success) {
-      sessionStorage.setItem('currentUser', JSON.stringify(data.user));
-      return data.user;
-    } else {
-      sessionStorage.removeItem('currentUser');
+      const data = await response.json();
+  
+      if (response.ok && data.success) {
+        sessionStorage.setItem('currentUser', JSON.stringify(data.user));
+        return data.user;
+      } else {
+        sessionStorage.removeItem('currentUser');
+        return null;
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
       return null;
     }
-  } catch (error) {
-    console.error('Auth check error:', error);
-    return null;
-  }
-};
+  };
 
 export const fetchWithTokenRefresh = async (url, options = {}) => {
   try {

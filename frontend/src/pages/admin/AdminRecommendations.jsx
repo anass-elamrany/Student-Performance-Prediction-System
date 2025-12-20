@@ -11,6 +11,7 @@ import {
   Warning as WarningIcon, Error as ErrorIcon, School as SchoolIcon,
   ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
+import { api, endpoints } from '../../services/api';
 
 const STATUS_CONFIG = {
   'À risque': { color: '#F44336', icon: <ErrorIcon /> },
@@ -34,18 +35,18 @@ const AdminRecommendations = () => {
   const [dataStatus, setDataStatus] = useState({ hasData: false, isLoading: false, error: null });
 
   const theme = useTheme();
-  const API_ENDPOINTS = { CLASSES: '/api/classes/', RECOMMENDATIONS: '/api/ml/class-recommendations/' };
+
 
   useEffect(() => { fetchClasses(); }, []);
 
   const fetchClasses = async () => {
     setLoading(prev => ({ ...prev, classes: true }));
     try {
-      const response = await fetch(API_ENDPOINTS.CLASSES);
-      if (!response.ok) throw new Error('Erreur de chargement des classes');
-      setClasses(await response.json());
+      const response = await api.get(endpoints.classes.list);
+      const data = await response.json();
+      setClasses(data);
     } catch (error) {
-      showNotification(error.message, 'error');
+      showNotification('Erreur de chargement des classes', 'error');
     } finally {
       setLoading(prev => ({ ...prev, classes: false }));
     }
@@ -61,16 +62,7 @@ const AdminRecommendations = () => {
     setLoading(prev => ({ ...prev, recommendations: true }));
     
     try {
-      const response = await fetch(API_ENDPOINTS.RECOMMENDATIONS, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ class_id: selectedClass }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur de génération des recommandations');
-      }
+      const response = await api.post(endpoints.ml.classRecommendations, { class_id: selectedClass });
       
       const result = await response.json();
       const hasData = result.recommendations && result.recommendations.length > 0;

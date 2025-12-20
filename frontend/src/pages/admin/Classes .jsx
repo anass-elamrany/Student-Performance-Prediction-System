@@ -33,6 +33,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SchoolIcon from "@mui/icons-material/School";
 
+import { api, endpoints } from "../../services/api";
+
 const AdminClasses = () => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,8 +56,8 @@ const AdminClasses = () => {
       setError(null);
       try {
         const [classesResponse, enseignantsResponse] = await Promise.all([
-          fetch("http://localhost:8000/api/classes/"),
-          fetch("http://localhost:8000/api/enseignants/")
+          api.get(endpoints.classes.list),
+          api.get(endpoints.teachers.list)
         ]);
 
         const classesData = await classesResponse.json();
@@ -109,25 +111,21 @@ const AdminClasses = () => {
 
   const handleSubmit = async () => {
     try {
-      const url = editMode
-        ? `http://localhost:8000/api/classes/update/${formData.id}/`
-        : "http://localhost:8000/api/classes/create/";
-      const method = editMode ? "PUT" : "POST";
+      let response;
+      const data = {
+        nom: formData.nom,
+        enseignant_responsable_id: formData.enseignant_responsable,
+      };
 
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nom: formData.nom,
-          enseignant_responsable_id: formData.enseignant_responsable,
-        }),
-      });
+      if (editMode) {
+        response = await api.put(endpoints.classes.update(formData.id), data);
+      } else {
+        response = await api.post(endpoints.classes.create, data);
+      }
 
       if (response.ok) {
         // Refresh data
-        const updatedClassesResponse = await fetch("http://localhost:8000/api/classes/");
+        const updatedClassesResponse = await api.get(endpoints.classes.list);
         const updatedClassesData = await updatedClassesResponse.json();
         setClasses(updatedClassesData);
 
@@ -142,15 +140,12 @@ const AdminClasses = () => {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/classes/delete/${id}/`,
-        { method: "DELETE" }
-      );
+      const response = await api.delete(endpoints.classes.delete(id));
 
       const data = await response.json();
       if (data.success) {
         // Refresh data
-        const updatedClassesResponse = await fetch("http://localhost:8000/api/classes/");
+        const updatedClassesResponse = await api.get(endpoints.classes.list);
         const updatedClassesData = await updatedClassesResponse.json();
         setClasses(updatedClassesData);
       } else {

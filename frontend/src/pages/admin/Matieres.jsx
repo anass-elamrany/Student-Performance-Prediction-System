@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -15,9 +14,6 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
   MenuItem,
   IconButton,
   Grid,
@@ -32,10 +28,11 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import SchoolIcon from "@mui/icons-material/School";
+
+import { api, endpoints } from "../../services/api";
 
 const AdminMatieres = () => {
   const [matieres, setMatieres] = useState([]);
@@ -70,9 +67,9 @@ const AdminMatieres = () => {
     setError(null);
     try {
       const [matieresResponse, classesResponse, enseignantsResponse] = await Promise.all([
-        fetch("http://localhost:8000/api/matieres/"),
-        fetch("http://localhost:8000/api/classes/"),
-        fetch("http://localhost:8000/api/enseignants/")
+        api.get(endpoints.subjects.list),
+        api.get(endpoints.classes.list),
+        api.get(endpoints.teachers.list)
       ]);
 
       const matieresData = await matieresResponse.json();
@@ -95,10 +92,10 @@ const AdminMatieres = () => {
     fetchData();
   }, []);
 
-  // Fetch matieres, classes, and enseignants from the backend
+  // Fetch matieres from the backend
   const fetchMatieres = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/matieres/");
+      const response = await api.get(endpoints.subjects.list);
       const data = await response.json();
       setMatieres(data);
     } catch (error) {
@@ -111,49 +108,16 @@ const AdminMatieres = () => {
     }
   };
 
-  const fetchClasses = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/classes/");
-      const data = await response.json();
-      setClasses(data);
-    } catch (error) {
-      console.error("Error fetching classes:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors du chargement des classes",
-        severity: "error",
-      });
-    }
-  };
-
-  const fetchEnseignants = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/enseignants/");
-      const data = await response.json();
-      setEnseignants(data);
-    } catch (error) {
-      console.error("Error fetching enseignants:", error);
-      setSnackbar({
-        open: true,
-        message: "Erreur lors du chargement des enseignants",
-        severity: "error",
-      });
-    }
-  };
-
   // Handle CSV file upload
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
   
-    const formData = new FormData();
-    formData.append("file", file);
+    const formDataUpload = new FormData();
+    formDataUpload.append("file", file);
   
     try {
-      const response = await fetch("http://localhost:8000/api/matieres/import/", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await api.post(endpoints.subjects.import, formDataUpload, true);
   
       if (response.ok) {
         fetchMatieres();
@@ -255,24 +219,20 @@ const AdminMatieres = () => {
   // Submit form (create or update a matiere)
   const handleSubmit = async () => {
     try {
-      const url = editMode
-        ? `http://localhost:8000/api/matieres/update/${formData.id}/`
-        : "http://localhost:8000/api/matieres/create/";
-      const method = editMode ? "PUT" : "POST";
+      let response;
+      const data = {
+        nom: formData.nom,
+        coefficient: parseFloat(formData.coefficient),
+        semestre: parseInt(formData.semestre),
+        classe_id: formData.classe,
+        enseignant_id: formData.enseignant,
+      };
 
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nom: formData.nom,
-          coefficient: parseFloat(formData.coefficient),
-          semestre: parseInt(formData.semestre),
-          classe_id: formData.classe,
-          enseignant_id: formData.enseignant,
-        }),
-      });
+      if (editMode) {
+        response = await api.put(endpoints.subjects.update(formData.id), data);
+      } else {
+        response = await api.post(endpoints.subjects.create, data);
+      }
 
       if (response.ok) {
         fetchMatieres();
@@ -304,14 +264,9 @@ const AdminMatieres = () => {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/matieres/delete/${id}/`,
-        {
-          method: "DELETE",
-        }
-      );
-
+      const response = await api.delete(endpoints.subjects.delete(id));
       const data = await response.json();
+      
       if (data.success) {
         setMatieres(matieres.filter((matiere) => matiere.id !== id));
         setSnackbar({
@@ -531,10 +486,10 @@ const AdminMatieres = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      Aucune matière disponible
-                    </TableCell>
-                  </TableRow>
+                  <TableCell colSpan={6} align="center">
+                    Aucune matière disponible
+                  </TableCell>
+                </TableRow>
                 )}
               </TableBody>
             </Table>

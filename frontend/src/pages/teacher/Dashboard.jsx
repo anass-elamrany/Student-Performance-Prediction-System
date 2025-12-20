@@ -26,8 +26,9 @@ import PeopleIcon from '@mui/icons-material/People';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import { checkAuthStatus, getUserRole, refreshToken } from '../../utils/auth';
+import { checkAuthStatus, getUserRole, logout } from '../../utils/auth';
 import { useNavigate } from 'react-router-dom';
+import { api, endpoints } from '../../services/api';
 
 const TeacherDashboard = () => {
   const [loading, setLoading] = useState(false);
@@ -56,7 +57,7 @@ const TeacherDashboard = () => {
       setLoading(true);
       try {
         // Fetch matieres taught by the teacher
-        const matieresResponse = await fetchWithTokenRefresh('http://localhost:8000/api/teacher/matieres/');
+        const matieresResponse = await api.get(endpoints.teacherDashboard.matieres);
         const matieresData = await matieresResponse.json();
         if (matieresData.success) {
           setMatieres(matieresData.matieres);
@@ -86,9 +87,7 @@ const TeacherDashboard = () => {
     setLoading(true);
     try {
       // Fetch teacher statistics for the selected matiere
-      const statsResponse = await fetchWithTokenRefresh(
-        `http://localhost:8000/api/teacher/statistics/?matiere_id=${matiereId}`
-      );
+      const statsResponse = await api.get(`${endpoints.teacherDashboard.statistics}?matiere_id=${matiereId}`);
       const statsData = await statsResponse.json();
 
       if (!statsResponse.ok) {
@@ -100,9 +99,7 @@ const TeacherDashboard = () => {
       }
 
       // Fetch grade distribution for the selected matiere
-      const gradeResponse = await fetchWithTokenRefresh(
-        `http://localhost:8000/api/teacher/grade-distribution/?matiere_id=${matiereId}`
-      );
+      const gradeResponse = await api.get(`${endpoints.teacherDashboard.gradeDistribution}?matiere_id=${matiereId}`);
       const gradeData = await gradeResponse.json();
 
       if (!gradeResponse.ok) {
@@ -120,39 +117,6 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Function to handle token refresh and API requests
-  const fetchWithTokenRefresh = async (url, options = {}) => {
-    let token = localStorage.getItem('accessToken');
-    let response = await fetch(url, {
-      ...options,
-      headers: {
-        ...options.headers,
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    // If the request fails with a 401 error, try refreshing the token
-    if (response.status === 401) {
-      const newToken = await refreshToken();
-      if (newToken) {
-        // Retry the request with the new token
-        response = await fetch(url, {
-          ...options,
-          headers: {
-            ...options.headers,
-            'Authorization': `Bearer ${newToken}`,
-          },
-        });
-      } else {
-        // Log out the user if the refresh fails
-        logout();
-        return null;
-      }
-    }
-
-    return response;
-  };
-
   // Handle Matiere filter change
   const handleMatiereChange = (event) => {
     setSelectedMatiere(event.target.value);
@@ -161,7 +125,7 @@ const TeacherDashboard = () => {
   // Summary stats
   const summaryStats = [
     { 
-      title: 'Matières enseignées', 
+      title: 'Resumé', 
       value: matieres.length, 
       icon: <PeopleIcon fontSize="large" />, 
       color: theme.palette.primary.main,
@@ -169,14 +133,14 @@ const TeacherDashboard = () => {
     },
     { 
       title: 'Moyenne de la classe', 
-      value: matiereStats.length > 0 ? `${matiereStats[0].average_grade}/20` : '0/20', 
+      value: matiereStats.length > 0 && matiereStats[0].average_grade !== null ? `${parseFloat(matiereStats[0].average_grade).toFixed(2)}/20` : 'N/A', 
       icon: <TrendingUpIcon fontSize="large" />, 
       color: theme.palette.success.main,
       description: 'Performance moyenne'
     },
     { 
       title: 'Meilleure note', 
-      value: matiereStats.length > 0 ? `${matiereStats[0].highest_grade}/20` : '0/20', 
+      value: matiereStats.length > 0 && matiereStats[0].highest_grade !== null ? `${matiereStats[0].highest_grade}/20` : 'N/A', 
       icon: <WarningIcon fontSize="large" />, 
       color: theme.palette.warning.main,
       description: 'Note la plus élevée'
@@ -304,9 +268,3 @@ const TeacherDashboard = () => {
 };
 
 export default TeacherDashboard;
-
-function logout() {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  window.location.href = '/login';
-}
