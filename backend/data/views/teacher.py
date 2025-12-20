@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import status
 
-from ..models import Utilisateur, Classe, Matiere, Note, Alerte, Recommandation
+from ..models import Utilisateur, Classe, Matiere, Note, Alerte, Recommandation, Performance
 from ..serializers import UtilisateurSerializer, ClasseSerializer, MatiereSerializer, NoteSerializer
 
 logger = logging.getLogger(__name__)
@@ -288,7 +288,8 @@ def get_teacher_alerts(request):
 def get_teacher_classifications(request):
     """
     Vue pour récupérer les classifications des étudiants par matière.
-    Enrichie avec les prédictions IA globales (Performance model).
+    Affiche TOUS les étudiants de la classe, même sans note.
+    Enrichie avec les prédictions IA globales.
     """
     try:
         if request.user.user_type != 'teacher':
@@ -298,45 +299,50 @@ def get_teacher_classifications(request):
         if not matiere_id:
             return Response({'success': False, 'message': 'Le paramètre matiere_id est requis'}, status=status.HTTP_400_BAD_REQUEST)
 
-        matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).first()
+        matiere = Matiere.objects.filter(id=matiere_id, enseignant=request.user).select_related('classe').first()
         if not matiere:
             return Response({'success': False, 'message': 'Matière non trouvée ou accès non autorisé'}, status=status.HTTP_404_NOT_FOUND)
 
-        # 1. Base Classifications (Subject Specific - Rule Based)
-        classifications = Note.objects.filter(
-            matiere_id=matiere_id
-        ).values('etudiant').annotate(
-            average_score=Avg('note_module'),
-            performance_category=Case(
-                When(average_score__gte=16, then=Value('Bon performeur')),
-                When(average_score__gte=12, then=Value('Moyenne performance')),
-                default=Value('À risque'),
-            )
-        )
+        # 1. Fetch ALL students in the class
+        students = Utilisateur.objects.filter(classe=matiere.classe, user_type='student')
         
-        # 2. Fetch AI Predictions (Global Performance) for these students
-        # We need a map of student_id -> Performance
-        student_ids = [c['etudiant'] for c in classifications]
-        ai_perfs = Performance.objects.filter(etudiant_id__in=student_ids).select_related('etudiant')
-        ai_map = {p.etudiant.id: p for p in ai_perfs}
+        # 2. Get AI Predictions (Performance)
+        performances = Performance.objects.filter(etudiant__in=students)
+        perf_map = {p.etudiant_id: p for p in performances}
+        
+        # 3. Get Subject Grades (Notes)
+        notes = Note.objects.filter(matiere=matiere, etudiant__in=students).values('etudiant').annotate(avg=Avg('note_module'))
+        note_map = {n['etudiant']: n['avg'] for n in notes}
 
         classifications_data = []
-        for classification in classifications:
-            student_id = classification['etudiant']
-            student = Utilisateur.objects.get(id=student_id)
+        for student in students:
+            # Subject Performance (Real Grades)
+            avg_score = note_map.get(student.id)
             
-            # Get AI Data if available
-            ai_data = ai_map.get(student_id)
+            if avg_score is not None:
+                if avg_score >= 16:
+                    perf_cat = 'Bon performeur'
+                elif avg_score >= 12:
+                    perf_cat = 'Moyenne performance'
+                else:
+                    perf_cat = 'À risque'
+                display_score = round(avg_score, 2)
+            else:
+                perf_cat = 'Non évalué'
+                display_score = "N/A"
+
+            # AI Global Performance
+            ai_data = perf_map.get(student.id)
             ai_category = ai_data.categorie_risque if ai_data else "Non Analysé"
-            ai_average = ai_data.moyenne_generale if ai_data else None
+            ai_prediction = round(ai_data.moyenne_generale, 2) if ai_data and ai_data.moyenne_generale else "-"
 
             classifications_data.append({
                 'student_id': student.id,
                 'student_name': f"{student.first_name} {student.last_name}",
-                'performance_category': classification['performance_category'], # Subject specific
-                'average_score': round(classification['average_score'], 2),
-                'ai_category': ai_category, # Global AI
-                'ai_prediction': round(ai_average, 2) if ai_average else "-",
+                'performance_category': perf_cat,
+                'average_score': display_score,
+                'ai_category': ai_category,
+                'ai_prediction': ai_prediction,
                 'matiere_id': matiere_id,
                 'matiere_name': matiere.nom
             })
