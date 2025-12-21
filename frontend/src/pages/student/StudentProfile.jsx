@@ -30,6 +30,7 @@ import {
   Save
 } from "@mui/icons-material";
 import { fetchWithTokenRefresh, logout } from "../../utils/auth";
+import { API_BASE_URL } from "../../config";
 
 const StudentProfile = () => {
   const [student, setStudent] = useState({
@@ -63,7 +64,7 @@ const StudentProfile = () => {
   const fetchStudentData = async () => {
     setLoading(true);
     try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/profile/", {
+      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/student/profile/`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -108,7 +109,7 @@ const StudentProfile = () => {
     }
 
     try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/update-password/", {
+      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/student/update-password/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

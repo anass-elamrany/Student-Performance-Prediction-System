@@ -35,6 +35,7 @@ import {
   Link as LinkIcon
 } from "@mui/icons-material";
 import { fetchWithTokenRefresh } from "../../utils/auth";
+import { API_BASE_URL } from "../../config";
 
 const StudentRecommendations = () => {
   const [recommendations, setRecommendations] = useState({
@@ -57,7 +58,7 @@ const StudentRecommendations = () => {
 
   const fetchRecommendations = async () => {
     try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/recommendations/");
+      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/student/recommendations/`);
       const data = await response.json();
       if (data.success) {
         setRecommendations(data.recommendations);
@@ -69,7 +70,7 @@ const StudentRecommendations = () => {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/alerts/");
+      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/student/alerts/`);
       const data = await response.json();
       if (data.success) {
         setAlerts(data.alerts);

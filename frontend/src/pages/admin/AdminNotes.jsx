@@ -33,6 +33,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import SchoolIcon from "@mui/icons-material/School";
 import { refreshToken, checkAuthStatus, getUserRole } from "../../utils/auth";
+import { API_BASE_URL } from "../../config";
 import { useNavigate } from "react-router-dom";
 
 const AdminNotes = () => {
@@ -97,7 +98,7 @@ const AdminNotes = () => {
       setLoading(true);
       try {
         const [matieresResponse] = await Promise.all([
-          fetchWithTokenRefresh("http://localhost:8000/api/admin/matieres/")
+          fetchWithTokenRefresh(`${API_BASE_URL}/admin/matieres/`)
         ]);
         const matieresData = await matieresResponse.json();
         if (matieresData.success) {
@@ -124,8 +125,8 @@ const AdminNotes = () => {
       const fetchData = async () => {
         try {
           const [studentsResponse, notesResponse] = await Promise.all([
-            fetchWithTokenRefresh(`http://localhost:8000/api/admin/students-by-matiere/?matiere_id=${selectedMatiere}`),
-            fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`)
+            fetchWithTokenRefresh(`${API_BASE_URL}/admin/students-by-matiere/?matiere_id=${selectedMatiere}`),
+            fetchWithTokenRefresh(`${API_BASE_URL}/admin/notes/?matiere_id=${selectedMatiere}`)
           ]);
 
           const studentsData = await studentsResponse.json();
@@ -170,7 +171,7 @@ const AdminNotes = () => {
     formData.append("file", file);
   
     try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/admin/notes/import/", {
+      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/admin/notes/import/`, {
         method: "POST",
         body: formData,
       });
@@ -179,7 +180,7 @@ const AdminNotes = () => {
   
       if (response.ok) {
         // Refresh notes after import
-        const notesResponse = await fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`);
+        const notesResponse = await fetchWithTokenRefresh(`${API_BASE_URL}/admin/notes/?matiere_id=${selectedMatiere}`);
         const notesData = await notesResponse.json();
         
         if (notesData.success) {
@@ -287,7 +288,7 @@ const AdminNotes = () => {
   // Submit form (create or update note)
   const handleSubmit = async () => {
     try {
-      const url = "http://localhost:8000/api/admin/notes/create-update/";
+      const url = `${API_BASE_URL}/admin/notes/create-update/`;
       const method = "POST";
 
       const response = await fetchWithTokenRefresh(url, {
@@ -301,7 +302,7 @@ const AdminNotes = () => {
       const data = await response.json();
       if (response.ok) {
         // Refresh notes after creation/update
-        const notesResponse = await fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`);
+        const notesResponse = await fetchWithTokenRefresh(`${API_BASE_URL}/admin/notes/?matiere_id=${selectedMatiere}`);
         const notesData = await notesResponse.json();
         
         if (notesData.success) {
@@ -336,13 +337,13 @@ const AdminNotes = () => {
   // Delete a note
   const handleDelete = async (id) => {
     try {
-      const response = await fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/delete/${id}/`, {
+      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/admin/notes/delete/${id}/`, {
         method: "DELETE",
       });
 
       if (response.ok) {
         // Refresh notes after deletion
-        const notesResponse = await fetchWithTokenRefresh(`http://localhost:8000/api/admin/notes/?matiere_id=${selectedMatiere}`);
+        const notesResponse = await fetchWithTokenRefresh(`${API_BASE_URL}/admin/notes/?matiere_id=${selectedMatiere}`);
         const notesData = await notesResponse.json();
         
         if (notesData.success) {

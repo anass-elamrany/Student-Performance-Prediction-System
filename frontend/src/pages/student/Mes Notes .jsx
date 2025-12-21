@@ -20,6 +20,7 @@ import {
   TimelineOutlined 
 } from "@mui/icons-material";
 import { fetchWithTokenRefresh } from "../../utils/auth";
+import { API_BASE_URL } from "../../config";
 
 const StudentNotes = () => {
   const [notes, setNotes] = useState([]);
@@ -28,7 +29,7 @@ const StudentNotes = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetchWithTokenRefresh("http://localhost:8000/api/student/notes/");
+      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/student/notes/`);
       const data = await response.json();
 
 
