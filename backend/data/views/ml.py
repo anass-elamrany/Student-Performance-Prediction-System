@@ -104,7 +104,7 @@ def classify_class_students(request):
         _update_class_predictions(class_id)
         
         # Return results using the dashboard format or simple list
-        return class_dashboard(request)
+        return class_dashboard(request._request)
 
     except Exception as e:
         logger.error(f"Error in classify_class_students: {str(e)}")
