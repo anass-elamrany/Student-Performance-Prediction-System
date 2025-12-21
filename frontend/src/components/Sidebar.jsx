@@ -63,21 +63,21 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   ...theme.mixins.toolbar,
 }));
 
-const Drawer = styled(MuiDrawer, {
-  shouldForwardProp: (prop) => prop !== "open",
 // @ts-ignore
-})(({ theme, open }) => ({
-  width: drawerWidth,
+const Drawer = styled(MuiDrawer)(({ theme, open, variant }) => ({
   flexShrink: 0,
   whiteSpace: "nowrap",
   boxSizing: "border-box",
-  ...(open && {
-    ...openedMixin(theme),
-    "& .MuiDrawer-paper": openedMixin(theme),
-  }),
-  ...(!open && {
-    ...closedMixin(theme),
-    "& .MuiDrawer-paper": closedMixin(theme),
+  ...(variant === "permanent" && {
+    width: drawerWidth,
+    ...(open && {
+      ...openedMixin(theme),
+      "& .MuiDrawer-paper": openedMixin(theme),
+    }),
+    ...(!open && {
+      ...closedMixin(theme),
+      "& .MuiDrawer-paper": closedMixin(theme),
+    }),
   }),
 }));
 
@@ -178,7 +178,7 @@ const getRoleDetails = (role) => {
   }
 };
 
-const Sidebar = ({ open, handleDrawerClose, pathname }) => {
+const Sidebar = ({ open, handleDrawerClose, pathname, variant = "permanent" }) => {
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -201,14 +201,19 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
     return theme.palette.primary.main;
   };
 
+  const handleItemClick = (path) => {
+    navigate(path);
+    if (variant === "temporary") {
+      handleDrawerClose();
+    }
+  };
+
   const renderMenuItems = (items) => {
     return items.map((item) => (
       <ListItem key={item.path} disablePadding sx={{ display: "block" }}>
         <Tooltip title={open ? null : item.text} placement="left">
           <ListItemButton
-            onClick={() => {
-              navigate(item.path);
-            }}
+            onClick={() => handleItemClick(item.path)}
             sx={{
               minHeight: 48,
               justifyContent: open ? "initial" : "center",
@@ -238,7 +243,17 @@ const Sidebar = ({ open, handleDrawerClose, pathname }) => {
   };
 
   return (
-    <Drawer variant="permanent" open={open} PaperProps={{ component: 'nav' }}>
+    <Drawer 
+      // @ts-ignore
+      variant={variant} 
+      open={open}
+      onClose={handleDrawerClose}
+      PaperProps={{ component: 'nav' }}
+      sx={{
+        display: { xs: 'block', sm: 'block' },
+        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+      }}
+    >
       <DrawerHeader>
         <IconButton onClick={handleDrawerClose}>
           {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}

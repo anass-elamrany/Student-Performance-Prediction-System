@@ -7,6 +7,7 @@ import Sidebar from "./components/Sidebar";
 import { getDesignTokens } from "./theme";
 import { Outlet, useLocation } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 const DrawerHeader = styled("div")(({ theme }) => ({
   display: "flex",
@@ -17,18 +18,6 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 }));
 
 const DashboardLayout = ({ role }) => {
-  // Set default state to true to open the sidebar by default
-  const [open, setOpen] = useState(true);
-  const location = useLocation();
-
-  const handleDrawerOpen = () => {
-    setOpen(true);
-  };
-
-  const handleDrawerClose = () => {
-    setOpen(false);
-  };
-
   const [mode, setMode] = useState(
     Boolean(localStorage.getItem("currentMode"))
       ? localStorage.getItem("currentMode")
@@ -41,6 +30,32 @@ const DashboardLayout = ({ role }) => {
     [mode, role]
   );
 
+  // Check if screen is mobile (sm or down)
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Initialize open state based on screen size
+  // Default: Open on Desktop, Closed on Mobile
+  const [open, setOpen] = useState(!isMobile);
+
+  const location = useLocation();
+
+  // Update open state when screen size changes
+  useEffect(() => {
+    setOpen(!isMobile);
+  }, [isMobile]);
+
+  const handleDrawerOpen = () => {
+    setOpen(true);
+  };
+
+  const handleDrawerClose = () => {
+    setOpen(false);
+  };
+
+  const handleDrawerToggle = () => {
+    setOpen(!open);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: "flex" }}>
@@ -52,6 +67,7 @@ const DashboardLayout = ({ role }) => {
           setMode={setMode}
           // @ts-ignore
           role={role}
+          isMobile={isMobile}
         />
         <Sidebar 
           open={open} 
@@ -59,8 +75,9 @@ const DashboardLayout = ({ role }) => {
           // @ts-ignore
           role={role}
           pathname={location.pathname}
+          variant={isMobile ? "temporary" : "permanent"}
         />
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <Box component="main" sx={{ flexGrow: 1, p: 3, width: "100%" }}>
           <DrawerHeader />
           <Outlet />
         </Box>
