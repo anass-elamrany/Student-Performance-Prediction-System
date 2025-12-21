@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '@mui/material';
 import { fetchWithTokenRefresh, checkAuthStatus, getUserRole } from '../../utils/auth';
+import { API_BASE_URL } from '../../config';
 import { useNavigate } from 'react-router-dom';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -56,7 +57,7 @@ const TeacherAnalysis = () => {
     const fetchMatieres = async () => {
       setLoading(true);
       try {
-        const response = await fetchWithTokenRefresh('/api/teacher/matieres/');
+        const response = await fetchWithTokenRefresh(`${API_BASE_URL}/teacher/matieres/`);
         const data = await response.json();
         if (data.success) {
           setMatieres(data.matieres);
@@ -87,7 +88,7 @@ const TeacherAnalysis = () => {
     setError(null);
   
     try {
-      const response = await fetchWithTokenRefresh(`/api/teacher/classifications/?matiere_id=${matiereId}`);
+      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/teacher/classifications/?matiere_id=${matiereId}`);
       const data = await response.json();
       if (data.success) {
         setClassifications(data.classifications);
