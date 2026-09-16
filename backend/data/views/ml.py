@@ -3,7 +3,6 @@ from django.apps import apps
 from django.db.models import Avg, Count, F
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import status
 from django.utils import timezone
@@ -12,6 +11,7 @@ import random
 
 from ..models import Utilisateur, Performance, Alerte, Note, Recommandation
 from ..ml_utils import predict_student, prepare_student_data
+from ..permissions import IsAdminOrTeacherUserType
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ def _update_class_predictions(class_id):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminOrTeacherUserType])
 def classify_class_students(request):
     """
     Explicitly trigger classification.
@@ -113,7 +113,7 @@ def classify_class_students(request):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminOrTeacherUserType])
 def predict_grades(request):
     """
     Simulation endpoint.
@@ -199,7 +199,7 @@ def predict_grades(request):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminOrTeacherUserType])
 def get_class_alerts(request):
     try:
         class_id = request.data.get('class_id')
@@ -241,7 +241,7 @@ def get_class_alerts(request):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminOrTeacherUserType])
 def get_class_recommendations(request):
     try:
         class_id = request.data.get('class_id')
@@ -293,7 +293,7 @@ def get_class_recommendations(request):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminOrTeacherUserType])
 def class_dashboard(request):
     try:
         class_id = request.data.get('class_id')

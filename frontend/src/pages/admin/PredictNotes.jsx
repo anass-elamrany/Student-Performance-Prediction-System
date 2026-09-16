@@ -46,7 +46,7 @@ const PredictNotes = () => {
         const data = await response.json();
         setClasses(data);
       } catch (err) {
-        setError('Erreur lors du chargement des classes');
+        setError('Failed to load classes');
         console.error(err);
       }
     };
@@ -55,7 +55,7 @@ const PredictNotes = () => {
 
   const handlePredict = async () => {
     if (!selectedClass) {
-      setError('Veuillez sélectionner une classe');
+      setError('Select a class');
       return;
     }
 
@@ -131,7 +131,7 @@ const PredictNotes = () => {
              setData(result); 
         }
       } else {
-        throw new Error(result.error || 'Erreur lors de la prédiction');
+        throw new Error(result.error || 'Prediction failed');
       }
     } catch (err) {
       setError(err.message);
@@ -174,10 +174,10 @@ const PredictNotes = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom sx={{ mb: 2, fontWeight: 'bold' }}>
-        Prédiction des Notes
+        Grade Prediction
       </Typography>
       <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
-        Moyennes réelles S1/S2 et prédictions S3/S4
+        Real S1/S2 averages and S3/S4 predictions
       </Typography>
       <Divider sx={{ mb: 4 }} />
 
@@ -185,16 +185,16 @@ const PredictNotes = () => {
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <FormControl sx={{ minWidth: 250 }}>
-              <InputLabel id="class-select-label">Classe</InputLabel>
+              <InputLabel id="class-select-label">Class</InputLabel>
               <Select
                 labelId="class-select-label"
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
-                label="Classe"
+                label="Class"
                 startAdornment={<FilterListIcon color="action" sx={{ mr: 1 }} />}
               >
                 <MenuItem value="">
-                  <em>Toutes les classes</em>
+                  <em>All classes</em>
                 </MenuItem>
                 {classes.map((classe) => (
                   <MenuItem key={classe.id} value={classe.id}>
@@ -211,12 +211,12 @@ const PredictNotes = () => {
               startIcon={loading ? <CircularProgress size={24} /> : <TrendingUpIcon />}
               sx={{ height: 56 }}
             >
-              {loading ? 'Calcul en cours...' : 'Générer les résultats'}
+              {loading ? 'Calculating...' : 'Generate Results'}
             </Button>
 
             {data?.class_name && (
               <Chip
-                label={`Classe: ${data.class_name}`}
+                label={`Class: ${data.class_name}`}
                 color="primary"
                 sx={{ ml: 2, height: 32 }}
               />
@@ -244,7 +244,7 @@ const PredictNotes = () => {
                       direction={order}
                       onClick={() => handleSort('student_name')}
                     >
-                      <Typography fontWeight="bold">Étudiant</Typography>
+                      <Typography fontWeight="bold">Student</Typography>
                     </TableSortLabel>
                   </TableCell>
 
@@ -255,9 +255,9 @@ const PredictNotes = () => {
                       direction={order}
                       onClick={() => handleSort('s1_avg')}
                     >
-                      <Tooltip title="Moyenne réelle calculée à partir des notes existantes">
+                      <Tooltip title="Real average calculated from existing grades">
                         <Box display="flex" alignItems="center" justifyContent="center">
-                          <Typography fontWeight="bold">Moy. S1</Typography>
+                          <Typography fontWeight="bold">Avg. S1</Typography>
                           <InfoIcon fontSize="small" sx={{ ml: 0.5 }} />
                         </Box>
                       </Tooltip>
@@ -271,9 +271,9 @@ const PredictNotes = () => {
                       direction={order}
                       onClick={() => handleSort('s2_avg')}
                     >
-                      <Tooltip title="Moyenne réelle calculée à partir des notes existantes">
+                      <Tooltip title="Real average calculated from existing grades">
                         <Box display="flex" alignItems="center" justifyContent="center">
-                          <Typography fontWeight="bold">Moy. S2</Typography>
+                          <Typography fontWeight="bold">Avg. S2</Typography>
                           <InfoIcon fontSize="small" sx={{ ml: 0.5 }} />
                         </Box>
                       </Tooltip>
@@ -288,7 +288,7 @@ const PredictNotes = () => {
                         direction={order}
                         onClick={() => handleSort(matiere.field_name)}
                       >
-                        <Tooltip title="Note prédite basée sur les performances S1/S2">
+                        <Tooltip title="Predicted grade based on S1/S2 performance">
                           <Box display="flex" flexDirection="column" alignItems="center">
                             <Typography fontWeight="bold">{matiere.nom}</Typography>
                             <Typography variant="caption">
@@ -374,8 +374,8 @@ const PredictNotes = () => {
           <SchoolIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
           <Typography variant="h6" color="text.secondary">
             {selectedClass
-              ? "Cliquez sur 'Générer les résultats' pour afficher les prédictions"
-              : "Veuillez sélectionner une classe"}
+              ? "Click 'Generate Results' to display predictions"
+              : "Select a class"}
           </Typography>
         </Box>
       )}

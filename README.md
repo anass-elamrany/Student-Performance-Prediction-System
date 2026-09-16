@@ -1,100 +1,214 @@
-# 🎓 Student Performance Prediction System
+# Student Performance Prediction System
 
-![EST Oujda Logo](frontend/src/assets/images/logoEST.jpg)
+Student Performance Prediction System is a digital university portal for academic monitoring, grade management, and AI-assisted student performance prediction.
 
-**École Supérieure de Technologie - Oujda** | **PFE 2024/2025**
+The platform gives administrators, teachers, and students a shared space to manage academic data, follow progress, detect at-risk students early, and generate useful recommendations.
 
----
+## Main Features
 
-## 📋 About The Project
-An intelligent platform designed to revolutionize educational monitoring. By combining an interactive dashboard with **Machine Learning** algorithms, this tool predicts student performance, detects at-risk students early, and provides personalized recommendations.
+- Admin dashboard for university-wide academic overview
+- Teacher dashboard for class and subject monitoring
+- Student dashboard for personal grades, progress, and recommendations
+- Student, teacher, class, subject, and grade management
+- CSV import for students, teachers, subjects, and grades
+- AI-based grade prediction and performance classification
+- Alerts for students who may need academic support
+- Personalized academic recommendations
+- Role-based access control for admin, teacher, and student users
 
-### 🌟 Key Features
-- **🔮 AI Prediction**: Future grade estimation & student classification (Excellence, Average, At-Risk).
-- **📊 Intuitive Dashboards**: Dedicated views for Admins, Teachers, and Students.
-- **🚀 Performance**: Modern architecture with React, Django, and optimized data loading.
+## Screenshots
 
----
+Screenshots are available in the `screenshots/` folder.
 
-## 📸 Screenshots Showcase
+```text
+screenshots/
+├── admin_dashboard.png
+├── teacher_view.png
+├── student_view.png
+├── prediction_flow.png
+└── ml_result.png
+```
 
-### 🏫 Admin Dashboard
-Global school statistics and prediction flow management.
+## Project Structure
 
-| Admin Dashboard | Prediction Flow |
-|:---:|:---:|
-| ![Admin Dashboard](screenshots/admin_dashboard.png) | ![Prediction Flow](screenshots/prediction_flow.png) |
-| *Overview of school stats* | *AI prediction logic visualization* |
+```text
+Student-Performance-Prediction-System/
+├── backend/       Django REST API, database models, permissions, and ML logic
+├── frontend/      React and Vite user interface
+├── ml_research/   Jupyter notebooks used during model research
+├── screenshots/   Application screenshots
+└── docker-compose.yml
+```
 
-### 👩‍🏫 Teacher Dashboard
-Track classes, view ML analysis, and identify struggling students.
+## Tech Stack
 
-| Teacher View | Machine Learning Analysis |
-|:---:|:---:|
-| ![Teacher View](screenshots/teacher_view.png) | ![ML Results](screenshots/ml_result.png) |
-| *Detailed class monitoring* | *Classification results & insights* |
+**Frontend**
 
-### 🎓 Student Dashboard
-Personalized progress tracking.
+- React
+- Vite
+- Material UI
+- Recharts
+- ApexCharts
 
-![Student View](screenshots/student_view.png)
-*Personal space for students*
+**Backend**
 
----
+- Django
+- Django REST Framework
+- Simple JWT
+- SQLite
 
-## 🧠 The AI Core
-Powered by a **Random Forest** model trained on the [UCI Student Performance Dataset](https://archive.ics.uci.edu/ml/datasets/Student+Performance).
-- **Accuracy**: ~92% for Classification
-- **MAE**: < 1.5 points for Grade Regression
+**Machine Learning**
 
-> *See the [ML Repository](https://github.com/anass-elamrany/student-performance-ml) for technical details.*
+- Scikit-learn
+- Pandas
+- NumPy
+- Trained classification and regression models
 
----
+## Run With Docker
 
-## 🛠️ Tech Stack
+From the project root:
 
-| Frontend | Backend | AI & Data |
-| :--- | :--- | :--- |
-| ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB) **React 19** | ![Django](https://img.shields.io/badge/Django-092E20?style=flat&logo=django&logoColor=white) **Django 5** | ![Scikit](https://img.shields.io/badge/scikit_learn-F7931E?style=flat&logo=scikit-learn&logoColor=white) **Scikit-Learn** |
-| Material UI | DRF (REST API) | Pandas / NumPy |
-| Recharts | PostgreSQL / SQLite | Jupyter |
-
----
-
-## 🚀 Getting Started
-
-### Option 1: Docker (Recommended)
-Run the entire stack with one command:
 ```bash
 docker-compose up --build
 ```
-- **App**: [http://localhost:3000](http://localhost:3000)
 
-### Option 2: Manual Install
+Open the application:
 
-**1. Backend**
+```text
+http://localhost:3000
+```
+
+Backend API:
+
+```text
+http://localhost:8000/api
+```
+
+## Run Manually
+
+Use two terminals.
+
+### Backend
+
 ```bash
 cd backend
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
 
-**2. Frontend**
+Backend URL:
+
+```text
+http://localhost:8000
+```
+
+### Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
----
+Frontend URL:
 
-<center>
-    <p>Made with ❤️ at EST Oujda</p>
-    <p>
-        <a href="https://github.com/anass-elamrany">Anass El Amrany</a> • 
-        <a href="https://github.com/awittygenlteman">El khadir Safouane</a> • 
-        <a href="https://github.com/MaryameDani">Maryame Dani</a>
-    </p>
-    <p>© 2025 All Rights Reserved</p>
-</center>
+```text
+http://localhost:5173
+```
+
+## Demo Accounts
+
+```text
+Teacher
+Email: prof@school.com
+Password: prof123
+```
+
+```text
+Student
+Email: student.uci.1@school.com
+Password: student123
+```
+
+To reset the admin password:
+
+```bash
+cd backend
+python manage.py changepassword admin
+```
+
+## Demo Data
+
+The project includes a sample dataset:
+
+```text
+backend/raw_data/student-mat.csv
+```
+
+Load demo data:
+
+```bash
+cd backend
+python manage.py seed_db
+```
+
+## API Overview
+
+Main API groups:
+
+```text
+/api/login/
+/api/dashboard/admin/
+/api/dashboard/teacher/
+/api/dashboard/student/
+/api/students/
+/api/classes/
+/api/enseignants/
+/api/matieres/
+/api/admin/notes/
+/api/teacher/notes/
+/api/student/dashboard/
+/api/ml/classify-class/
+/api/predict-grades/
+```
+
+## Machine Learning
+
+The ML layer uses trained models stored in:
+
+```text
+backend/models/
+├── model_classification.pkl
+└── model_regression.pkl
+```
+
+The models support:
+
+- final grade prediction
+- performance classification
+- risk detection
+- recommendation generation
+
+## Portfolio Notes
+
+This project demonstrates:
+
+- full-stack application development
+- role-based academic portal design
+- REST API development
+- frontend dashboard design
+- machine learning integration
+- CSV data import workflows
+- Docker-based deployment setup
+
+## Future Improvements
+
+- Add more backend tests
+- Add frontend component tests
+- Improve CSV validation and error reporting
+- Replace simulated dashboard data with real historical analytics
+- Add password reset and email verification
+- Add API documentation with Swagger or Redoc

@@ -221,13 +221,13 @@ const StudentProfile = () => {
                 }}
               >
                 <Person sx={{ mr: 1, color: studentColor }} />
-                Informations Personnelles
+                Personal Information
               </Typography>
               
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField
-                    label="Prénom"
+                    label="First Name"
                     value={student.first_name}
                     fullWidth
                     disabled
@@ -251,7 +251,7 @@ const StudentProfile = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
-                    label="Nom"
+                    label="Last Name"
                     value={student.last_name}
                     fullWidth
                     disabled
@@ -299,7 +299,7 @@ const StudentProfile = () => {
               />
               
               <TextField
-                label="Téléphone"
+                label="Phone"
                 value={student.phone}
                 fullWidth
                 disabled
@@ -322,7 +322,7 @@ const StudentProfile = () => {
               />
               
               <TextField
-                label="N° Apogée"
+                label="Apogee Number"
                 value={student.n_appogie}
                 fullWidth
                 disabled
@@ -345,7 +345,7 @@ const StudentProfile = () => {
               />
               
               <TextField
-                label="Classe"
+                label="Class"
                 value={student.classe}
                 fullWidth
                 disabled
@@ -404,12 +404,12 @@ const StudentProfile = () => {
                 }}
               >
                 <Lock sx={{ mr: 1, color: theme.palette.primary.main }} />
-                Changer Mot de Passe
+                Change Password
               </Typography>
               
               <Box sx={{ p: 1 }}>
                 <TextField
-                  label="Nouveau Mot de Passe"
+                  label="New Password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -446,7 +446,7 @@ const StudentProfile = () => {
                 />
                 
                 <TextField
-                  label="Confirmer Mot de Passe"
+                  label="Confirm Password"
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -486,7 +486,7 @@ const StudentProfile = () => {
                 {password && (
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-                      Force du mot de passe:
+                      Password strength:
                     </Typography>
                     <LinearProgress 
                       variant="determinate" 
@@ -508,9 +508,9 @@ const StudentProfile = () => {
                       }}
                     />
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                      {password.length > 0 && password.length < 6 ? "Faible - Minimum 6 caractères" :
-                      password.length >= 6 && password.length < 8 ? "Moyen - Minimum 8 caractères recommandé" :
-                      password.length >= 8 && !/[A-Z]/.test(password) ? "Bon - Ajoutez une majuscule pour plus de sécurité" : 
+                      {password.length > 0 && password.length < 6 ? "Weak - Minimum 6 characters" :
+                      password.length >= 6 && password.length < 8 ? "Medium - Minimum 8 characters recommended" :
+                      password.length >= 8 && !/[A-Z]/.test(password) ? "Good - Add an uppercase letter for more security" : 
                       "Excellent"}
                     </Typography>
                   </Box>
@@ -535,12 +535,12 @@ const StudentProfile = () => {
                       }
                     }}
                   >
-                    Mettre à jour
+                    Update
                   </Button>
                 </Box>
                 
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: "block", textAlign: "center" }}>
-                  Pour une sécurité optimale, utilisez au moins 8 caractères avec des lettres majuscules, minuscules et des chiffres.
+                  For best security, use at least 8 characters with uppercase letters, lowercase letters and numbers.
                 </Typography>
               </Box>
             </CardContent>

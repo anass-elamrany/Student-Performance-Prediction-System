@@ -122,7 +122,7 @@ const GlobalAIHub = () => {
       const data = await response.json();
       setClasses(data);
     } catch (error) {
-      showNotification('Erreur de chargement des classes', 'error');
+      showNotification('Failed to load classes', 'error');
     } finally {
       setLoading(prev => ({ ...prev, classes: false }));
     }
@@ -130,7 +130,7 @@ const GlobalAIHub = () => {
 
   const runAnalysis = async () => {
       if (!selectedClass) {
-          showNotification("Veuillez sélectionner une classe", "warning");
+          showNotification("Select a class", "warning");
           return;
       }
       
@@ -162,11 +162,11 @@ const GlobalAIHub = () => {
           });
           setPredictData(predictions);
           setAnalysisDone(true);
-          showNotification("Analyse IA terminée avec succès !", "success");
+          showNotification("AI analysis completed successfully", "success");
 
       } catch (error) {
           console.error(error);
-          showNotification("Erreur lors de l'analyse IA", 'error');
+          showNotification("AI analysis failed", 'error');
       } finally {
           setLoading(prev => ({ ...prev, data: false }));
       }
@@ -186,20 +186,20 @@ const GlobalAIHub = () => {
     <Grid container spacing={3} sx={{ mb: 4 }}>
       <Grid item xs={12} sm={6} md={3}>
         <StatCard 
-          title="Moyenne de Classe"
+          title="Class Average"
           value={dashboardData.statistics?.average_score?.toFixed(2) || "-"}
           icon={<SpeedIcon />}
           color={theme.palette.primary.main}
-          subtitle="Score Global Moy."
+          subtitle="Global average score"
         />
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
         <StatCard 
-          title="À Risque"
+          title="At Risk"
           value={dashboardData.statistics?.at_risk_count || 0}
           icon={<ErrorIcon />}
           color={theme.palette.error.main}
-          subtitle="Alertes Générées"
+          subtitle="Generated alerts"
         />
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
@@ -208,16 +208,16 @@ const GlobalAIHub = () => {
           value={dashboardData.statistics?.good_performers || 0}
           icon={<SparklesIcon />}
           color={theme.palette.success.main}
-          subtitle="Top Élèves"
+          subtitle="Top students"
         />
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
         <StatCard 
-          title="Total Élèves"
+          title="Total Students"
           value={dashboardData.statistics?.total_students || 0}
           icon={<SchoolIcon />}
           color={theme.palette.info.main}
-          subtitle="Effectif Analysé"
+          subtitle="Analyzed group"
         />
       </Grid>
     </Grid>
@@ -229,11 +229,11 @@ const GlobalAIHub = () => {
           <Table>
             <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Étudiant</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Moy. S1 (Réelle)</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Moy. S2 (Réelle)</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Student</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Avg. S1 (Real)</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Avg. S2 (Real)</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
-                     Préd. S3/S4
+                     Pred. S3/S4
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -262,7 +262,7 @@ const GlobalAIHub = () => {
               {(!predictData?.students || predictData.students.length === 0) && (
                   <TableRow>
                       <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
-                          Aucune donnée disponible
+                          No data available
                       </TableCell>
                   </TableRow>
               )}
@@ -297,7 +297,7 @@ const GlobalAIHub = () => {
                               </Box>
                               {rec.academic_orientation && (
                                   <Box textAlign="right">
-                                      <Typography variant="caption" color="text.secondary" display="block">Orientation Suggérée</Typography>
+                                      <Typography variant="caption" color="text.secondary" display="block">Suggested Orientation</Typography>
                                       <Typography variant="body2" fontWeight="medium" color="primary">
                                         {rec.academic_orientation.orientation}
                                       </Typography>
@@ -309,7 +309,7 @@ const GlobalAIHub = () => {
                           
                           <Box>
                               <Typography variant="body2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <RecommendIcon fontSize="small" color="action" /> Recommandations
+                                  <RecommendIcon fontSize="small" color="action" /> Recommendations
                               </Typography>
                               <List dense disablePadding>
                                   {rec.recommendations.map((item, idx) => (
@@ -328,7 +328,7 @@ const GlobalAIHub = () => {
           ))}
           {dashboardData.recommendations.length === 0 && (
               <Grid item xs={12}>
-                  <Alert severity="info" variant="outlined">Aucune recommandation générée pour cette classe.</Alert>
+                  <Alert severity="info" variant="outlined">No recommendations generated for this class.</Alert>
               </Grid>
           )}
       </Grid>
@@ -344,10 +344,10 @@ const GlobalAIHub = () => {
                       <BrainIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
                       <Box>
                           <Typography variant="h4" fontWeight="bold" color="text.primary">
-                              EduMind AI Hub
+                              AI Hub
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                              Espace d'analyse prédictive et de pilotage pédagogique
+                              Predictive analysis and academic decision-support space
                           </Typography>
                       </Box>
                   </Box>
@@ -355,13 +355,13 @@ const GlobalAIHub = () => {
               <Grid item xs={12} md={6}>
                   <Paper elevation={0} sx={{ p: 2, bgcolor: theme.palette.background.default, border: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, alignItems: 'center' }}>
                       <FormControl fullWidth size="small">
-                          <InputLabel>Choisir une Classe</InputLabel>
+                          <InputLabel>Choose a Class</InputLabel>
                           <Select
                             value={selectedClass}
                             onChange={(e) => setSelectedClass(e.target.value)}
-                            label="Choisir une Classe"
+                            label="Choose a Class"
                           >
-                            <MenuItem value=""><em>Aucune</em></MenuItem>
+                            <MenuItem value=""><em>None</em></MenuItem>
                             {classes.map((cls) => (
                               <MenuItem key={cls.id} value={cls.id}>{cls.nom}</MenuItem>
                             ))}
@@ -375,7 +375,7 @@ const GlobalAIHub = () => {
                         startIcon={loading.data ? <CircularProgress size={20} color="inherit"/> : <SparklesIcon />}
                         sx={{ whiteSpace: 'nowrap', px: 3 }}
                       >
-                          {loading.data ? "Analyse..." : "Lancer l'IA"}
+                          {loading.data ? "Analyzing..." : "Run AI"}
                       </Button>
                   </Paper>
               </Grid>
@@ -402,10 +402,10 @@ const GlobalAIHub = () => {
                   >
                       <ScienceIcon sx={{ fontSize: 80, color: theme.palette.action.disabled, mb: 2 }} />
                       <Typography variant="h6" color="text.secondary" gutterBottom>
-                          Prêt à analyser
+                          Ready to Analyze
                       </Typography>
                       <Typography color="text.disabled" sx={{ maxWidth: 400 }}>
-                          Sélectionnez une classe et cliquez sur <strong>"Lancer l'IA"</strong> pour exécuter les modèles prédictifs (.pkl) et générer les rapports.
+                          Select a class and click <strong>"Run AI"</strong> to execute the predictive models (.pkl) and generate reports.
                       </Typography>
                   </Box>
               ) : (
@@ -419,22 +419,22 @@ const GlobalAIHub = () => {
                               sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: theme.palette.background.default }}
                           >
                               <Tab label="Classification" icon={<TimelineIcon />} iconPosition="start" {...TAB_STYLES} />
-                              <Tab label="Prédictions Futures" icon={<TrendingUpIcon />} iconPosition="start" {...TAB_STYLES} />
-                              <Tab label="Recommandations" icon={<BrainIcon />} iconPosition="start" {...TAB_STYLES} />
+                              <Tab label="Future Predictions" icon={<TrendingUpIcon />} iconPosition="start" {...TAB_STYLES} />
+                              <Tab label="Recommendations" icon={<BrainIcon />} iconPosition="start" {...TAB_STYLES} />
                           </Tabs>
 
                           <Box sx={{ p: 3 }}>
                               {activeTab === 0 && (
                                   <Box>
                                       <Box display="flex" justifyContent="space-between" mb={3}>
-                                          <Typography variant="h6">Performance des Étudiants</Typography>
+                                          <Typography variant="h6">Student Performance</Typography>
                                       </Box>
                                       <TableContainer>
                                           <Table>
                                               <TableHead>
                                                   <TableRow>
-                                                      <TableCell>Étudiant</TableCell>
-                                                      <TableCell align="center">Moyenne Générale</TableCell>
+                                                      <TableCell>Student</TableCell>
+                                                      <TableCell align="center">General Average</TableCell>
                                                       <TableCell align="center">Statut IA</TableCell>
                                                       <TableCell align="right">Actions</TableCell>
                                                   </TableRow>
@@ -457,7 +457,7 @@ const GlobalAIHub = () => {
                                                           </TableCell>
                                                           <TableCell align="right">
                                                               <Button size="small" variant="text" onClick={() => setActiveTab(2)}>
-                                                                  Voir Détails
+                                                                  View Details
                                                               </Button>
                                                           </TableCell>
                                                       </TableRow>

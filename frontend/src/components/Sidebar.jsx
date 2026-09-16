@@ -85,59 +85,59 @@ const Drawer = styled(MuiDrawer)(({ theme, open, variant }) => ({
 const adminMenuItems = {
   main: [
     {
-      text: "Tableau de bord",
+      text: "Dashboard",
       icon: <DashboardOutlinedIcon />,
       path: "/admin/dashboard"
     },
     {
-      text: "EduMind AI",
+      text: "AI Hub",
       icon: <PsychologyOutlinedIcon />,
-      path: "/admin/AIHub"
+      path: "/admin/ai-hub"
     },
     {
       text: "Classes", 
       icon: <ClassOutlinedIcon />,
-      path: "/admin/Classes"
+      path: "/admin/classes"
     },
     {
-      text: "Enseignants",
+      text: "Teachers",
       icon: <PersonOutlineOutlinedIcon />,
-      path: "/admin/Enseignants" 
+      path: "/admin/teachers" 
     },
     {
-      text: "Étudiants",
+      text: "Students",
       icon: <SchoolOutlinedIcon />,
-      path: "/admin/Etudiants"
+      path: "/admin/students"
     },
     {
-      text: "Matières",
+      text: "Subjects",
       icon: <MenuBookOutlinedIcon />,
-      path: "/admin/Matieres"
+      path: "/admin/subjects"
     },
     {
-      text: "Notes",
+      text: "Grades",
       icon: <GradeOutlinedIcon />,
-      path: "/admin/AdminNotes"
+      path: "/admin/notes"
     }
   ],
 };
 
 const teacherMenuItems = {
   main: [
-    { text: "Tableau de bord", icon: <DashboardOutlinedIcon />, path: "/teacher/dashboard" },
-    { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/teacher/Notes" },
-    { text: "Analyse", icon: <BarChartOutlinedIcon />, path: "/teacher/Analyse" },
-    { text: "Profil", icon: <PeopleOutlineOutlinedIcon />, path: "/teacher/Profile" },
+    { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/teacher/dashboard" },
+    { text: "Grades", icon: <AssessmentOutlinedIcon />, path: "/teacher/notes" },
+    { text: "Analysis", icon: <BarChartOutlinedIcon />, path: "/teacher/analysis" },
+    { text: "Profile", icon: <PeopleOutlineOutlinedIcon />, path: "/teacher/profile" },
   ],
 };
 
 const studentMenuItems = {
   main: [
-    { text: "Tableau de bord", icon: <DashboardOutlinedIcon />, path: "/student/dashboard" },
-    { text: "Notes", icon: <AssessmentOutlinedIcon />, path: "/student/Notes" },
-    { text: "Conseils", icon: <EmojiObjectsOutlinedIcon />, path: "/student/Guidance" },
+    { text: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/student/dashboard" },
+    { text: "Grades", icon: <AssessmentOutlinedIcon />, path: "/student/notes" },
+    { text: "Guidance", icon: <EmojiObjectsOutlinedIcon />, path: "/student/guidance" },
   
-    { text: "Profil", icon: <PeopleOutlineOutlinedIcon />, path: "/student/StudentProfile" },
+    { text: "Profile", icon: <PeopleOutlineOutlinedIcon />, path: "/student/profile" },
   ],
 };
 

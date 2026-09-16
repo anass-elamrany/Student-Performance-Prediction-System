@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { 
   Box, Typography, Grid, Card, CardContent, Divider, CircularProgress, 
   Snackbar, Alert, useTheme, Avatar, LinearProgress
@@ -19,6 +18,7 @@ import {
 } from '@mui/icons-material';
 
 import { api, endpoints } from '../../services/api';
+import PageTitle from '../../components/PageTitle';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -76,7 +76,7 @@ const AdminDashboard = () => {
                 if (dashboardData.success) {
                     setStats(dashboardData);
                 } else {
-                    throw new Error(dashboardData.message || "Erreur chargement dashboard");
+                    throw new Error(dashboardData.message || "Failed to load dashboard");
                 }
 
                 // 2. Fetch Subject Success Rate (Existing endpoint)
@@ -100,16 +100,16 @@ const AdminDashboard = () => {
 
     return (
         <Box>
-            <Helmet>
-                <title>EduPredict - Administration</title>
-                <meta name="description" content="Vue d'ensemble et statistiques globales du système." />
-            </Helmet>
+            <PageTitle
+                title="Student Performance Prediction System - Administration"
+                description="System overview and academic statistics."
+            />
             <Box mb={4}>
                 <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
-                    Tableau de Bord Admin
+                    Admin Dashboard
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    Vue d'overview des performances académiques et de l'assiduité.
+                    Overview of academic performance and attendance.
                 </Typography>
                 <Divider sx={{ mt: 2 }} />
             </Box>
@@ -118,38 +118,38 @@ const AdminDashboard = () => {
             <Grid container spacing={3} mb={4}>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard 
-                        title="Total Étudiants"
+                        title="Total Students"
                         value={stats?.cards?.total_students || 0}
                         icon={<GroupsIcon />}
                         color={theme.palette.primary.main}
-                        subtitle="Inscrits cette année"
+                        subtitle="Enrolled this year"
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard 
-                        title="Moyenne Globale"
+                        title="Global Average"
                         value={stats?.cards?.global_avg?.toFixed(2) || "N/A"}
                         icon={<SpeedIcon />}
                         color={theme.palette.info.main}
-                        subtitle="Sur toutes les matières"
+                        subtitle="Across all subjects"
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard 
-                        title="Taux de Présence"
+                        title="Attendance Rate"
                         value={`${stats?.cards?.attendance_rate}%`}
                         icon={<CheckCircleIcon />}
                         color={theme.palette.success.main}
-                        subtitle="Moyenne générale"
+                        subtitle="Overall average"
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard 
-                        title="Étudiants à Risque"
+                        title="At-Risk Students"
                         value={stats?.cards?.at_risk_count || 0}
                         icon={<WarningIcon />}
                         color={theme.palette.error.main}
-                        subtitle="Nécessitent attention"
+                        subtitle="Need attention"
                     />
                 </Grid>
             </Grid>
@@ -162,7 +162,7 @@ const AdminDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Distribution des Performances IA
+                                AI Performance Distribution
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -193,7 +193,7 @@ const AdminDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Tendance de l'Assiduité (Mensuelle)
+                                Monthly Attendance Trend
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -214,7 +214,7 @@ const AdminDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Taux de Réussite par Matière
+                                Success Rate by Subject
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -223,7 +223,7 @@ const AdminDashboard = () => {
                                     <XAxis dataKey="subject" tick={false} /> {/* Hide labels if too long */}
                                     <YAxis domain={[0, 20]} />
                                     <Tooltip />
-                                    <Bar dataKey="success_rate" fill={theme.palette.primary.main} name="Note Moy." />
+                                    <Bar dataKey="success_rate" fill={theme.palette.primary.main} name="Average Grade" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -235,7 +235,7 @@ const AdminDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Charge Enseignant (Top 5)
+                                Teacher Workload (Top 5)
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -244,7 +244,7 @@ const AdminDashboard = () => {
                                     <XAxis type="number" />
                                     <YAxis dataKey="name" type="category" width={100} />
                                     <Tooltip />
-                                    <Bar dataKey="students" fill={theme.palette.secondary.main} name="Nb Étudiants" />
+                                    <Bar dataKey="students" fill={theme.palette.secondary.main} name="Students" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </CardContent>

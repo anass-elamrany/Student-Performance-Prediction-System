@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { 
   Container, 
   Paper, 
@@ -20,6 +19,7 @@ import { Visibility, VisibilityOff, SupervisorAccount, School, Person } from '@m
 import backgroundImage from '../assets/images/background_Loginpage.png';
 
 import { endpoints } from '../services/api';
+import PageTitle from '../components/PageTitle';
 
 const LoginForm = () => {
   const { role } = useParams();
@@ -42,17 +42,17 @@ const LoginForm = () => {
 
   const roleInfo = {
     admin: {
-      title: 'Portail Administration',
+      title: 'Admin Portal',
       icon: <SupervisorAccount fontSize="large" />,
       redirectPath: '/admin/dashboard',
     },
     teacher: {
-      title: 'Espace Enseignant',
+      title: 'Teacher Portal',
       icon: <School fontSize="large" />,
       redirectPath: '/teacher/dashboard',
     },
     student: {
-      title: 'Espace Étudiant',
+      title: 'Student Portal',
       icon: <Person fontSize="large" />,
       redirectPath: '/student/dashboard',
     },
@@ -117,11 +117,11 @@ const LoginForm = () => {
         sessionStorage.setItem('currentUser', JSON.stringify(data.user));
         navigate(roleInfo[role].redirectPath);
       } else {
-        setError(data.message || 'Erreur de connexion');
+        setError(data.message || 'Login failed');
       }
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez réessayer.');
-      console.error('Erreur de connexion:', err);
+      setError('Something went wrong. Please try again.');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -138,10 +138,10 @@ const LoginForm = () => {
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat'
     }}>
-      <Helmet>
-        <title>EduPredict - Connexion {roleInfo[role]?.title}</title>
-        <meta name="description" content="Connectez-vous à votre espace personnel EduPredict." />
-      </Helmet>
+      <PageTitle
+        title={`Student Performance Prediction System - ${roleInfo[role]?.title}`}
+        description="Sign in to your academic portal."
+      />
       <Container 
         maxWidth="sm" 
         sx={{ 
@@ -166,7 +166,7 @@ const LoginForm = () => {
                   fontFamily: '"Plus Jakarta Sans", sans-serif'
                 }}
               >
-                EduPredict
+                Academic Portal
               </Typography>
             </Link>
           </Box>
@@ -199,7 +199,7 @@ const LoginForm = () => {
               {roleInfo[role].title}
             </Typography>
             <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 500 }}>
-              Connectez-vous pour continuer
+              Sign in to continue
             </Typography>
           </Box>
 
@@ -215,7 +215,7 @@ const LoginForm = () => {
               required
               fullWidth
               id="username"
-              label="Nom d'utilisateur"
+              label="Username"
               name="username"
               autoComplete="username"
               autoFocus
@@ -229,7 +229,7 @@ const LoginForm = () => {
               required
               fullWidth
               name="password"
-              label="Mot de passe"
+              label="Password"
               type={showPassword ? 'text' : 'password'}
               id="password"
               autoComplete="current-password"
@@ -270,13 +270,13 @@ const LoginForm = () => {
               }}
               disabled={loading}
             >
-              {loading ? 'Connexion...' : 'Se connecter'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </Button>
             
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', width: '100%' }}>
               <Link to="/login" style={{ textDecoration: 'none' }}>
                 <Button variant="text" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                  ← Choisir un autre rôle
+                  Back to role selection
                 </Button>
               </Link>
             </Box>

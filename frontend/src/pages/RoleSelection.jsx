@@ -2,12 +2,10 @@
 import React from 'react';
 import { Link } from "react-router-dom"
 import { Box, Typography, Button, Container, Paper, Grid, useTheme, alpha } from "@mui/material"
-import { Helmet } from 'react-helmet-async';
 import SchoolIcon from "@mui/icons-material/School"
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount"
 import PersonIcon from "@mui/icons-material/Person"
-import Navbar from "../components/Navbar"
-import Footer from "../components/Footer"
+import PageTitle from "../components/PageTitle"
 import backgroundImage from '../assets/images/background_Loginpage.png'; // Reusing the background for consistency
 
 const SelectionRole = () => {
@@ -16,22 +14,22 @@ const SelectionRole = () => {
   const roles = [
     {
       id: "admin",
-      title: "Administrateur",
-      description: "Gestion globale et paramétrage du système",
+      title: "Administrator",
+      description: "Global management and system settings",
       icon: <SupervisorAccountIcon sx={{ fontSize: 60 }} />,
       color: theme.palette.primary.main,
     },
     {
       id: "teacher",
-      title: "Enseignant",
-      description: "Suivi des performances et détection des risques",
+      title: "Teacher",
+      description: "Performance monitoring and risk detection",
       icon: <SchoolIcon sx={{ fontSize: 60 }} />,
       color: theme.palette.secondary.main, // Uses Purple from theme
     },
     {
       id: "student",
-      title: "Étudiant",
-      description: "Consultation des résultats et orientation",
+      title: "Student",
+      description: "Grades, progress and academic guidance",
       icon: <PersonIcon sx={{ fontSize: 60 }} />,
       color: theme.palette.info.main,
     },
@@ -59,10 +57,10 @@ const SelectionRole = () => {
         zIndex: 0
       }
     }}>
-      <Helmet>
-        <title>EduPredict - Sélection du Rôle</title>
-        <meta name="description" content="Veuillez sélectionner votre espace (Admin, Enseignant, Étudiant) pour vous connecter." />
-      </Helmet>
+      <PageTitle
+        title="Student Performance Prediction System - Role Selection"
+        description="Select your role to sign in."
+      />
     <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
       <Container 
         maxWidth="lg" 
@@ -89,7 +87,7 @@ const SelectionRole = () => {
                 mb: 2
               }}
             >
-              Bienvenue !
+              Welcome
             </Typography>
             <Typography 
               variant="h5" 
@@ -102,7 +100,7 @@ const SelectionRole = () => {
                 lineHeight: 1.6
               }}
             >
-              Veuillez sélectionner votre espace pour accéder à votre tableau de bord personnalisé
+              Select your role to access your dashboard
             </Typography>
           </Box>
 
@@ -145,20 +143,7 @@ const SelectionRole = () => {
                           color: '#4a5568'
                         },
                         '& .role-arrow': {
-                          color: role.color, // Show role color on hover for contrast with white background? User said "it should be white". Let's stick to white or maybe role color if background becomes white? 
-                          // Wait, if hover background is white, white text is invisible.
-                          // User said "it should be white" and "displayed before hover".
-                          // Before hover: background is glass (dark/transparent), white text works.
-                          // On hover: background is white. White text is invisible.
-                          // I should probably keep it white before hover, and role.color on hover?
-                          // But user said "it should be white". If I make it white always, I must ensure background isn't white on hover OR background is dark enough.
-                          // The hover effect makes background: 'rgba(255, 255, 255, 0.95)'.
-                          // So white text will be invisible on hover.
-                          // I will assume they want white TEXT generally. I'll act smart:
-                          // Default: color: 'white', opacity: 1.
-                          // Hover: color: role.color (to be visible on white card).
-                          // Re-reading: "button conexion it should be white and displyed befor the hover"
-                          // It implies the state BEFORE hover should be white and visible.
+                          color: role.color, 
                           opacity: 1,
                           transform: 'translateX(5px)'
                         }
@@ -227,7 +212,7 @@ const SelectionRole = () => {
                         alignItems: 'center'
                       }}
                     >
-                      Connexion →
+                      Sign in →
                     </Box>
                   </Paper>
                 </Link>
@@ -255,7 +240,7 @@ const SelectionRole = () => {
                 }
               }}
             >
-              ← Retour à l'accueil
+              Back to home
             </Button>
           </Box>
       

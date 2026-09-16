@@ -4,11 +4,11 @@ from django.utils import timezone
 from django.db.models import Avg
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import status
 
 from ..models import Note, Matiere, Alerte, Recommandation
+from ..permissions import IsStudentUserType
 from ..serializers import NoteSerializer
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def get_academic_orientation(student_notes):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStudentUserType])
 def get_student_notes(request):
     if request.user.user_type != 'student':
         return Response({'success': False, 'message': 'Accès non autorisé'}, status=status.HTTP_403_FORBIDDEN)
@@ -49,7 +49,7 @@ def get_student_notes(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStudentUserType])
 def student_dashboard(request):
     """
     Improved version with better error handling and null checks
@@ -139,7 +139,7 @@ def student_dashboard(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStudentUserType])
 def student_recommendations(request):
     """
     API view for student's recommendations
@@ -194,7 +194,7 @@ def student_recommendations(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStudentUserType])
 def student_alerts(request):
     try:
         if not hasattr(request.user, 'is_etudiant') or not request.user.is_etudiant():

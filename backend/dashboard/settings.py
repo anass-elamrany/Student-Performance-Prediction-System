@@ -15,7 +15,7 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com').split(',')
 AUTH_USER_MODEL = 'data.Utilisateur'
@@ -45,18 +45,17 @@ REST_FRAMEWORK = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    
 ]
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Replace with your frontend's URL
+    "http://localhost:3000",
+    "http://localhost:5173",
 ]
 CSRF_COOKIE_SAMESITE = 'Lax'  # Or 'None' if using cross-site
 CSRF_COOKIE_HTTPONLY = False  # False because we need it accessible from JavaScript
@@ -69,7 +68,7 @@ SESSION_COOKIE_SECURE = True  # True in production, can be False in development
 
 # For development only - adjust for production
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True  
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 ROOT_URLCONF = 'dashboard.urls'
 

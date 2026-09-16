@@ -1,14 +1,14 @@
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models import Avg, Count
 from django.db.models.functions import TruncMonth
 from ..models import Note, Performance, Matiere
+from ..permissions import IsAdminUserType
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUserType])
 def get_performance_trend(request):
     """
     Retrieve overall performance trend
@@ -32,7 +32,7 @@ def get_performance_trend(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUserType])
 def get_attendance_rate(request):
     """
     Retrieve attendance rate data
@@ -56,7 +56,7 @@ def get_attendance_rate(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUserType])
 def get_category_distribution(request):
     """
     Retrieve student performance category distribution
@@ -86,7 +86,7 @@ def get_category_distribution(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUserType])
 def get_subject_success_rate(request):
     """
     Retrieve success rate by subject

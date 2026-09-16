@@ -101,7 +101,7 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
       navigate('/login');
     } else {
       // Gérer l'erreur de déconnexion
-      console.error("Échec de la déconnexion");
+      console.error("Logout failed");
     }
   };
 
@@ -179,7 +179,7 @@ const TopBar = ({ open, handleDrawerOpen, setMode }) => {
           >
             <MenuItem onClick={handleLogout}>
               <LogoutIcon sx={{ mr: 1 }} />
-              Déconnexion
+              Sign out
             </MenuItem>
           </Menu>
         </Stack>

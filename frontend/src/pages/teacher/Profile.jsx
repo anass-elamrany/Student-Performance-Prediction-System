@@ -70,12 +70,12 @@ const Profile = () => {
 
         setTeacher(data.data);
       } else {
-        throw new Error("Échec de la récupération des données de profil");
+        throw new Error("Failed to fetch profile data");
       }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error.message || "Échec de la récupération des données de profil",
+        message: error.message || "Failed to fetch profile data",
         severity: "error",
       });
     } finally {
@@ -87,7 +87,7 @@ const Profile = () => {
     if (password !== confirmPassword) {
       setSnackbar({
         open: true,
-        message: "Les mots de passe ne correspondent pas",
+        message: "Passwords do not match",
         severity: "error",
       });
       return;
@@ -96,7 +96,7 @@ const Profile = () => {
     if (password.length < 8) {
       setSnackbar({
         open: true,
-        message: "Le mot de passe doit comporter au moins 8 caractères",
+        message: "Password must be at least 8 characters",
         severity: "warning",
       });
       return;
@@ -115,13 +115,13 @@ const Profile = () => {
       if (response.ok) {
         setSnackbar({
           open: true,
-          message: "Mot de passe mis à jour avec succès",
+          message: "Password updated successfully",
           severity: "success",
         });
         setPassword("");
         setConfirmPassword("");
       } else {
-        throw new Error("Échec de la mise à jour du mot de passe");
+        throw new Error("Failed to update password");
       }
     } catch (error) {
       setSnackbar({
@@ -215,13 +215,13 @@ const Profile = () => {
                 }}
               >
                 <Person sx={{ mr: 1, color: teacherColor }} />
-                Informations Personnelles
+                Personal Information
               </Typography>
               
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField
-                    label="Prénom"
+                    label="First Name"
                     value={teacher.first_name}
                     fullWidth
                     disabled
@@ -245,7 +245,7 @@ const Profile = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
-                    label="Nom"
+                    label="Last Name"
                     value={teacher.last_name}
                     fullWidth
                     disabled
@@ -293,7 +293,7 @@ const Profile = () => {
               />
               
               <TextField
-                label="Téléphone"
+                label="Phone"
                 value={teacher.phone}
                 fullWidth
                 disabled
@@ -352,12 +352,12 @@ const Profile = () => {
                 }}
               >
                 <Lock sx={{ mr: 1, color: teacherColor }} />
-                Changer de Mot de Passe
+                Change Password
               </Typography>
               
               <Box sx={{ p: 1 }}>
                 <TextField
-                  label="Nouveau Mot de Passe"
+                  label="New Password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -371,7 +371,7 @@ const Profile = () => {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          aria-label="Afficher/Masquer le mot de passe"
+                          aria-label="toggle password visibility"
                           onClick={handleTogglePasswordVisibility}
                           edge="end"
                         >
@@ -394,7 +394,7 @@ const Profile = () => {
                 />
                 
                 <TextField
-                  label="Confirmer le Mot de Passe"
+                  label="Confirm Password"
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -408,7 +408,7 @@ const Profile = () => {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          aria-label="Afficher/Masquer le mot de passe de confirmation"
+                          aria-label="toggle confirm password visibility"
                           onClick={handleToggleConfirmPasswordVisibility}
                           edge="end"
                         >
@@ -434,7 +434,7 @@ const Profile = () => {
                 {password && (
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-                      Force du mot de passe :
+                      Password strength:
                     </Typography>
                     <LinearProgress 
                       variant="determinate" 
@@ -456,9 +456,9 @@ const Profile = () => {
                       }}
                     />
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                      {password.length > 0 && password.length < 6 ? "Faible - Minimum 6 caractères" :
-                      password.length >= 6 && password.length < 8 ? "Moyen - Minimum 8 caractères recommandés" :
-                      password.length >= 8 && !/[A-Z]/.test(password) ? "Bon - Ajoutez une majuscule pour plus de sécurité" : 
+                      {password.length > 0 && password.length < 6 ? "Weak - Minimum 6 characters" :
+                      password.length >= 6 && password.length < 8 ? "Medium - Minimum 8 characters recommended" :
+                      password.length >= 8 && !/[A-Z]/.test(password) ? "Good - Add an uppercase letter for more security" : 
                       "Excellent"}
                     </Typography>
                   </Box>
@@ -484,12 +484,12 @@ const Profile = () => {
                     disabled={!password || !confirmPassword}
                     startIcon={<Save />}
                   >
-                    Mettre à Jour le Mot de Passe
+                    Update Password
                   </Button>
                 </Box>
                 
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: "block", textAlign: "center" }}>
-                  Pour une sécurité optimale, utilisez au moins 8 caractères avec des lettres majuscules, minuscules et des chiffres.
+                  For best security, use at least 8 characters with uppercase letters, lowercase letters and numbers.
                 </Typography>
               </Box>
             </CardContent>

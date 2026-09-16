@@ -51,7 +51,7 @@ const StudentStatCard = ({ title, value, icon, color, subtitle }) => {
   );
 };
 
-import { Helmet } from 'react-helmet-async';
+import PageTitle from '../../components/PageTitle';
 
 const StudentDashboard = () => {
     const theme = useTheme();
@@ -76,7 +76,7 @@ const StudentDashboard = () => {
                      setLegacyData(legData);
                      setNewData(nData);
                  } else {
-                     throw new Error("Erreur chargement données");
+                     throw new Error("Failed to load data");
                  }
 
              } catch (err) {
@@ -95,16 +95,16 @@ const StudentDashboard = () => {
 
     return (
         <Box>
-            <Helmet>
-                <title>EduPredict - Tableau de bord Étudiant</title>
-                <meta name="description" content="Suivez vos performances, absences et recommandations." />
-            </Helmet>
+            <PageTitle
+                title="Student Performance Prediction System - Student Dashboard"
+                description="Track your performance, attendance and recommendations."
+            />
              <Box mb={4}>
                 <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
-                    Bienvenue, {legacyData?.name}
+                    Welcome, {legacyData?.name}
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    Votre espace personnel de suivi académique.
+                    Your personal academic monitoring space.
                 </Typography>
                 <Divider sx={{ mt: 2 }} />
             </Box>
@@ -113,39 +113,39 @@ const StudentDashboard = () => {
             <Grid container spacing={3} mb={4}>
                 <Grid item xs={12} sm={6} md={3}>
                     <StudentStatCard 
-                        title="Ma Moyenne"
+                        title="My Average"
                         value={newData?.cards?.my_avg?.toFixed(2) || "N/A"}
                         icon={<School />}
                         color={theme.palette.primary.main}
-                        subtitle="Moyenne actuelle"
+                        subtitle="Current average"
                     />
                 </Grid>
                  <Grid item xs={12} sm={6} md={3}>
                     <StudentStatCard 
-                        title="Statut IA"
+                        title="AI Status"
                         value={newData?.cards?.status_label || "-"}
                         icon={<SentimentSatisfiedAlt />}
                         color={theme.palette.secondary.main}
-                        subtitle="Performance globale"
+                        subtitle="Overall performance"
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <StudentStatCard 
-                        title="Assiduité"
+                        title="Attendance"
                         value={`${newData?.cards?.attendance_rate}%` || "-"}
                         icon={<CheckCircle />}
                         color={theme.palette.success.main}
-                        subtitle="Taux de présence"
+                        subtitle="Attendance rate"
                     />
                 </Grid>
                
                 <Grid item xs={12} sm={6} md={3}>
                     <StudentStatCard 
-                        title="Avertissements"
+                        title="Warnings"
                         value={newData?.cards?.alert_count || 0}
                         icon={<NotificationsActive />}
                         color={theme.palette.warning.main}
-                        subtitle="Alertes actives"
+                        subtitle="Active alerts"
                     />
                 </Grid>
             </Grid>
@@ -158,7 +158,7 @@ const StudentDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Évolution de vos notes
+                                Grade Trend
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                              <ResponsiveContainer width="100%" height={300}>
@@ -179,7 +179,7 @@ const StudentDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Comparatif: Moi vs Classe
+                                Me vs Class Average
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -188,10 +188,10 @@ const StudentDashboard = () => {
                                     <XAxis dataKey="subject" tick={{ fontSize: 12 }} interval={0} />
                                     <YAxis domain={[0, 20]} />
                                     <Tooltip 
-                                        formatter={(value, name) => [value, name === 'Me' ? 'Ma Note' : 'Moyenne Classe']}
+                                        formatter={(value, name) => [value, name === 'Me' ? 'My Grade' : 'Class Average']}
                                         contentStyle={{ borderRadius: 8 }}
                                     />
-                                    <Legend formatter={(value) => value === 'Me' ? 'Ma Note' : 'Moyenne Classe'} />
+                                    <Legend formatter={(value) => value === 'Me' ? 'My Grade' : 'Class Average'} />
                                     <Bar dataKey="Me" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
                                     <Bar dataKey="Class" fill={theme.palette.secondary.main} radius={[4, 4, 0, 0]} />
                                 </BarChart>
@@ -205,7 +205,7 @@ const StudentDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                          <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Performance par Matière
+                                Performance by Subject
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                              <ResponsiveContainer width="100%" height={300}>
@@ -235,7 +235,7 @@ const StudentDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Historique d'Assiduité
+                                Attendance History
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                              <ResponsiveContainer width="100%" height={300}>
@@ -244,7 +244,7 @@ const StudentDashboard = () => {
                                     <XAxis dataKey="name" />
                                     <YAxis />
                                     <Tooltip />
-                                    <Bar dataKey="present" stackId="a" fill={theme.palette.success.main} name="Présent" />
+                                    <Bar dataKey="present" stackId="a" fill={theme.palette.success.main} name="Present" />
                                     <Bar dataKey="absent" stackId="a" fill={theme.palette.error.main} name="Absent" />
                                 </BarChart>
                             </ResponsiveContainer>

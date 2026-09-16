@@ -142,14 +142,14 @@ const StudentRecommendations = () => {
             color: primaryColor 
           }}
         >
-          Mes Recommandations et Alertes
+          My Recommendations and Alerts
         </Typography>
         <Typography 
           variant="subtitle1" 
           color="text.secondary" 
           gutterBottom
         >
-          Consultez vos recommandations personnalisées et alertes importantes
+          View your personalized recommendations and important alerts
         </Typography>
         <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
@@ -168,7 +168,7 @@ const StudentRecommendations = () => {
           label={
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Lightbulb sx={{ mr: 1 }} />
-              Recommandations
+              Recommendations
             </Box>
           } 
           sx={{ 
@@ -180,7 +180,7 @@ const StudentRecommendations = () => {
           label={
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Warning sx={{ mr: 1 }} />
-              Alertes
+              Alerts
               {alerts.length > 0 && (
                 <Box 
                   sx={{
@@ -215,7 +215,7 @@ const StudentRecommendations = () => {
             <Card sx={{ mb: 3, borderLeft: `4px solid ${primaryColor}` }}>
               <CardContent>
                 <Typography variant="h6" color="primary" gutterBottom>
-                  Orientation académique recommandée:
+                  Recommended academic orientation:
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 1 }}>
                   <strong>{recommendations.academic_orientation.orientation}</strong>
@@ -231,7 +231,7 @@ const StudentRecommendations = () => {
           {recommendations.performance_recommendations.length > 0 && (
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" gutterBottom>
-                Recommandations générales
+                General Recommendations
               </Typography>
               <Grid container spacing={2}>
                 {recommendations.performance_recommendations.map((rec, index) => (
@@ -240,7 +240,7 @@ const StudentRecommendations = () => {
                       <CardContent>
                         <Box display="flex" alignItems="center" mb={1}>
                           <Lightbulb color="warning" sx={{ mr: 1 }} />
-                          <Typography variant="subtitle1">Recommandation</Typography>
+                          <Typography variant="subtitle1">Recommendation</Typography>
                         </Box>
                         <Typography variant="body1" sx={{ mb: 2 }}>
                           {rec.message}
@@ -260,7 +260,7 @@ const StudentRecommendations = () => {
           {recommendations.subject_recommendations.length > 0 && (
             <Box>
               <Typography variant="h6" gutterBottom>
-                Recommandations par matière
+                Recommendations by Subject
               </Typography>
               <List sx={{ width: '100%' }}>
                 {recommendations.subject_recommendations.map((rec, index) => (
@@ -282,7 +282,7 @@ const StudentRecommendations = () => {
                       </ListItemIcon>
                       <ListItemText
                         primary={rec.subject}
-                        secondary={`Recommandation générée le ${formatDate(rec.date)}`}
+                        secondary={`Recommendation generated on ${formatDate(rec.date)}`}
                       />
                       <IconButton>
                         {expandedItems.subjectRecs[index] ? <ExpandLess /> : <ExpandMore />}
@@ -294,7 +294,7 @@ const StudentRecommendations = () => {
                           {rec.message}
                         </Typography>
                         <Typography variant="subtitle2" gutterBottom>
-                          Ressources recommandées:
+                          Recommended resources:
                         </Typography>
                         <List dense>
                           {rec.resources.map((resource, i) => (
@@ -322,10 +322,10 @@ const StudentRecommendations = () => {
             <Paper elevation={3} sx={{ p: 4, textAlign: "center" }}>
               <Lightbulb sx={{ fontSize: 60, color: alpha(primaryColor, 0.7), mb: 2 }} />
               <Typography variant="h6" sx={{ mb: 1 }}>
-                Aucune recommandation disponible
+                No recommendations available
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Vos recommandations apparaîtront ici dès qu'elles seront générées.
+                Your recommendations will appear here once they are generated.
               </Typography>
             </Paper>
           )}
@@ -336,10 +336,10 @@ const StudentRecommendations = () => {
             <Paper elevation={3} sx={{ p: 4, textAlign: "center" }}>
               <Notifications sx={{ fontSize: 60, color: alpha(errorColor, 0.7), mb: 2 }} />
               <Typography variant="h6" sx={{ mb: 1 }}>
-                Aucune alerte active
+                No active alerts
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Vous n'avez aucune alerte en ce moment.
+                You do not have any alerts right now.
               </Typography>
             </Paper>
           ) : (
@@ -362,7 +362,7 @@ const StudentRecommendations = () => {
                     </ListItemIcon>
                     <ListItemText
                       primary={alert.message}
-                      secondary={`Générée le ${formatDate(alert.date_creation)}`}
+                      secondary={`Generated on ${formatDate(alert.date_creation)}`}
                     />
                     <IconButton>
                       {expandedItems.alerts[index] ? <ExpandLess /> : <ExpandMore />}
@@ -371,13 +371,13 @@ const StudentRecommendations = () => {
                   <Collapse in={expandedItems.alerts[index]} timeout="auto" unmountOnExit>
                     <Box sx={{ pl: 6, pr: 2, pb: 2 }}>
                       <MuiAlert severity="warning" sx={{ mb: 2 }}>
-                        Cette alerte indique que vous pourriez avoir besoin d'un soutien supplémentaire.
+                        This alert indicates that you may need additional support.
                       </MuiAlert>
                       
                       {alert.course_recommendations?.length > 0 && (
                         <>
                           <Typography variant="subtitle2" gutterBottom>
-                            Matières concernées:
+                            Related subjects:
                           </Typography>
                           {alert.course_recommendations.map((course, i) => (
                             <Box key={i} sx={{ mb: 2 }}>

@@ -3,18 +3,18 @@ import logging
 from django.db.models import Avg, Max, Count, Case, When, Value
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import status
 
 from ..models import Utilisateur, Classe, Matiere, Note, Alerte, Recommandation, Performance
+from ..permissions import IsTeacherUserType
 from ..serializers import UtilisateurSerializer, ClasseSerializer, MatiereSerializer, NoteSerializer
 
 logger = logging.getLogger(__name__)
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_teacher_matieres(request):
     if request.user.user_type != 'teacher':
         return Response({'success': False, 'message': 'Accès non autorisé'}, status=status.HTTP_403_FORBIDDEN)
@@ -25,7 +25,7 @@ def get_teacher_matieres(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_teacher_notes(request):
     if request.user.user_type != 'teacher':
         return Response({'success': False, 'message': 'Accès non autorisé'}, status=status.HTTP_403_FORBIDDEN)
@@ -44,7 +44,7 @@ def get_teacher_notes(request):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def create_or_update_note(request):
     """
     Vue pour créer ou mettre à jour une note.
@@ -84,7 +84,7 @@ def create_or_update_note(request):
 
 @api_view(['DELETE'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def delete_note(request, id):
     """
     Vue pour supprimer une note.
@@ -101,7 +101,7 @@ def delete_note(request, id):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def import_notes(request):
     """
     Vue pour importer des notes à partir d'un fichier CSV.
@@ -149,7 +149,7 @@ def import_notes(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_students_by_matiere(request):
     if request.user.user_type != 'teacher':
         return Response({'success': False, 'message': 'Accès non autorisé'}, status=status.HTTP_403_FORBIDDEN)
@@ -168,7 +168,7 @@ def get_students_by_matiere(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_teacher_classes(request):
     if request.user.user_type != 'teacher':
         return Response({'success': False, 'message': 'Accès non autorisé'}, status=status.HTTP_403_FORBIDDEN)
@@ -179,7 +179,7 @@ def get_teacher_classes(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_teacher_statistics(request):
     try:
         if request.user.user_type != 'teacher':
@@ -217,7 +217,7 @@ def get_teacher_statistics(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_grade_distribution(request):
     if request.user.user_type != 'teacher':
         return Response({'success': False, 'message': 'Accès non autorisé'}, status=status.HTTP_403_FORBIDDEN)
@@ -242,7 +242,7 @@ def get_grade_distribution(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_teacher_alerts(request):
     """
     Vue pour récupérer les alertes pour une matière spécifique
@@ -284,7 +284,7 @@ def get_teacher_alerts(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_teacher_classifications(request):
     """
     Vue pour récupérer les classifications des étudiants par matière.
@@ -355,7 +355,7 @@ def get_teacher_classifications(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def get_teacher_recommendations(request):
     try:
         if request.user.user_type != 'teacher':

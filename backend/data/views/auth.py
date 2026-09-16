@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status
+from ..permissions import IsStudentUserType, IsTeacherUserType
 
 def get_user_info_by_role(user):
     """
@@ -97,7 +98,7 @@ def get_user_info(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def teacher_profile(request):
     """
     Vue pour récupérer les informations du profil de l'enseignant.
@@ -119,7 +120,7 @@ def teacher_profile(request):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def update_teacher_password(request):
     """
     Vue pour mettre à jour le mot de passe de l'enseignant.
@@ -142,7 +143,7 @@ def update_teacher_password(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStudentUserType])
 def student_profile(request):
     """
     Vue pour récupérer les informations du profil de l'étudiant.
@@ -166,7 +167,7 @@ def student_profile(request):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStudentUserType])
 def update_student_password(request):
     """
     Vue pour mettre à jour le mot de passe de l'étudiant.

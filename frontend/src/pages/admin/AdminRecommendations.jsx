@@ -46,7 +46,7 @@ const AdminRecommendations = () => {
       const data = await response.json();
       setClasses(data);
     } catch (error) {
-      showNotification('Erreur de chargement des classes', 'error');
+      showNotification('Failed to load classes', 'error');
     } finally {
       setLoading(prev => ({ ...prev, classes: false }));
     }
@@ -54,7 +54,7 @@ const AdminRecommendations = () => {
 
   const generateRecommendations = async () => {
     if (!selectedClass) {
-      showNotification('Veuillez sélectionner une classe', 'error');
+      showNotification('Select a class', 'error');
       return;
     }
 
@@ -71,10 +71,10 @@ const AdminRecommendations = () => {
       setDataStatus({
         hasData,
         isLoading: false,
-        error: hasData ? null : 'Aucune recommandation générée (pas de notes disponibles?)'
+        error: hasData ? null : 'No recommendations generated. No grades available?'
       });
       
-      showNotification(hasData ? `${result.recommendations.length} recommandations générées` : 'Aucune recommandation générée');
+      showNotification(hasData ? `${result.recommendations.length} recommendations generated` : 'No recommendations generated');
     } catch (error) {
       console.error('Generate recommendations error:', error);
       setDataStatus({ hasData: false, isLoading: false, error: error.message });
@@ -93,7 +93,7 @@ const AdminRecommendations = () => {
   };
 
   const getCurrentClassName = () => {
-    return classes.find(c => c.id === selectedClass)?.nom || 'Classe inconnue';
+    return classes.find(c => c.id === selectedClass)?.nom || 'Unknown class';
   };
 
   const toggleExpandStudent = (studentId) => {
@@ -104,10 +104,10 @@ const AdminRecommendations = () => {
     <Box>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-          Recommandations de Parcours
+          Academic Recommendations
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Générez des recommandations personnalisées pour vos étudiants
+          Generate personalized recommendations for your students
         </Typography>
         <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
@@ -122,14 +122,14 @@ const AdminRecommendations = () => {
           }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="subtitle2" color="text.secondary">Total des Recommandations</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Total Recommendations</Typography>
                 <SchoolIcon fontSize="medium" sx={{ color: theme.palette.primary.main }} />
               </Box>
               <Box>
                 <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
                   {recommendations.length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">Recommandations générées</Typography>
+                <Typography variant="body2" color="text.secondary">Generated recommendations</Typography>
               </Box>
             </CardContent>
           </Card>
@@ -140,14 +140,14 @@ const AdminRecommendations = () => {
         <Grid container spacing={2}>
           <Grid item xs={12} sm={8}>
             <FormControl fullWidth>
-              <InputLabel>Classe</InputLabel>
+              <InputLabel>Class</InputLabel>
               <Select
                 value={selectedClass}
-                label="Classe"
+                label="Class"
                 onChange={(e) => setSelectedClass(e.target.value)}
                 disabled={loading.classes}
               >
-                <MenuItem value=""><em>Sélectionner une classe</em></MenuItem>
+                <MenuItem value=""><em>Select a class</em></MenuItem>
                 {classes.map((cls) => (
                   <MenuItem key={cls.id} value={cls.id}>{cls.nom}</MenuItem>
                 ))}
@@ -163,7 +163,7 @@ const AdminRecommendations = () => {
               fullWidth
               sx={{ height: '56px' }}
             >
-              {loading.recommendations ? <CircularProgress size={24} color="inherit" /> : "Générer les Recommandations"}
+              {loading.recommendations ? <CircularProgress size={24} color="inherit" /> : "Generate Recommendations"}
             </Button>
           </Grid>
         </Grid>
@@ -177,7 +177,7 @@ const AdminRecommendations = () => {
 
       {!dataStatus.isLoading && !dataStatus.hasData && selectedClass && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          {dataStatus.error || 'Aucune recommandation générée. Veuillez vérifier que les notes sont saisies.'}
+          {dataStatus.error || 'No recommendations generated. Make sure grades are entered.'}
         </Alert>
       )}
 
@@ -188,9 +188,9 @@ const AdminRecommendations = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Étudiant</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Student</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold' }}>Performance</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Recommandations</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Recommendations</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -221,7 +221,7 @@ const AdminRecommendations = () => {
                           </Typography>
                           {rec.recommendations.length > 1 && (
                             <Typography variant="body2" color="text.secondary">
-                              + {rec.recommendations.length - 1} autres recommandations
+                              + {rec.recommendations.length - 1} other recommendations
                             </Typography>
                           )}
                         </TableCell>
@@ -238,7 +238,7 @@ const AdminRecommendations = () => {
                               {rec.academic_orientation && (
                                 <Box sx={{ mb: 2 }}>
                                   <Typography variant="subtitle1" gutterBottom>
-                                    Orientation académique recommandée:
+                                    Recommended academic orientation:
                                   </Typography>
                                   <Typography variant="body1" sx={{ mb: 1 }}>
                                     <strong>{rec.academic_orientation.orientation}</strong>: {rec.academic_orientation.description}
@@ -246,7 +246,7 @@ const AdminRecommendations = () => {
                                 </Box>
                               )}
                               <Typography variant="subtitle1" gutterBottom>
-                                Détail des recommandations:
+                                Recommendation details:
                               </Typography>
                               <List dense>
                                 {rec.recommendations.map((item, i) => (
@@ -262,7 +262,7 @@ const AdminRecommendations = () => {
                                         {item.resources && (
                                           <Box sx={{ mt: 1, ml: 4 }}>
                                             <Typography variant="body2" color="text.secondary" gutterBottom>
-                                              Ressources recommandées:
+                                              Recommended resources:
                                             </Typography>
                                             {item.resources.map((resource, j) => (
                                               <Box key={j} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>

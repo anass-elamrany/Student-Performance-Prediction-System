@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import *
+from .models import Alerte, Classe, Matiere, Note, Performance, Recommandation, Utilisateur
 
 
 class UtilisateurSerializer(serializers.ModelSerializer):
@@ -41,17 +41,6 @@ class MatiereSerializer(serializers.ModelSerializer):
         fields = ['id', 'nom', 'coefficient', 'semestre', 'classe', 'classe_id', 'enseignant', 'enseignant_id']
 
 
-class EnseignantSerializer(serializers.ModelSerializer):
-    nom = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Utilisateur
-        fields = ['id', 'username', 'first_name', 'last_name', 'nom']
-    
-    def get_nom(self, obj):
-        return f"{obj.first_name} {obj.last_name}" if obj.first_name or obj.last_name else obj.username
-
-
 class AffectationSerializer(serializers.ModelSerializer):
     classe_nom = serializers.CharField(source='classe.nom', read_only=True)
     
@@ -91,4 +80,3 @@ class RecommandationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recommandation
         fields = '__all__'
-

@@ -38,7 +38,7 @@ const AdminAlerts = () => {
       const data = await response.json();
       setClasses(data);
     } catch (error) {
-      showNotification('Erreur de chargement des classes', 'error');
+      showNotification('Failed to load classes', 'error');
     } finally {
       setLoading(prev => ({ ...prev, classes: false }));
     }
@@ -46,7 +46,7 @@ const AdminAlerts = () => {
 
   const generateAlerts = async () => {
     if (!selectedClass) {
-      showNotification('Veuillez sélectionner une classe', 'error');
+      showNotification('Select a class', 'error');
       return;
     }
 
@@ -63,10 +63,10 @@ const AdminAlerts = () => {
       setDataStatus({
         hasData,
         isLoading: false,
-        error: hasData ? null : 'Aucune alerte générée (pas de notes disponibles?)'
+        error: hasData ? null : 'No alerts generated. No grades available?'
       });
       
-      showNotification(hasData ? `${result.alerts.length} alertes générées` : 'Aucune alerte générée');
+      showNotification(hasData ? `${result.alerts.length} alerts generated` : 'No alerts generated');
     } catch (error) {
       console.error('Generate alerts error:', error);
       setDataStatus({ hasData: false, isLoading: false, error: error.message });
@@ -85,7 +85,7 @@ const AdminAlerts = () => {
   };
 
   const getCurrentClassName = () => {
-    return classes.find(c => c.id === selectedClass)?.nom || 'Classe inconnue';
+    return classes.find(c => c.id === selectedClass)?.nom || 'Unknown class';
   };
 
   const toggleExpandStudent = (studentId) => {
@@ -96,10 +96,10 @@ const AdminAlerts = () => {
     <Box>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-          Système d'Alerte
+          Alert System
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Surveillez les performances de vos étudiants
+          Monitor student performance
         </Typography>
         <Divider sx={{ mt: 1, mb: 3 }} />
       </Box>
@@ -114,14 +114,14 @@ const AdminAlerts = () => {
           }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="subtitle2" color="text.secondary">Total des Alertes</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Total Alerts</Typography>
                 <AlertIcon fontSize="medium" sx={{ color: theme.palette.primary.main }} />
               </Box>
               <Box>
                 <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
                   {alerts.length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">Alertes générées</Typography>
+                <Typography variant="body2" color="text.secondary">Generated alerts</Typography>
               </Box>
             </CardContent>
           </Card>
@@ -130,19 +130,19 @@ const AdminAlerts = () => {
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Sélectionner une classe pour générer des alertes
+          Select a class to generate alerts
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
             <FormControl fullWidth>
-              <InputLabel>Classe</InputLabel>
+              <InputLabel>Class</InputLabel>
               <Select
                 value={selectedClass}
-                label="Classe"
+                label="Class"
                 onChange={(e) => setSelectedClass(e.target.value)}
                 disabled={loading.classes}
               >
-                <MenuItem value=""><em>Sélectionner une classe</em></MenuItem>
+                <MenuItem value=""><em>Select a class</em></MenuItem>
                 {classes.map((cls) => (
                   <MenuItem key={cls.id} value={cls.id}>{cls.nom}</MenuItem>
                 ))}
@@ -158,7 +158,7 @@ const AdminAlerts = () => {
               fullWidth
               sx={{ height: '56px' }}
             >
-              {loading.alerts ? <CircularProgress size={24} color="inherit" /> : "Générer les Alertes"}
+              {loading.alerts ? <CircularProgress size={24} color="inherit" /> : "Generate Alerts"}
             </Button>
           </Grid>
         </Grid>
@@ -166,7 +166,7 @@ const AdminAlerts = () => {
 
       {!dataStatus.isLoading && !dataStatus.hasData && selectedClass && (
         <Alert severity="info" icon={<SchoolIcon />} sx={{ mb: 3 }}>
-          {dataStatus.error || 'Aucune alerte générée. Veuillez vérifier que les notes sont saisies.'}
+          {dataStatus.error || 'No alerts generated. Make sure grades are entered.'}
         </Alert>
       )}
 
@@ -176,7 +176,7 @@ const AdminAlerts = () => {
             <Card sx={{ mb: 3, bgcolor: 'error.light' }}>
               <CardContent>
                 <Typography variant="h6" color="error.dark">
-                  {alerts.length} Étudiant(s) à Risque - {getCurrentClassName()}
+                  {alerts.length} At-Risk Student(s) - {getCurrentClassName()}
                 </Typography>
               </CardContent>
             </Card>
@@ -189,9 +189,9 @@ const AdminAlerts = () => {
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Étudiant</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Student</TableCell>
                         <TableCell align="center" sx={{ fontWeight: 'bold' }}>Statut</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Message d'Alerte</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Alert Message</TableCell>
                         <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                       </TableRow>
                     </TableHead>
@@ -227,7 +227,7 @@ const AdminAlerts = () => {
                               <Collapse in={expandedStudent === alert.student_id}>
                                 <Box sx={{ p: 2, bgcolor: 'background.default' }}>
                                   <Typography variant="subtitle1" gutterBottom>
-                                    Recommandations de cours:
+                                    Course recommendations:
                                   </Typography>
                                   <List dense>
                                     {alert.course_recommendations?.map((course, i) => (

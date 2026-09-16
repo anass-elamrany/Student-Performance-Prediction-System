@@ -1,9 +1,9 @@
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models import Avg, Count
 from ..models import Utilisateur, Classe, Matiere, Note, Performance, Alerte
+from ..permissions import IsAdminUserType, IsStudentUserType, IsTeacherUserType
 import logging
 import math
 
@@ -31,7 +31,7 @@ def get_performance_distribution(students_queryset):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUserType])
 def admin_dashboard_stats(request):
     """
     Returns data for Admin Dashboard:
@@ -115,7 +115,7 @@ def admin_dashboard_stats(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsTeacherUserType])
 def teacher_dashboard_stats(request):
     """
     Returns data for Teacher Dashboard:
@@ -206,7 +206,7 @@ def teacher_dashboard_stats(request):
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStudentUserType])
 def student_dashboard_stats(request):
     """
     Returns data for Student Dashboard:

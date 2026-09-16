@@ -56,7 +56,7 @@ const StatCard = ({ title, value, icon, color, subtitle }) => {
   );
 };
 
-import { Helmet } from 'react-helmet-async';
+import PageTitle from '../../components/PageTitle';
 
 const TeacherDashboard = () => {
     const theme = useTheme();
@@ -74,7 +74,7 @@ const TeacherDashboard = () => {
                 if (data.success) {
                     setStats(data);
                 } else {
-                    throw new Error(data.message || "Impossible de charger les statistiques.");
+                    throw new Error(data.message || "Unable to load statistics.");
                 }
             } catch (err) {
                 console.error(err);
@@ -92,16 +92,16 @@ const TeacherDashboard = () => {
 
     return (
         <Box>
-            <Helmet>
-                <title>EduPredict - Espace Enseignant</title>
-                <meta name="description" content="Tableau de bord enseignant : classes, étudiants, performances." />
-            </Helmet>
+            <PageTitle
+                title="Student Performance Prediction System - Teacher Portal"
+                description="Teacher dashboard: classes, students and performance."
+            />
             <Box mb={4}>
                 <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
-                    Espace Enseignant
+                    Teacher Portal
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    Suivi des classes, performances et engagement.
+                    Class, performance and engagement monitoring.
                 </Typography>
                 <Divider sx={{ mt: 2 }} />
             </Box>
@@ -110,38 +110,38 @@ const TeacherDashboard = () => {
             <Grid container spacing={3} mb={4}>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard 
-                        title="Mes Classes"
+                        title="My Classes"
                         value={stats?.cards?.total_classes || 0}
                         icon={<ClassIcon />}
                         color={theme.palette.primary.main}
-                        subtitle="Classes actives"
+                        subtitle="Active classes"
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard 
-                        title="Total Étudiants"
+                        title="Total Students"
                         value={stats?.cards?.total_students || 0}
                         icon={<GroupsIcon />}
                         color={theme.palette.secondary.main}
-                        subtitle="Sous votre responsabilité"
+                        subtitle="Under your responsibility"
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard 
-                        title="Moyenne Générale"
+                        title="General Average"
                         value={stats?.cards?.my_avg || "N/A"}
                         icon={<TrendingUpIcon />}
                         color={theme.palette.success.main}
-                        subtitle="Moyenne de vos matières"
+                        subtitle="Average across your subjects"
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard 
-                        title="Étudiants à Risque"
+                        title="At-Risk Students"
                         value={stats?.cards?.at_risk_count || 0}
                         icon={<WarningIcon />}
                         color={theme.palette.error.main}
-                        subtitle="Nécessitent soutien"
+                        subtitle="Need support"
                     />
                 </Grid>
             </Grid>
@@ -154,7 +154,7 @@ const TeacherDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Comparaison des Classes (Moyenne)
+                                Class Comparison (Average)
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -163,7 +163,7 @@ const TeacherDashboard = () => {
                                     <XAxis dataKey="name" />
                                     <YAxis domain={[0, 20]} />
                                     <Tooltip />
-                                    <Bar dataKey="avg" fill={theme.palette.primary.main} name="Moyenne" />
+                                    <Bar dataKey="avg" fill={theme.palette.primary.main} name="Average" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -175,7 +175,7 @@ const TeacherDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Distribution des Notes
+                                Grade Distribution
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -184,7 +184,7 @@ const TeacherDashboard = () => {
                                     <XAxis dataKey="range" />
                                     <YAxis allowDecimals={false} />
                                     <Tooltip />
-                                    <Bar dataKey="count" fill={theme.palette.secondary.main} name="Nombre d'étudiants" />
+                                    <Bar dataKey="count" fill={theme.palette.secondary.main} name="Number of students" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -196,7 +196,7 @@ const TeacherDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Taux de Réussite (Global)
+                                Global Success Rate
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -228,7 +228,7 @@ const TeacherDashboard = () => {
                     <Card elevation={2} sx={{ height: 400 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Activité et Participation (Tendance)
+                                Activity and Participation Trend
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
                             <ResponsiveContainer width="100%" height={300}>
@@ -239,7 +239,7 @@ const TeacherDashboard = () => {
                                     <Tooltip />
                                     <Legend />
                                     <Line type="monotone" dataKey="msgs" stroke={theme.palette.primary.main} name="Messages" strokeWidth={2} />
-                                    <Line type="monotone" dataKey="files" stroke={theme.palette.secondary.main} name="Fichiers" strokeWidth={2} />
+                                    <Line type="monotone" dataKey="files" stroke={theme.palette.secondary.main} name="Files" strokeWidth={2} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </CardContent>

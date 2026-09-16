@@ -1,7 +1,7 @@
 // @ts-ignore
 
 // 1. Définition des URLs
-const PROD_URL = "https://edupredict-5910.onrender.com/api";
+const PROD_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 const DEV_URL = "http://localhost:8000/api";
 
 // 2. Détection infaillible basée sur le navigateur
